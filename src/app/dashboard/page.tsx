@@ -75,7 +75,7 @@ export default function Page() {
   return (
     <div>
       <div className="flex flex-col gap-4">
-        <SiteHeader title="Dashboard" />
+        <SiteHeader title="Dashboard"         button={<AdicionarUsuarioButton setDialogOpen={setDialogOpen} />}/>
 
         <div className="px-4 lg:px-6">
           <h2 className="text-xl font-semibold mb-4">Visão geral</h2>
