@@ -1,8 +1,8 @@
-interface PaymentMethods {
+export interface PaymentMethods {
     paymentMethods: PaymentMethod[]
 }
 
-interface PaymentMethod {
+export interface PaymentMethod {
     id: string
     name: string
     is_requires_due_date: boolean

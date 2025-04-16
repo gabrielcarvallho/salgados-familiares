@@ -1,4 +1,4 @@
-interface Costumer {
+export interface Costumer {
     company_name: string
     brand_name: string
     cnpj: string
@@ -19,6 +19,8 @@ export interface Address {
     observation: string
 }
 
+export type AddressUpdate = Partial<Address>;
+
 interface Contact {
     name: string
     date_of_birth: string
@@ -26,17 +28,9 @@ interface Contact {
     contact_email: string
 }
 
-interface Costumers {
+export interface Costumers {
     costumers: Costumer[]
 }
 
-interface updateCostumer {
-    id: string
-    company_name?: string
-    brand_name?: string
-    cnpj?: string
-    phone_number?: string
-    email?: string
-    state_tax_registration?: string
-    contact?: Contact
-}
+export type CostumerUpdate = Partial<Costumer>;
+

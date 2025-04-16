@@ -27,7 +27,7 @@ import {
 import { z } from "zod";
 import { useState } from "react";
 
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/lib/use-mobile";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
