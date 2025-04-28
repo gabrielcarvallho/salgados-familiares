@@ -5,7 +5,7 @@ import { Bell } from "lucide-react"
 
 interface SiteHeaderProps {
   title: string
-  button?: React.ReactNode
+  button?: any
 }
 
 export function SiteHeader({ title, button }: SiteHeaderProps) {

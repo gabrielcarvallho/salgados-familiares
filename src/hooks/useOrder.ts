@@ -1,19 +1,68 @@
 import { useState } from "react";
 import axiosInstance from "@/lib/axios";
-import { useApiBase } from "./api/useApiBase"; // Ajuste o caminho de importação conforme necessário
+import { useApiBase } from "./api/useApiBase";
 import type {
-  Order,
-  Orders,
+  OrderRequest,
+  OrderResponse,
+  OrdersResponse,
   OrderStatus,
   OrderWithAddress,
 } from "@/types/Order";
-import { PaymentMethods } from "@/types/PaymentMethod";
+import { PaymentMethodsResponse } from "@/types/PaymentMethod";
 
-export function Order() {
+// Hook para obter uma ordem por ID (usando SWR)
+export function useOrderById(id: string) {
+  const { data, error, isLoading } = useApiBase<OrderResponse>(
+    `/Customers/?id=${id}`
+  );
+  return {
+    Customer: data ?? null,
+    isLoading,
+    isError: error ? String(error) : null,
+  };
+}
+
+// Hook para listar todas as ordens (usando SWR)
+export function useOrderList() {
+  const { data, error, isLoading } =
+    useApiBase<OrdersResponse>(`/orders/?list`);
+  return {
+    orders: data?.orders ?? [], // garante um array mesmo se der erro
+    isLoading,
+    isError: error ? String(error) : null,
+  };
+}
+
+// Hook para obter métodos de pagamento (usando SWR)
+export function usePaymentMethods() {
+  const { data, error, isLoading } = useApiBase<PaymentMethodsResponse>(
+    `/orders/payment-methods/`
+  );
+  return {
+    paymentMethods: data?.paymentMethods ?? [],
+    isLoading,
+    isError: error ? String(error) : null,
+  };
+}
+
+// Hook para obter status de ordens (usando SWR)
+export function useOrderStatus() {
+  const { data, error, isLoading } = useApiBase<OrderStatus>(
+    `/orders/payment-methods/`
+  );
+  return {
+    orderStatus: data ?? [],
+    isLoading,
+    isError: error ? String(error) : null,
+  };
+}
+
+// Hook para operações de mutação (POST, DELETE)
+export function useOrder() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const create = async (order: Order) => {
+  const create = async (order: OrderRequest) => {
     setIsLoading(true);
     setError(null);
 
@@ -24,7 +73,7 @@ export function Order() {
       return response;
     } catch (error: any) {
       setError(
-        error.response?.data?.detail || "Ocorreu um erro ao criar usuário"
+        error.response?.data?.detail || "Ocorreu um erro ao criar ordem"
       );
       throw new Error(error);
     } finally {
@@ -43,54 +92,13 @@ export function Order() {
       return response;
     } catch (error: any) {
       setError(
-        error.response?.data?.detail || "Ocorreu um erro ao criar usuário"
+        error.response?.data?.detail ||
+          "Ocorreu um erro ao criar ordem com endereço"
       );
       throw new Error(error);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const getById = (id: string) => {
-    const { data, error, isLoading } = useApiBase<Order>(
-      `/costumers/?id=${id}`
-    );
-    return {
-      costumer: data ?? null,
-      isLoading,
-      isError: error ? String(error) : null,
-    };
-  };
-
-  const getList = () => {
-    const { data, error, isLoading } = useApiBase<Orders>(`/orders/?list`);
-    return {
-      orders: data?.orders ?? [], // garante um array mesmo se der erro
-      isLoading,
-      isError: error ? String(error) : null,
-    };
-  };
-
-  const getPaymentMethods = () => {
-    const { data, error, isLoading } = useApiBase<PaymentMethods>(
-      `/orders/payment-methods/`
-    );
-    return {
-      paymentMethods: data?.paymentMethods ?? [],
-      isLoading,
-      isError: error ? String(error) : null,
-    };
-  };
-
-  const getOrderStatus = () => {
-    const { data, error, isLoading } = useApiBase<OrderStatus>(
-      `/orders/payment-methods/`
-    );
-    return {
-      orderStatus: data?.order_status ?? [],
-      isLoading,
-      isError: error ? String(error) : null,
-    };
   };
 
   const del = async (id: string) => {
@@ -102,7 +110,7 @@ export function Order() {
       return response;
     } catch (error: any) {
       setError(
-        error.response?.data?.detail || "Ocorreu um erro ao criar usuário"
+        error.response?.data?.detail || "Ocorreu um erro ao deletar ordem"
       );
       throw new Error(error);
     } finally {
@@ -113,12 +121,8 @@ export function Order() {
   return {
     isLoading,
     error,
-    getById,
-    getList,
     create,
-    getOrderStatus,
-    del,
-    getPaymentMethods,
     createWithAddress,
+    del,
   };
 }

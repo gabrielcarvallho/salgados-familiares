@@ -5,7 +5,18 @@ import { useApiBase } from "./api/useApiBase";
 import { Groups } from "@/types/User";
 import { Login } from "@/types/Auth";
 
-export function Auth() {
+// Hook para obter grupos de autorização (usando SWR)
+export function useAuthGroups() {
+  const { data, error, isLoading } = useApiBase<Groups>(`/accounts/groups/`);
+  return {
+    groups: data?.groups ?? [],
+    isLoading,
+    isError: error ? String(error) : null,
+  };
+}
+
+// Hook para operações de autenticação (login/logout)
+export function useAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -15,9 +26,7 @@ export function Auth() {
     setError(null);
 
     try {
-      const response = await axiosInstance.post("/accounts/token/", {
-        login,
-      });
+      const response = await axiosInstance.post("/accounts/token/", login);
       router.push("/dashboard");
       return true;
     } catch (error: any) {
@@ -35,12 +44,12 @@ export function Auth() {
     setError(null);
 
     try {
-      const response = await axiosInstance.post("/accounts/token/logout", {});
+      const response = await axiosInstance.post("/accounts/token/logout/", {});
       router.push("/dashboard");
       return response;
     } catch (error: any) {
       setError(
-        error.response?.data?.detail || "Ocorreu um erro ao efetuar o login"
+        error.response?.data?.detail || "Ocorreu um erro ao efetuar o logout"
       );
       throw new Error(error);
     } finally {
@@ -48,14 +57,5 @@ export function Auth() {
     }
   };
 
-  const getAuthGroups = (id: string) => {
-    const { data, error, isLoading } = useApiBase<Groups>(`/accounts/groups/`);
-    return {
-      group: data?.groups ?? [],
-      isLoading,
-      isError: error ? String(error) : null,
-    };
-  };
-
-  return { isLoading, error, login, logout, getAuthGroups };
+  return { isLoading, error, login, logout };
 }

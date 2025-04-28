@@ -1,13 +1,49 @@
 import { useState } from "react";
 import axiosInstance from "@/lib/axios";
 import { useApiBase } from "./api/useApiBase";
-import type { Invite, User, Users } from "@/types/User";
+import { InviteRequest, UserResponse, UsersResponse } from "@/types/User";
 
-export function User() {
+// Hook para obter o usuário atual (usando SWR)
+export function useCurrentUser() {
+  const { data, error, isLoading } = useApiBase<{ user: UserResponse }>(
+    `/accounts/users`
+  );
+  return {
+    user: data?.user ?? null,
+    isLoading,
+    isError: error ? String(error) : null,
+  };
+}
+
+// Hook para obter um usuário por ID (usando SWR)
+export function useUserById(id: string) {
+  const { data, error, isLoading } = useApiBase<{ user: UserResponse }>(
+    `/accounts/users/?id=${id}`
+  );
+  return {
+    user: data?.user ?? null,
+    isLoading,
+    isError: error ? String(error) : null,
+  };
+}
+
+// Hook para listar todos os usuários (usando SWR)
+export function useUserList() {
+  const { data, error, isLoading } = useApiBase<UsersResponse>(
+    `/accounts/users/?list`
+  );
+  return {
+    users: data?.users ?? [], // garante um array mesmo se der erro
+    isLoading,
+    isError: error ? String(error) : null,
+  };
+}
+
+export function useUser() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const create = async (user: User, token: string) => {
+  const create = async (user: UserResponse, token: string) => {
     setIsLoading(true);
     setError(null);
 
@@ -29,40 +65,7 @@ export function User() {
     }
   };
 
-  const getUser = () => {
-    const { data, error, isLoading } = useApiBase<{ user: User }>(
-      `/accounts/users`
-    );
-    return {
-      user: data?.user ?? null,
-      isLoading,
-      isError: error ? String(error) : null,
-    };
-  };
-
-  const getById = (id: string) => {
-    const { data, error, isLoading } = useApiBase<{ user: User }>(
-      `/accounts/users/?id=${id}`
-    );
-    return {
-      user: data?.user ?? null,
-      isLoading,
-      isError: error ? String(error) : null,
-    };
-  };
-
-  const getList = () => {
-    const { data, error, isLoading } = useApiBase<Users>(
-      `/accounts/users/?list`
-    );
-    return {
-      users: data?.users ?? [], // garante um array mesmo se der erro
-      isLoading,
-      isError: error ? String(error) : null,
-    };
-  };
-
-  const invite = async (user: Invite) => {
+  const invite = async (user: InviteRequest) => {
     setIsLoading(true);
     setError(null);
 
@@ -73,7 +76,7 @@ export function User() {
       return response;
     } catch (error: any) {
       setError(
-        error.response?.data?.detail || "Ocorreu um erro ao criar usuário"
+        error.response?.data?.detail || "Ocorreu um erro ao convidar usuário"
       );
       throw new Error(error);
     } finally {
@@ -93,7 +96,7 @@ export function User() {
       return response;
     } catch (error: any) {
       setError(
-        error.response?.data?.detail || "Ocorreu um erro ao criar usuário"
+        error.response?.data?.detail || "Ocorreu um erro ao deletar usuário"
       );
       throw new Error(error);
     } finally {
@@ -101,5 +104,5 @@ export function User() {
     }
   };
 
-  return { isLoading, error, getById, getList, create, invite, del, getUser };
+  return { isLoading, error, create, invite, del };
 }

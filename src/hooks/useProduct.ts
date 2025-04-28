@@ -1,24 +1,51 @@
 import { useState } from "react";
 import axiosInstance from "@/lib/axios";
 import { useApiBase } from "./api/useApiBase";
-import type { Product, Products, ProductUpdate } from "@/types/Product";
+import { ProductRequest, ProductResponse, ProductsResponse, ProductUpdateRequest } from "@/types/Product";
 
-export function Product() {
+// Hook para listar produtos (usando SWR)
+// Corrigir a tipagem e acesso aos dados
+export function useProductList(page = 1, page_size = 10) {
+  const { data, error, isLoading } = useApiBase<{
+    count: number;
+    products: ProductResponse[]; // Alterado de 'results' para 'products'
+  }>(`/products/?list&page=${page}&page_size=${page_size}`);
+
+  
+  return {
+    data,
+    products: data?.products ?? [], // Acessa a propriedade correta
+    totalItems: data?.count ?? 0,
+    isLoading,
+    isError: error ? String(error) : null,
+    
+  };
+}
+
+// Hook para obter produto por ID (usando SWR)
+export function useProductById(id: string) {
+  const { data, error, isLoading } = useApiBase<{ product: ProductRequest }>(`/products/?id=${id}`);
+  return {
+    product: data?.product ?? null,
+    isLoading,
+    isError: error ? String(error) : null,
+  };
+}
+
+export function useProduct() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const create = async (product: Product) => {
+  const create = async (product: ProductRequest) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await axiosInstance.post(`/products`, {
-        product,
-      });
+      const response = await axiosInstance.post(`/products/`, product);
       return response;
     } catch (error: any) {
       setError(
-        error.response?.data?.detail || "Ocorreu um erro ao criar usuário"
+        error.response?.data?.detail || "Ocorreu um erro ao criar produto"
       );
       throw new Error(error);
     } finally {
@@ -26,40 +53,18 @@ export function Product() {
     }
   };
 
-  const getById = (id: string) => {
-    const { data, error, isLoading } = useApiBase<{ product: Product }>(
-      `/products/?id=${id}`
-    );
-    return {
-      product: data?.product ?? null,
-      isLoading,
-      isError: error ? String(error) : null,
-    };
-  };
-
-  const getList = (id: string) => {
-    const { data, error, isLoading } = useApiBase<Products>(
-      `/products/?id=${id}`
-    );
-    return {
-      products: data?.products ?? [], // garante um array mesmo se der erro
-      isLoading,
-      isError: error ? String(error) : null,
-    };
-  };
-
-  const update = async (product: ProductUpdate) => {
+  const update = async (product: ProductUpdateRequest) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await axiosInstance.patch(`/products`, {
+      const response = await axiosInstance.patch(`/products/`, 
         product,
-      });
+      );
       return response;
     } catch (error: any) {
       setError(
-        error.response?.data?.detail || "Ocorreu um erro ao criar usuário"
+        error.response?.data?.detail || "Ocorreu um erro ao atualizar produto"
       );
       throw new Error(error);
     } finally {
@@ -76,7 +81,7 @@ export function Product() {
       return response;
     } catch (error: any) {
       setError(
-        error.response?.data?.detail || "Ocorreu um erro ao criar usuário"
+        error.response?.data?.detail || "Ocorreu um erro ao deletar produto"
       );
       throw new Error(error);
     } finally {
@@ -84,5 +89,5 @@ export function Product() {
     }
   };
 
-  return { isLoading, error, getById, getList, create, update, del };
+  return { isLoading, error, create, update, del };
 }
