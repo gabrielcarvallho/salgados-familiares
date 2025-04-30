@@ -23,15 +23,7 @@ import {
 } from "@/components/ui/pagination";
 import { Plus } from "lucide-react";
 import { useState } from "react";
-
-interface AdicionarUsuarioButtonProps {
-  setDialogOpen: (open: boolean) => void;
-}
-
-interface AdicionarUsuarioDialogProps {
-  open: boolean;
-  setOpen: (open: boolean) => void;
-}
+import { DialogUsuario } from "./dialog";
 
 interface OrderUpdate {
   id: string;
@@ -39,7 +31,6 @@ interface OrderUpdate {
 }
 
 export default function Page() {
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("hoje");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
@@ -75,7 +66,7 @@ export default function Page() {
   return (
     <div>
       <div className="flex flex-col gap-4">
-        <SiteHeader title="Dashboard"         button={<AdicionarUsuarioButton setDialogOpen={setDialogOpen} />}/>
+        <SiteHeader title="Dashboard" button={<DialogUsuario />} />
 
         <div className="px-4 lg:px-6">
           <h2 className="text-xl font-semibold mb-4">Visão geral</h2>
@@ -173,49 +164,6 @@ export default function Page() {
           </div>
         </div>
       </div>
-      <AdicionarUsuarioDialog open={dialogOpen} setOpen={setDialogOpen} />
     </div>
   );
 }
-
-function AdicionarUsuarioButton({
-  setDialogOpen,
-}: AdicionarUsuarioButtonProps) {
-  return (
-    <Button
-      onClick={() => setDialogOpen(true)}
-      variant="outline"
-      className="bg-[#FF8F3F] text-primary-foreground"
-    >
-      <Plus />
-      Adicionar Usuário
-    </Button>
-  );
-}
-
-const AdicionarUsuarioDialog = ({
-  open,
-  setOpen,
-}: AdicionarUsuarioDialogProps) => {
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Adicionar Usuário</DialogTitle>
-          <DialogDescription>
-            Preencha os campos abaixo para criar seu novo usuário
-          </DialogDescription>
-          <Input></Input>
-          <Input></Input>
-          <Select></Select>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" type="button">
-            Cancelar
-          </Button>
-          <Button type="submit">Criar usuário</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
