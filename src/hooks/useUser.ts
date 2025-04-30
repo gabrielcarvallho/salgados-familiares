@@ -1,7 +1,13 @@
 import { useState } from "react";
 import axiosInstance from "@/lib/axios";
 import { useApiBase } from "./api/useApiBase";
-import { InviteRequest, UserResponse, UsersResponse } from "@/types/User";
+import {
+  CreateUserRequest,
+  GroupsResponse,
+  InviteRequest,
+  UserResponse,
+  UsersResponse,
+} from "@/types/User";
 
 // Hook para obter o usuário atual (usando SWR)
 export function useCurrentUser() {
@@ -39,20 +45,30 @@ export function useUserList() {
   };
 }
 
+export function useGroupList() {
+  const { data, error, isLoading } = useApiBase<GroupsResponse>(
+    `/accounts/groups/`
+  );
+  return {
+    groups: data?.groups ?? [], // garante um array mesmo se der erro
+    isLoading,
+    isError: error ? String(error) : null,
+  };
+}
+
 export function useUser() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const create = async (user: UserResponse, token: string) => {
+  const create = async (user: CreateUserRequest, token: any) => {
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await axiosInstance.post(
-        `/accounts/users/?token=${token}`,
-        {
-          user,
-        }
+        `/accounts/users/invitation/accepted/?token=${token}`,
+
+        user
       );
       return response;
     } catch (error: any) {
@@ -70,9 +86,9 @@ export function useUser() {
     setError(null);
 
     try {
-      const response = await axiosInstance.post(`/accounts/users/invite`, {
+      const response = await axiosInstance.post(`/accounts/users/invitation/`, 
         user,
-      });
+      );
       return response;
     } catch (error: any) {
       setError(
