@@ -14,9 +14,16 @@ export const groupsResponseSchema = z.object({
 export const userResponseSchema = z.object({
   id: z.string().uuid({ message: "ID de usuário inválido" }),
   email: z.string().email({ message: "Digite um e-mail válido" }),
-  is_admin: z.boolean({ invalid_type_error: "Informe se o usuário é administrador" }),
-  date_joined: z.string().datetime({ offset: true, message: "Formato de data inválido. Use ISO 8601." }),
-  group: groupSchema,
+  is_admin: z.boolean({
+    invalid_type_error: "Informe se o usuário é administrador",
+  }),
+  date_joined: z
+    .string()
+    .datetime({
+      offset: true,
+      message: "Formato de data inválido. Use ISO 8601.",
+    }),
+  groups: z.array(groupSchema),
 });
 
 export const usersResponseSchema = z.object({
@@ -26,15 +33,27 @@ export const usersResponseSchema = z.object({
 // --- Convite ---
 export const inviteRequestSchema = z.object({
   email: z.string().email({ message: "Digite um e-mail válido" }),
-  is_admin: z.boolean({ invalid_type_error: "Informe se o convite é para administrador" }),
-  group: z.number().int({ message: "ID de grupo deve ser um número inteiro" }).optional(),
+  is_admin: z.boolean({
+    invalid_type_error: "Informe se o convite é para administrador",
+  }),
+  group_id: z
+    .number()
+    .int({ message: "ID de grupo deve ser um número inteiro" })
+    .optional(),
 });
 
 // --- Criação de Usuário ---
-export const createUserRequestSchema = z.object({
-  email: z.string().email({ message: "Digite um e-mail válido" }),
-  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
-});
+
+export const createUserRequestSchema = z
+  .object({
+    email: z.string().email({ message: "E-mail inválido" }),
+    password: z.string().min(6, { message: "Mínimo 6 caracteres" }),
+    confirm_password: z.string(),
+  })
+  .refine((data) => data.password === data.confirm_password, {
+    message: "As senhas precisam ser iguais",
+    path: ["confirm_passowrd"], // mostra erro no campo certo
+  });
 
 // --- Types inferidos ---
 export type Group = z.infer<typeof groupSchema>;
@@ -43,3 +62,10 @@ export type UserResponse = z.infer<typeof userResponseSchema>;
 export type UsersResponse = z.infer<typeof usersResponseSchema>;
 export type InviteRequest = z.infer<typeof inviteRequestSchema>;
 export type CreateUserRequest = z.infer<typeof createUserRequestSchema>;
+
+
+export const EMPTY_USER: InviteRequest = {
+    email: "",
+    is_admin: false,
+    group_id: 0
+};
