@@ -2,14 +2,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axiosInstance from "@/lib/axios";
 import { useApiBase } from "./api/useApiBase";
-import { Groups } from "@/types/User";
+import { Group } from "@/types/User";
 import { Login } from "@/types/Auth";
 
 // Hook para obter grupos de autorização (usando SWR)
 export function useAuthGroups() {
-  const { data, error, isLoading } = useApiBase<Groups>(`/accounts/groups/`);
+  const { data, error, isLoading } = useApiBase<Group>(`/accounts/groups/`);
   return {
-    groups: data?.groups ?? [],
+    groups: data ?? [],
     isLoading,
     isError: error ? String(error) : null,
   };
