@@ -21,7 +21,7 @@ export default function ClientsPage() {
     pageSize: 10,
   });
 
-  const { update } = useCustomer();
+  const { update, error: updateError } = useCustomer();
   const { customers, isLoading, isError, totalItems } = useCustomerList(
     pagination.pageIndex + 1,
     pagination.pageSize
@@ -48,8 +48,10 @@ export default function ClientsPage() {
       await update(payload);
       toast.success("Produto atualizado com sucesso!");
     } catch (error) {
-      console.error("Erro ao atualizar produto:", error);
-      toast.error("Falha ao atualizar produto");
+      toast.error("Falha, tente novamente mais tarde!", {
+        description: updateError || String(error),
+        duration: 3000,
+      });      
       throw error;
     }
   };

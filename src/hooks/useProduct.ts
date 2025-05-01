@@ -6,7 +6,7 @@ import { ProductRequest, ProductResponse, ProductsResponse, ProductUpdateRequest
 // Hook para listar produtos (usando SWR)
 // Corrigir a tipagem e acesso aos dados
 export function useProductList(page = 1, page_size = 10) {
-  const { data, error, isLoading } = useApiBase<{
+  const { data, error, isLoading, mutate } = useApiBase<{
     count: number;
     products: ProductResponse[]; // Alterado de 'results' para 'products'
   }>(`/products/?list&page=${page}&page_size=${page_size}`);
@@ -18,6 +18,7 @@ export function useProductList(page = 1, page_size = 10) {
     totalItems: data?.count ?? 0,
     isLoading,
     isError: error ? String(error) : null,
+    mutate,
     
   };
 }

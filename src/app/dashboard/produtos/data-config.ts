@@ -24,7 +24,7 @@ export const columns: ColumnDef<ProductResponse, any>[] = [
     {
       id: "Peso",
       accessorKey: "weight",
-      header: "Peso/unidade",
+      header: "Peso/unidade (g)",
       cell: ({ row }) => row.original.weight,
     },
   ];
@@ -56,8 +56,8 @@ export const columns: ColumnDef<ProductResponse, any>[] = [
       },
       {
         name: "weight",
-        label: "Peso/unidade",
-        type: "number" as const,
+        label: "Peso/unidade (g)",
+        type: "text" as const,
         colSpan: 1,
       },
       {

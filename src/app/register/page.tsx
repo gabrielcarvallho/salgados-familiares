@@ -35,7 +35,7 @@ import { useUser } from "@/hooks/useUser";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { create, isLoading } = useUser();
+  const { create, isLoading, error: registerError } = useUser();
   const searchParms = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -68,12 +68,13 @@ export default function RegisterPage() {
     try {
       await create(data, token);
       toast.success("Sucesso ao registrar!", {
-        description: "Te movendo para o login...",
+        description: "Você está sendo redirecionado para página de login.",
         duration: 3000,
       });
       router.push("/login");
-    } catch (errorLogin) {
-      toast.error("Falha!", {
+    } catch (error) {
+      toast.error("Falha ao registrar usuário.", {
+        description: registerError || String(error),
         duration: 3000,
       });
     }

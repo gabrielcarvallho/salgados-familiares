@@ -17,7 +17,7 @@ export default function ProductsPage() {
     pageSize: 10,
   });
 
-  const { update } = useProduct();
+  const { update, error: updateError } = useProduct();
   const { data, isLoading, isError, totalItems } = useProductList(
     pagination.pageIndex + 1,
     pagination.pageSize
@@ -42,7 +42,10 @@ export default function ProductsPage() {
       toast.success("Produto atualizado com sucesso!");
     } catch (error) {
       console.error("Erro ao atualizar produto:", error);
-      toast.error("Falha ao atualizar produto");
+      toast.error("Falha ao atualizar produto", {
+        description: updateError || String(error),
+        duration: 3000,
+      });
       throw error;
     }
   };

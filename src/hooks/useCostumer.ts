@@ -22,13 +22,14 @@ export function useCustomerById(id: string) {
 
 
 export function useCustomerList(page = 1, page_size = 10) {
-  const { data, error, isLoading } = useApiBase<{
+  const { data, error, isLoading, mutate } = useApiBase<{
     count: number;
     customers: CustomerResponse[]; // Alterado de 'results' para 'products'
   }>(`/customers/?list&page=${page}&page_size=${page_size}`);
 
   
   return {
+    mutate,
     data,
     customers: data?.customers ?? [], // Acessa a propriedade correta
     totalItems: data?.count ?? 0,

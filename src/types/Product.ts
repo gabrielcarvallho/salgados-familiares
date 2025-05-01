@@ -4,11 +4,11 @@ import { z } from "zod";
 export const productRequestSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   price: z.coerce.number().min(0.01, "Preço deve ser maior que 0"),
-  weight: z.coerce.number().min(1, "Peso deve ser maior que 0"),
+  weight: z.string().min(1, "Peso deve ser maior que 0"),
   batch_packages: z.coerce.number().min(1, "Pacotes deve ser maior que 0"),
 });
 export const productUpdateRequestSchema = productRequestSchema.partial().extend({
-  id: z.string().uuid().optional().nullable(),
+  id: z.string().uuid().optional()
 });
 export const productResponseSchema = productRequestSchema.extend({
   id: z.string().uuid(),
@@ -33,6 +33,31 @@ export const productsResponseSchema = z.object({
   previous: paginationSchema.shape.previous,
   products: z.array(productResponseSchema),
 });
+
+// Adicione estas interfaces ao arquivo multiselect.tsx
+// ou ao arquivo de tipos apropriado
+
+export interface ProductOption {
+  label: string;
+  value: string;
+  price: number;
+  id: string;
+}
+
+export interface SelectedItem {
+  name: string;
+  value: string;
+  price: number;
+  quantity: number;
+}
+
+export interface MultiSelectProps {
+  options: ProductOption[];
+  onValueChange: (selectedItems: SelectedItem[]) => void;
+  defaultValue: SelectedItem[];
+  placeholder?: string;
+  disabled?: boolean;
+}
 
 
 export type ProductRequest = z.infer<typeof productRequestSchema>;

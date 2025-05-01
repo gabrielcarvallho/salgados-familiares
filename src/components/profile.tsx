@@ -10,7 +10,7 @@ import { Button } from "./ui/button";
 export const Profile = () => {
   const router = useRouter();
   const { user } = useCurrentUser();
-  const { logout, isLoading } = useAuth();
+  const { logout, isLoading, error: logoutError } = useAuth();
 
   const group = formatGroup(user?.groups?.[0]?.name);
 
@@ -22,8 +22,9 @@ export const Profile = () => {
         duration: 3000,
       });
       router.push("/login");
-    } catch (errorLogin) {
-      toast.error("Falha!", {
+    } catch (error) {
+      toast.error("Falha ao finalizar sessão.", {
+        description: logoutError || String(error),
         duration: 3000,
       });
     }

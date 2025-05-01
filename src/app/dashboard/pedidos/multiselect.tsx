@@ -184,63 +184,42 @@ export const MultiSelect = React.forwardRef<
             {selectedValues.length > 0 ? (
               <div className="flex justify-between items-center w-full">
                 <div className="flex flex-wrap items-center gap-1">
-                  {selectedValues
-                    .slice(0, maxCount)
-                    .map(({ value, quantity }) => {
-                      const option = options.find((o) => o.value === value);
-                      const IconComponent = option?.icon;
-                      return (
-                        <Badge
-                          key={value}
-                          className={cn(
-                            "flex items-center gap-2",
-                            multiSelectVariants({ variant })
-                          )}
-                        >
-                          {IconComponent && (
-                            <IconComponent className="h-4 w-4" />
-                          )}
-                          <span>{option?.label}</span>
-                          <input
-                            type="number"
-                            min="1"
-                            value={quantity}
-                            onChange={(e) =>
-                              handleQuantityChange(
-                                value,
-                                parseInt(e.target.value)
-                              )
-                            }
-                            className="w-12 px-1 rounded bg-transparent border-none text-center"
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <XCircle
-                            className="h-4 w-4 cursor-pointer"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              toggleOption(value);
-                            }}
-                          />
-                        </Badge>
-                      );
-                    })}
-                  {selectedValues.length > maxCount && (
-                    <Badge
-                      className={cn(
-                        "bg-transparent text-foreground border-foreground/1 hover:bg-transparent",
-                        multiSelectVariants({ variant })
-                      )}
-                    >
-                      {`+ ${selectedValues.length - maxCount} more`}
-                      <XCircle
-                        className="ml-2 h-4 w-4 cursor-pointer"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          clearExtraOptions();
-                        }}
-                      />
-                    </Badge>
-                  )}
+                  {selectedValues.map(({ value, quantity }) => {
+                    const option = options.find((o) => o.value === value);
+                    const IconComponent = option?.icon;
+                    return (
+                      <Badge
+                        key={value}
+                        className={cn(
+                          "flex items-center gap-2",
+                          multiSelectVariants({ variant })
+                        )}
+                      >
+                        {IconComponent && <IconComponent className="h-4 w-4" />}
+                        <span>{option?.label}</span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={quantity}
+                          onChange={(e) =>
+                            handleQuantityChange(
+                              value,
+                              parseInt(e.target.value)
+                            )
+                          }
+                          className="w-12 px-1 rounded bg-transparent border-none text-center"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <XCircle
+                          className="h-4 w-4 cursor-pointer"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            toggleOption(value);
+                          }}
+                        />
+                      </Badge>
+                    );
+                  })}
                 </div>
                 <div className="flex items-center justify-between">
                   <XIcon

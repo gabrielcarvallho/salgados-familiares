@@ -16,7 +16,7 @@ export function useOrderById(id: string) {
     `/Customers/?id=${id}`
   );
   return {
-    Customer: data ?? null,
+    customer: data ?? null,
     isLoading,
     isError: error ? String(error) : null,
   };
@@ -39,7 +39,7 @@ export function usePaymentMethods() {
     `/orders/payment-methods/`
   );
   return {
-    paymentMethods: data?.paymentMethods ?? [],
+    paymentMethods: data?.payment_methods ?? [],
     isLoading,
     isError: error ? String(error) : null,
   };
@@ -48,10 +48,10 @@ export function usePaymentMethods() {
 // Hook para obter status de ordens (usando SWR)
 export function useOrderStatus() {
   const { data, error, isLoading } = useApiBase<OrderStatus>(
-    `/orders/payment-methods/`
+    `/orders/status/`
   );
   return {
-    orderStatus: data ?? [],
+    orderStatus: data?.order_status ?? [],
     isLoading,
     isError: error ? String(error) : null,
   };

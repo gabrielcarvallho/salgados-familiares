@@ -221,7 +221,7 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
       </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="gap-1">
-          <DrawerTitle>{drawerConfig.title(item)}</DrawerTitle>
+          <DrawerTitle className="text-2xl font-semibold">{drawerConfig.title(item)}</DrawerTitle>
           {drawerConfig.description && (
             <DrawerDescription>
               {drawerConfig.description(item)}
@@ -305,8 +305,9 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
         </div>
         <DrawerFooter>
           <Button
+          variant={'outline'}
             onClick={handleSave}
-            className="bg-[#FF8F3F] text-primary-foreground"
+            className="bg-[#FF8F3F] text-primary-foreground "
             disabled={isLoading}
           >
             {isLoading ? "Salvando..." : "Salvar alterações"}

@@ -28,94 +28,23 @@ import {
   EMPTY_CUSTOMER,
 } from "@/types/Customer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCustomer } from "@/hooks/useCostumer";
+import { useCustomer, useCustomerList } from "@/hooks/useCostumer";
 import { useState } from "react";
-import { formatDateInput } from "@/lib/utils";
+import { cleanCNPJ, cleanPhone, convertDateFormat, formatCEP, formatCNPJ, formatDateInput, formatPhone } from "@/lib/utils";
 
 // Utility functions for formatting and converting dates
 
 
-// Converts date from DD/MM/YYYY to YYYY-MM-DD format
-export const convertDateFormat = (date: string) => {
-  // If empty, return empty
-  if (!date) return "";
-  
-  // If already in YYYY-MM-DD format, return as is
-  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
-  
-  // If in DD/MM/YYYY format, convert to YYYY-MM-DD
-  const parts = date.split("/");
-  if (parts.length === 3) {
-    const day = parts[0].padStart(2, '0');
-    const month = parts[1].padStart(2, '0');
-    const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
-    return `${year}-${month}-${day}`;
-  }
-  
-  // If in DD-MM-YYYY format, convert to YYYY-MM-DD
-  const dashParts = date.split("-");
-  if (dashParts.length === 3) {
-    const day = dashParts[0].padStart(2, '0');
-    const month = dashParts[1].padStart(2, '0');
-    const year = dashParts[2].length === 2 ? `20${dashParts[2]}` : dashParts[2];
-    return `${year}-${month}-${day}`;
-  }
-  
-  // Return original if can't convert
-  return date;
-};
 
-// Format CNPJ as user types (XX.XXX.XXX/YYYY-ZZ)
-export const formatCNPJ = (value: string) => {
-  const numericValue = value.replace(/\D/g, "");
-  
-  if (numericValue.length <= 2) {
-    return numericValue;
-  } else if (numericValue.length <= 5) {
-    return `${numericValue.slice(0, 2)}.${numericValue.slice(2)}`;
-  } else if (numericValue.length <= 8) {
-    return `${numericValue.slice(0, 2)}.${numericValue.slice(2, 5)}.${numericValue.slice(5)}`;
-  } else if (numericValue.length <= 12) {
-    return `${numericValue.slice(0, 2)}.${numericValue.slice(2, 5)}.${numericValue.slice(5, 8)}/${numericValue.slice(8)}`;
-  } else {
-    return `${numericValue.slice(0, 2)}.${numericValue.slice(2, 5)}.${numericValue.slice(5, 8)}/${numericValue.slice(8, 12)}-${numericValue.slice(12, 14)}`;
-  }
-};
 
-// Format phone as user types ((XX) XXXXX-XXXX)
-export const formatPhone = (value: string) => {
-  const numericValue = value.replace(/\D/g, "");
-  
-  if (numericValue.length <= 2) {
-    return numericValue;
-  } else if (numericValue.length <= 7) {
-    return `(${numericValue.slice(0, 2)}) ${numericValue.slice(2)}`;
-  } else {
-    return `(${numericValue.slice(0, 2)}) ${numericValue.slice(2, 7)}-${numericValue.slice(7, 11)}`;
-  }
-};
-
-// Format CEP as user types (XXXXX-XXX)
-export const formatCEP = (value: string) => {
-  const numericValue = value.replace(/\D/g, "");
-  
-  if (numericValue.length <= 5) {
-    return numericValue;
-  } else {
-    return `${numericValue.slice(0, 5)}-${numericValue.slice(5, 8)}`;
-  }
-};
 
 export function DialogClientes() {
+  const { mutate } = useCustomerList()
   const { create, isLoading, error: err } = useCustomer();
   const [open, setOpen] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
 
-  // Função para limpar formatação de telefone (remove parênteses, espaços e hífens)
-  const cleanPhone = (phone: string) => phone.replace(/\D/g, "");
 
-  // Função para limpar formatação de CNPJ (remove pontos, barra e hífen)
-  const cleanCNPJ = (cnpj: string) => cnpj.replace(/\D/g, "");
 
   const form = useForm<CustomerRequest>({
     resolver: zodResolver(CustomerRequestSchema),
@@ -154,6 +83,7 @@ export function DialogClientes() {
       console.log("Dados formatados para envio:", dataToSubmit);
 
       await create(dataToSubmit);
+      mutate()
       toast.success("Cliente cadastrado com sucesso!", {
         duration: 3000,
       });

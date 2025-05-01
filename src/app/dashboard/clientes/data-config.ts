@@ -46,7 +46,7 @@ export const drawerConfig: DrawerConfig<
   CustomerResponse,
   CustomerUpdateRequest
 > = {
-  title: (cliente: CustomerResponse) => `Cliente: ${cliente.brand_name}`,
+  title: (cliente: CustomerResponse) => `${cliente.brand_name}`,
   description: () => "Detalhes do cliente",
   updateSchema: CustomerUpdateRequestSchema,
 
@@ -109,7 +109,7 @@ export const drawerConfig: DrawerConfig<
       name: "contact.contact_email",
       label: "E-mail para Contato",
       type: "text" as const,
-      colSpan: 2,
+      colSpan: 1,
     },
   ],
 };

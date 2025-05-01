@@ -14,7 +14,7 @@ import { Loader2, Plus } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useProduct } from "@/hooks/useProduct";
+import { useProduct, useProductList } from "@/hooks/useProduct";
 import {
   Form,
   FormControl,
@@ -28,14 +28,15 @@ import { toast } from "sonner";
 import { ProductRequest, productRequestSchema } from "@/types/Product";
 
 export function DialogProdutos() {
-  const { create, isLoading, error } = useProduct();
+  const { create, isLoading, error: productError } = useProduct();
+  const { mutate } = useProductList()
 
   const form = useForm<ProductRequest>({
     resolver: zodResolver(productRequestSchema),
     defaultValues: {
       name: "",
       price: 0,
-      weight: 0,
+      weight: "",
       batch_packages: 0,
     },
   });
@@ -47,12 +48,13 @@ export function DialogProdutos() {
   const onSubmit = async (data: ProductRequest) => {
     try {
       await create(data);
+      mutate()
       toast.success("Seu produto foi criado!", {
         duration: 3000,
       });
     } catch (error: any) {
-      toast.error("Falha, tente novamente mais tarde!", {
-        description: error.message || String(error),
+      toast.error("Falha ao criar seu produto.", {
+        description: productError || String(error),
         duration: 3000,
       });
     }

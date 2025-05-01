@@ -2,14 +2,19 @@ import { z } from "zod";
 import { addressSchema } from "./Customer";
 
 // --- Status de Pedido ---
-export const orderStatusSchema = z.object({
+export const orderStatus = z.object({
   id: z.string().uuid({ message: "ID de status inválido" }),
   description: z.string().min(1, "Descrição do status é obrigatória"),
+  identifier: z.coerce.number()
+});
+
+export const orderStatusSchema = z.object({
+  order_status: z.array(orderStatus)
 });
 
 // --- Request de Pedido ---
 export const orderRequestSchema = z.object({
-  Customer_id: z.string().uuid({ message: "ID de cliente inválido" }),
+  costumer_id: z.string().uuid({ message: "ID de cliente inválido" }),
   order_status_id: z.string().uuid({ message: "ID de status inválido" }),
   payment_method_id: z
     .string()
@@ -55,3 +60,18 @@ export type OrdersResponse = z.infer<typeof ordersResponseSchema>;
 export type OrdersWithAddressResponse = z.infer<
   typeof ordersWithAddressResponseSchema
 >;
+
+export const EMPTY_ORDER: OrderRequest = {
+  costumer_id: "",
+  order_status_id: "",
+  payment_method_id: "",
+  delivery_date: "",
+  delivery_address_id: "",
+  products: [
+    {
+      product_id: "",
+      quantity: 0,
+    },
+  ],
+
+};

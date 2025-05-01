@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/tooltip";
 
 export default function LoginPage() {
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, error: errorLogin } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
 
   const authSchema = z.object({
@@ -65,8 +65,9 @@ export default function LoginPage() {
         description: "Estamos te conectando...",
         duration: 3000,
       });
-    } catch (errorLogin) {
-      toast.error("Falha!", {
+    } catch (error) {
+      toast.error("Falha ao iniciar sessão.", {
+        description: errorLogin || String(error),
         duration: 3000,
       });
     }
