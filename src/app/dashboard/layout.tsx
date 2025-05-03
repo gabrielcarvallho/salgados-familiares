@@ -6,16 +6,17 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { PermissionsProvider } from "@/hooks/contexts/PermissionContext";
 
-Geist({
+const fontGeits = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-Geist_Mono({
+const fontGeitsMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
+console.log(fontGeits, fontGeitsMono)
 export const metadata: Metadata = {
   title: "Salgados Gestão",
   description: "Sistema de gestão",
