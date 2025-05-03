@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { addressSchema, CustomerResponseSchema } from "./Customer";
-import { dateValidator } from "@/lib/utils";
 import { productResponseSchema } from "./Product";
 import { paymentMethodResponseSchema } from "./PaymentMethod";
 
