@@ -1,0 +1,290 @@
+import React from "react";
+import { ColumnDef } from "@tanstack/react-table";
+import { DataTable, DrawerConfig } from "@/components/datatable";
+import { Badge } from "@/components/ui/badge";
+import { useOrderStatus, usePaymentMethods } from "@/hooks/useOrder";
+import {
+  badgesVariant,
+  formatDateToBR,
+  formatDateInput,
+  convertDateFormat,
+  formatStatus,
+  formatPaymentMethod,
+} from "@/lib/utils";
+import {
+  OrderUpdateRequest,
+  orderUpdateRequestSchema,
+  OrderResponse,
+} from "@/types/Order";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { IconTrash } from "@tabler/icons-react";
+import { useProductList } from "@/hooks/useProduct";
+
+// Colunas da tabela
+export const columns: ColumnDef<OrderResponse, any>[] = [
+  {
+    id: "cliente",
+    accessorKey: "customer.company_name",
+    header: "Cliente",
+    cell: ({ row }) => row.original.customer.company_name,
+  },
+  {
+    id: "payment_method",
+    accessorKey: "payment_method.name",
+    header: "Método de Pagamento",
+    cell: ({ row }) => (
+      <Badge variant="outline">
+        {formatPaymentMethod(row.original.payment_method.name)}
+      </Badge>
+    ),
+  },
+  {
+    id: "delivery_date",
+    accessorKey: "delivery_date",
+    header: "Data de entrega",
+    cell: ({ row }) => formatDateToBR(row.original.delivery_date),
+  },
+  {
+    id: "due_date",
+    accessorKey: "due_date",
+    header: "Data de vencimento",
+    cell: ({ row }) => formatDateToBR(row.original.due_date),
+  },
+  {
+    id: "order_status",
+    accessorKey: "order_status.description",
+    header: "Status",
+    cell: ({ row }) => {
+      const { badge, stats } = badgesVariant(
+        row.original.order_status.identifier
+      );
+      return <Badge variant={badge}>{stats}</Badge>;
+    },
+  },
+  {
+    id: "total_price",
+    accessorKey: "total_price",
+    header: "Preço",
+    cell: ({ row }) => {
+      const n =
+        typeof row.original.total_price === "number"
+          ? row.original.total_price
+          : parseFloat(row.original.total_price) || 0;
+      return `R$ ${n.toFixed(2)}`;
+    },
+  },
+];
+
+// Configuração do drawer com defaultValue
+export function getOrderDrawerConfig(): DrawerConfig<
+  OrderResponse,
+  OrderUpdateRequest
+> {
+  const { paymentMethods = [] } = usePaymentMethods();
+  const { orderStatus: orderStatuses = [] } = useOrderStatus();
+  const { products } = useProductList();
+
+  return {
+    title: (o) => `Pedido #${o.id}`,
+    description: (o) => `Cliente: ${o.customer.company_name}`,
+    updateSchema: orderUpdateRequestSchema,
+    fields: [
+      {
+        name: "order_status_id",
+        label: "Status do pedido",
+        type: "custom",
+        colSpan: 2,
+        defaultValue: (o) => o.order_status.id,
+        parseValue: (v) => v,
+        formatValue: (v) => ({ order_status_id: v }),
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <Select value={value} onValueChange={onChange}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Selecione status" />
+            </SelectTrigger>
+            <SelectContent>
+              {orderStatuses.map((st) => (
+                <SelectItem key={st.id} value={st.id}>
+                  {formatStatus(st.description)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ),
+      },
+      {
+        name: "payment_method_id",
+        label: "Método de pagamento",
+        type: "custom",
+        colSpan: 2,
+        defaultValue: (o) => o.payment_method.id,
+        parseValue: (v) => v,
+        formatValue: (v) => ({ payment_method_id: v }),
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <Select value={value} onValueChange={onChange}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Selecione método" />
+            </SelectTrigger>
+            <SelectContent>
+              {paymentMethods.map((pm) => (
+                <SelectItem key={pm.id} value={pm.id}>
+                  {formatPaymentMethod(pm.name)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ),
+      },
+      {
+        name: "delivery_address_id",
+        label: "Endereço de entrega",
+        type: "custom",
+        colSpan: 2,
+        defaultValue: (o) => o.delivery_address.id,
+        parseValue: (v) => v,
+        formatValue: (v) => ({ delivery_address_id: v }),
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <Select value={value} onValueChange={onChange}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Selecione endereço" />
+            </SelectTrigger>
+            <SelectContent>{/* mapeie seus endereços aqui */}</SelectContent>
+          </Select>
+        ),
+      },
+      {
+        name: "delivery_date",
+        label: "Data de entrega",
+        type: "custom",
+        colSpan: 1,
+        defaultValue: (o) => formatDateInput(formatDateToBR(o.delivery_date)),
+        parseValue: (v) => formatDateToBR(v),
+        formatValue: (v) => ({ delivery_date: v }),
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <Input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="dd/mm/yyyy"
+          />
+        ),
+      },
+      {
+        name: "due_date",
+        label: "Data de vencimento",
+        type: "custom",
+        colSpan: 1,
+        defaultValue: (o) => formatDateInput(formatDateToBR(o.due_date)),
+        parseValue: (v) => formatDateToBR(v),
+        formatValue: (v) => ({ due_date: v }),
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <Input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="dd/mm/yyyy"
+          />
+        ),
+      },
+      {
+        name: "products",
+        label: "Produtos",
+        type: "custom",
+        colSpan: 2,
+        defaultValue: (o) =>
+          o.products.map(
+            (p: { product: { id: string }; quantity: number }) => ({
+              product_id: p.product.id,
+              quantity: p.quantity,
+            })
+          ),
+        parseValue: (v) => v,
+        formatValue: (v) => ({ products: v }),
+        customRender: (
+          items: { product_id: string; quantity: number }[] = [],
+          onChange: (v: any) => void
+        ) => {
+          const add = () =>
+            onChange([
+              ...items,
+              { product_id: products[0]?.id ?? "", quantity: 1 },
+            ]);
+          return (
+            <div className="flex flex-col gap-3">
+              <Button className="" onClick={add}>
+                Adicionar
+              </Button>
+              {items.map((it, i) => (
+                <div key={i} className="flex gap-2 w-full justify-between">
+                  <div className="flex space-x-2">
+                    <Select
+                      value={it.product_id}
+                      onValueChange={(v) =>
+                        onChange(
+                          items.map((x, j) =>
+                            j === i ? { ...x, product_id: v } : x
+                          )
+                        )
+                      }
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      value={it.quantity}
+                      onChange={(e) =>
+                        onChange(
+                          items.map((x, j) =>
+                            j === i
+                              ? { ...x, quantity: Number(e.target.value) }
+                              : x
+                          )
+                        )
+                      }
+                      className="w-16"
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => onChange(items.filter((_, j) => j !== i))}
+                  >
+                    <IconTrash />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        name: "total_price",
+        label: "Preço total",
+        type: "custom",
+        colSpan: 2,
+        defaultValue: (o) => o.total_price,
+        parseValue: (v) => v,
+        formatValue: (v) => ({ total_price: v }),
+        customRender: (value: number) => {
+          const n =
+            typeof value === "number" ? value : parseFloat(String(value)) || 0;
+          return <span>R$ {n.toFixed(2)}</span>;
+        },
+      },
+    ],
+  };
+}

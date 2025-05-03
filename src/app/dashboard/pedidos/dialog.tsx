@@ -27,9 +27,11 @@ import { useCustomer, useCustomerList } from "@/hooks/useCostumer";
 import { useState } from "react";
 import {
   convertDateFormat,
+  dateValidator,
   formatDateInput,
   formatOrderStatus,
   formatPaymentMethod,
+  isValidDate,
 } from "@/lib/utils";
 import { EMPTY_ORDER, OrderRequest, orderRequestSchema } from "@/types/Order";
 import {
@@ -41,22 +43,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useOrder, useOrderStatus, usePaymentMethods } from "@/hooks/useOrder";
+import { useOrder, useOrderList, useOrderStatus, usePaymentMethods } from "@/hooks/useOrder";
 import { MultiSelect } from "./multiselect";
 import { SelectedItem } from "@/types/Product";
 import { useProductList } from "@/hooks/useProduct";
 
-// Lista de produtos de exemplo - defina aqui ou importe
-const produtos = [
-  { label: "Coxinha", value: "coxinha", price: 3.5, id: "1" },
-  { label: "Pastel", value: "pastel", price: 4.0, id: "2" },
-  { label: "Empada", value: "empada", price: 4.5, id: "3" },
-  { label: "Kibe", value: "kibe", price: 3.0, id: "4" },
-  { label: "Bolinha de Queijo", value: "bolinha", price: 3.5, id: "5" },
-];
-
 export function DialogPedidos() {
-  const { products } = useProductList()
+  const { products } = useProductList();
   const { orderStatus, isLoading: isOrderStatusLoading } = useOrderStatus();
   const { paymentMethods, isLoading: isPaymentMethodsLoading } =
     usePaymentMethods();
@@ -64,6 +57,7 @@ export function DialogPedidos() {
   const { create, isLoading, error: orderError } = useOrder();
   const [open, setOpen] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const { mutate } = useOrderList()
 
   const form = useForm<OrderRequest>({
     resolver: zodResolver(orderRequestSchema),
@@ -86,28 +80,84 @@ export function DialogPedidos() {
     );
   }
 
+  // Função de validação e submissão
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormSubmitted(true);
+  
+    console.log("Tentando validar o formulário...");
+    console.log("DADOS DO FORMULÁRIO ANTES DA VALIDAÇÃO:", {
+      completeFormData: form.getValues(),
+      cliente: form.getValues().customer_id,
+      produtos: form.getValues().products,
+      metodoPagamento: form.getValues().payment_method_id,
+      dataEntrega: {
+        valor: form.getValues().delivery_date,
+        formatoUsuario: form.getValues().delivery_date, // Mantém formato DD/MM/YYYY para validação
+        ehValido: dateValidator(form.getValues().delivery_date) // Usa a função do schema
+      },
+      statusPedido: form.getValues().order_status_id
+    });
+  
+    const formValid = await trigger();
+    console.log("O formulário é válido?", formValid);
+    
+    if (formValid) {
+      console.log("Formulário válido. Chamando onSubmit...");
+      handleSubmit(onSubmit)();
+    } else {
+      console.log("ERROS DO FORMULÁRIO:", errors);
+      toast.error("Por favor, corrija os erros no formulário", {
+        duration: 5000,
+      });
+    }
+  };
+  
   const onSubmit = async (formData: OrderRequest) => {
     try {
-      const customer = customers.find((c) => c.id === formData.costumer_id);
+      console.log("Iniciando submissão do formulário com dados:", formData);
+      
+      // Verificar se cliente existe
+      const customer = customers.find((c) => c.id === formData.customer_id);
       if (!customer) {
+        console.error("Cliente não encontrado:", formData.customer_id);
         toast.error("Cliente não encontrado");
-        return "";
+        return;
       }
-
-      const billing_address_id = customer.billing_address.id!;
-
+  
+      // Verificar se o cliente tem billing_address antes de acessar
+      if (!customer.billing_address || !customer.billing_address.id) {
+        console.error("Endereço de cobrança não encontrado para o cliente:", customer);
+        toast.error("Endereço de cobrança não encontrado para este cliente");
+        return;
+      }
+  
+      const billing_address_id = customer.billing_address.id;
+      console.log("Endereço de cobrança encontrado:", billing_address_id);
+  
+      // Conversão da data para o formato esperado pela API (YYYY-MM-DD)
+      const formattedDate = convertDateFormat(formData.delivery_date);
+      console.log("Data convertida:", {
+        original: formData.delivery_date,
+        convertida: formattedDate
+      });
+  
       const payload = {
         ...formData,
         delivery_address_id: billing_address_id,
-        delivery_date: convertDateFormat(formData.delivery_date),
+        delivery_date: formattedDate, // Data convertida para YYYY-MM-DD
       };
-
-      console.log("Enviando ao servidor:", payload);
-
+  
+      console.log("Payload completo para envio ao servidor:", JSON.stringify(payload, null, 2));
+  
       await create(payload);
+      mutate()
+      console.log("Pedido cadastrado com sucesso!");
       toast.success("Pedido cadastrado com sucesso!");
       setOpen(false); // Fechar o dialog após sucesso
+      form.reset(EMPTY_ORDER); // Limpar o formulário após sucesso
     } catch (error: any) {
+      console.error("Erro ao cadastrar pedido:", error);
       toast.error("Falha ao cadastrar pedido!", {
         description: orderError || String(error),
         duration: 3000,
@@ -115,31 +165,18 @@ export function DialogPedidos() {
     }
   };
 
-  // Função de validação e submissão
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormSubmitted(true);
-
-    console.log("Tentando validar o formulário...");
-    const formValid = await trigger();
-    console.log("O formulário é válido?", formValid);
-
-    if (formValid) {
-      console.log("Formulário válido. Chamando onSubmit...");
-      handleSubmit(onSubmit)();
-    } else {
-      toast.error("Por favor, corrija os erros no formulário", {
-        duration: 5000,
-      });
-    }
-  };
-
   // Função auxiliar para calcular o total
   const calculateTotal = (items: any) => {
     return items.reduce((total: any, item: any) => {
-      const product = produtos.find((p) => p.id === item.product_id);
+      const product = products.find((p) => p.id === item.product_id);
       return total + (product?.price || 0) * item.quantity;
     }, 0);
+  };
+
+  // Helper function to render error messages safely
+  const renderErrorMessage = (error: any) => {
+    if (!error) return null;
+    return typeof error.message === 'string' ? error.message : 'Campo obrigatório';
   };
 
   return (
@@ -166,7 +203,7 @@ export function DialogPedidos() {
           <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
             <FormField
               control={control}
-              name="costumer_id"
+              name="customer_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Cliente*</FormLabel>
@@ -175,7 +212,7 @@ export function DialogPedidos() {
                       <Loader2 className="animate-spin h-4 w-4" />
                     ) : (
                       <Select
-                        value={String(field.value ?? "")}
+                        value={field.value ? String(field.value) : ""}
                         onValueChange={(val) => field.onChange(val)}
                       >
                         <SelectTrigger className="w-full rounded border px-3 py-2">
@@ -194,7 +231,9 @@ export function DialogPedidos() {
                       </Select>
                     )}
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage>
+                    {renderErrorMessage(errors.customer_id)}
+                  </FormMessage>
                 </FormItem>
               )}
             />
@@ -215,14 +254,16 @@ export function DialogPedidos() {
                       if (!product) return null;
 
                       return {
+                        id: product.id,
                         name: product.name,
-                        value: product.name,
                         price: product.price,
                         quantity: item.quantity,
                       };
                     })
                     // type guard explícito: só seleciona os não-nulos
                     .filter((x): x is SelectedItem => x != null);
+
+                  return validItems;
                 };
 
                 return (
@@ -235,9 +276,7 @@ export function DialogPedidos() {
                           onValueChange={(selectedItems) => {
                             const formattedProducts = selectedItems.map(
                               (item) => ({
-                                product_id: produtos.find(
-                                  (p) => p.value === item.value
-                                )!.id,
+                                product_id: item.id,
                                 quantity: item.quantity,
                               })
                             );
@@ -254,7 +293,9 @@ export function DialogPedidos() {
                         )}
                       </div>
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage>
+                      {renderErrorMessage(errors.products)}
+                    </FormMessage>
                   </FormItem>
                 );
               }}
@@ -270,7 +311,7 @@ export function DialogPedidos() {
                       <Loader2 className="animate-spin h-4 w-4" />
                     ) : (
                       <Select
-                        value={String(field.value ?? "")}
+                        value={field.value ? String(field.value) : ""}
                         onValueChange={(val) => field.onChange(val)}
                       >
                         <SelectTrigger className="w-full rounded border px-3 py-2">
@@ -293,7 +334,9 @@ export function DialogPedidos() {
                       </Select>
                     )}
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage>
+                    {renderErrorMessage(errors.payment_method_id)}
+                  </FormMessage>
                 </FormItem>
               )}
             />
@@ -305,18 +348,37 @@ export function DialogPedidos() {
                   <FormLabel>Data de entrega*</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="00/00/0000"
-                      value={formatDateInput(field.value)}
+                      placeholder="DD/MM/AAAA"
+                      value={formatDateInput(field.value || "")}
                       onChange={(e) => {
-                        field.onChange(e.target.value);
+                        // Atualiza o valor formatado para display (DD/MM/YYYY)
+                        const formattedInput = formatDateInput(e.target.value);
+                        field.onChange(formattedInput);
                       }}
                       onBlur={(e) => {
-                        // Ao perder o foco, tentamos garantir que o formato está correto
+                        // Ao perder o foco, validamos se a data está completa
                         field.onBlur();
+                        const currentValue = field.value;
+
+                        // Verifica se temos uma data completa
+                        if (currentValue && currentValue.length >= 8) {
+                          if (!isValidDate(currentValue)) {
+                            // Se a data for inválida, podemos notificar o usuário
+                            toast.error(
+                              "Data inválida. Use o formato DD/MM/AAAA",
+                              {
+                                duration: 3000,
+                              }
+                            );
+                          }
+                        }
                       }}
+                      maxLength={10} // Limita a entrada para DD/MM/YYYY (10 caracteres)
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage>
+                    {renderErrorMessage(errors.delivery_date)}
+                  </FormMessage>
                 </FormItem>
               )}
             />
@@ -331,7 +393,7 @@ export function DialogPedidos() {
                       <Loader2 className="animate-spin h-4 w-4" />
                     ) : (
                       <Select
-                        value={String(field.value ?? "")}
+                        value={field.value ? String(field.value) : ""}
                         onValueChange={(val) => field.onChange(val)}
                       >
                         <SelectTrigger className="w-full rounded border px-3 py-2">
@@ -350,7 +412,9 @@ export function DialogPedidos() {
                       </Select>
                     )}
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage>
+                    {renderErrorMessage(errors.order_status_id)}
+                  </FormMessage>
                 </FormItem>
               )}
             />
@@ -387,22 +451,22 @@ export function DialogPedidos() {
                   Por favor, corrija os seguintes erros:
                 </p>
                 <ul className="list-disc pl-5">
-                  {errors.costumer_id && (
-                    <li>Cliente: {errors.costumer_id.message}</li>
+                  {errors.customer_id && (
+                    <li>Cliente: {renderErrorMessage(errors.customer_id)}</li>
                   )}
                   {errors.products && (
-                    <li>Produtos: {errors.products.message}</li>
+                    <li>Produtos: {renderErrorMessage(errors.products)}</li>
                   )}
                   {errors.delivery_date && (
-                    <li>Data de entrega: {errors.delivery_date.message}</li>
+                    <li>Data de entrega: {renderErrorMessage(errors.delivery_date)}</li>
                   )}
                   {errors.payment_method_id && (
                     <li>
-                      Método de pagamento: {errors.payment_method_id.message}
+                      Método de pagamento: {renderErrorMessage(errors.payment_method_id)}
                     </li>
                   )}
                   {errors.order_status_id && (
-                    <li>Status do pedido: {errors.order_status_id.message}</li>
+                    <li>Status do pedido: {renderErrorMessage(errors.order_status_id)}</li>
                   )}
                 </ul>
               </div>

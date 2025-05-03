@@ -29,15 +29,6 @@ export const addressSchema = z.object({
 // --- Atualização de Endereço (opcional) ---
 export const addressUpdateSchema = addressSchema.partial();
 
-// --- Usuário Criador (Response only) ---
-// export const createdBySchema = z.object({
-//   id: z.string().uuid(),
-//   email: z.string().email("Digite um endereço de e-mail válido."),
-//   is_admin: z.boolean(),
-//   date_joined: z.string().datetime({ offset: true }),
-//   groups: z.array(z.string()),
-// });
-
 // --- Cliente: Request schema ---
 export const CustomerRequestSchema = z.object({
   company_name: z.string().min(1, "Razão social é obrigatória"),

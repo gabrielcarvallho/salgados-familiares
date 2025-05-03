@@ -79,6 +79,8 @@ export type FormField = {
   // Novas props
   parseValue?: (value: any) => any; // Conversão ao carregar
   formatValue?: (value: any) => any; // Conversão ao salvar
+  defaultValue?: (value: any) => any; // Conversão ao salvar
+  
 };
 
 // Configuração para o drawer
@@ -177,10 +179,15 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
     // começa vazio
     const initialData: any = {};
     drawerConfig.fields.forEach((field) => {
-      // lê cada valor aninhado (usando getNested, ou simplesmente item[field.name] se for flat)
-      const val = getNested(item, field.name);
-      // aplica parseValue se houver
-      const parsed = field.parseValue ? field.parseValue(val) : val;
+      let parsed;
+      if (field.defaultValue) {
+        // se definimos defaultValue, ele vence tudo
+        parsed = field.defaultValue(item);
+      } else {
+        // senão, pega do raw e depois parseValue
+        const raw = getNested(item, field.name);
+        parsed = field.parseValue ? field.parseValue(raw) : raw;
+      }
       setNested(initialData, field.name, parsed);
     });
     setFormData(initialData);
@@ -192,6 +199,7 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
     try {
       // Clone raso e aplicar formatValue
       const raw: any = { ...formData };
+      console.log(raw)
       drawerConfig.fields.forEach((field) => {
         if (field.formatValue) {
           raw[field.name] = field.formatValue(getNested(formData, field.name));
@@ -495,7 +503,7 @@ export function DataTable<
         .find(
           (col) =>
             col.id === "Nome" ||
-            col.id === "company_name" ||
+            col.id === "Razão Social" ||
             col.id === "Cliente" ||
             col.id === "id"
         );

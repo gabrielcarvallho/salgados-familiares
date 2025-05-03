@@ -10,7 +10,7 @@ import { ColumnDef } from "@tanstack/react-table";
 
 export const columns: ColumnDef<CustomerResponse, any>[] = [
   {
-    id: "company_name",
+    id: "Razão Social",
     accessorKey: "company_name", // Use accessorKey com id definido
     header: "Razão Social",
     cell: ({ row }) => row.original.company_name,
@@ -55,61 +55,61 @@ export const drawerConfig: DrawerConfig<
       name: "company_name",
       label: "Razão Social",
       type: "text" as const,
-      colSpan: 1,
+      colSpan: 2,
     },
     {
       name: "brand_name",
       label: "Nome Fantasia",
       type: "text" as const,
-      colSpan: 1,
+      colSpan: 2,
     },
     {
       name: "cnpj",
       label: "CNPJ",
       type: "text" as const,
-      colSpan: 1,
+      colSpan: 2,
     },
     {
       name: "state_tax_registration",
       label: "Inscrição Estadual",
       type: "text" as const,
-      colSpan: 1,
+      colSpan: 2,
     },
     {
       name: "billing_address.street_name",
       label: "Endereço",
       type: "text" as const,
-      colSpan: 1,
+      colSpan: 2,
     },
     {
       name: "email",
       label: "E-mail",
       type: "text" as const,
-      colSpan: 1,
+      colSpan: 2,
     },
     {
       name: "contact.name",
       label: "Nome para Contato",
       type: "text" as const,
-      colSpan: 1,
+      colSpan: 2,
     },
     {
       name: "contact.date_of_birth",
       label: "Data de Nascimento",
       type: "text" as const,
-      colSpan: 1,
+      colSpan: 2,
     },
     {
       name: "contact.contact_phone",
       label: "Telefone para Contato",
       type: "text" as const,
-      colSpan: 1,
+      colSpan: 2,
     },
     {
       name: "contact.contact_email",
       label: "E-mail para Contato",
       type: "text" as const,
-      colSpan: 1,
+      colSpan: 2,
     },
   ],
 };

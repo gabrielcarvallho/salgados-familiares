@@ -6,13 +6,16 @@ import type {
   OrderResponse,
   OrdersResponse,
   OrderStatus,
+  OrderUpdateRequest,
   OrderWithAddress,
 } from "@/types/Order";
 import { PaymentMethodsResponse } from "@/types/PaymentMethod";
+import { CustomerResponse } from "@/types/Customer";
+import { count } from "console";
 
 // Hook para obter uma ordem por ID (usando SWR)
 export function useOrderById(id: string) {
-  const { data, error, isLoading } = useApiBase<OrderResponse>(
+  const { data, error, isLoading } = useApiBase<CustomerResponse>(
     `/Customers/?id=${id}`
   );
   return {
@@ -22,11 +25,17 @@ export function useOrderById(id: string) {
   };
 }
 
-// Hook para listar todas as ordens (usando SWR)
-export function useOrderList() {
-  const { data, error, isLoading } =
-    useApiBase<OrdersResponse>(`/orders/?list`);
+
+
+// Hook para listar todas as ordenqs (usando SWR)
+export function useOrderList(page = 1, page_size = 10) {
+  const { data, error, isLoading, mutate } = useApiBase<{
+    count: number;
+    orders: OrderResponse[];
+  }>(`/orders/?list&page=${page}&page_size=${page_size}`);
   return {
+    mutate,
+    totalItems: data?.count ?? 0,
     orders: data?.orders ?? [], // garante um array mesmo se der erro
     isLoading,
     isError: error ? String(error) : null,
@@ -47,9 +56,7 @@ export function usePaymentMethods() {
 
 // Hook para obter status de ordens (usando SWR)
 export function useOrderStatus() {
-  const { data, error, isLoading } = useApiBase<OrderStatus>(
-    `/orders/status/`
-  );
+  const { data, error, isLoading } = useApiBase<OrderStatus>(`/orders/status/`);
   return {
     orderStatus: data?.order_status ?? [],
     isLoading,
@@ -67,13 +74,30 @@ export function useOrder() {
     setError(null);
 
     try {
-      const response = await axiosInstance.post(`/orders/`, {
-        order,
-      });
+      const response = await axiosInstance.post(`/orders/`, order);
       return response;
     } catch (error: any) {
       setError(
         error.response?.data?.detail || "Ocorreu um erro ao criar ordem"
+      );
+      throw new Error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const update = async (order: OrderUpdateRequest) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await axiosInstance.patch(`/orders/`, 
+        order,
+      );
+      return response;
+    } catch (error: any) {
+      setError(
+        error.response?.data?.detail || "Ocorreu um erro ao atualizar pedido"
       );
       throw new Error(error);
     } finally {
@@ -119,6 +143,7 @@ export function useOrder() {
   };
 
   return {
+    update,
     isLoading,
     error,
     create,
