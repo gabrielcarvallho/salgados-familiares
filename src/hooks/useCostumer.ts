@@ -7,6 +7,7 @@ import type {
   CustomerResponse,
   CustomerUpdateRequest,
 } from "@/types/Customer";
+import { handleApiError } from "./api/apiErrorHandler";
 
 // Hook para obter um cliente por ID (usando SWR)
 export function useCustomerById(id: string) {
@@ -51,11 +52,10 @@ export function useCustomer() {
         Customer,
       );
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao criar cliente"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }
@@ -70,11 +70,10 @@ export function useCustomer() {
         Customer,
       );
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao atualizar cliente"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }
@@ -89,11 +88,10 @@ export function useCustomer() {
         address,
       });
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao atualizar endereço"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }
@@ -106,11 +104,10 @@ export function useCustomer() {
     try {
       const response = await axiosInstance.delete(`/customers/?id=${id}`, {});
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao deletar cliente"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }
@@ -126,11 +123,10 @@ export function useCustomer() {
         {}
       );
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao deletar endereço"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }

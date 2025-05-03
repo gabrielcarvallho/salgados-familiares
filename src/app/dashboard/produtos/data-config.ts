@@ -1,8 +1,8 @@
 import { DrawerConfig } from "@/components/datatable";
-import { ProductRequest, ProductResponse, productResponseSchema, ProductsResponse, ProductUpdateRequest, productUpdateRequestSchema } from "@/types/Product";
+import { ProductRequest, ProductResponse, ProductUpdateRequest, productUpdateRequestSchema } from "@/types/Product";
 import { ColumnDef } from "@tanstack/react-table";
 
-export const columns: ColumnDef<ProductResponse, any>[] = [
+export const columns: ColumnDef<ProductResponse, string>[] = [
     {
       id: "Nome",
       accessorKey: "name", // Use accessorKey com id definido

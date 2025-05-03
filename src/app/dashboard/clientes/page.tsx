@@ -3,7 +3,6 @@
 import { DataTable } from "@/components/datatable";
 import { SiteHeader } from "@/components/site-header";
 import { DialogClientes } from "./dialog";
-import { useProduct, useProductList } from "@/hooks/useProduct";
 import { ProductsSkeletonLoading } from "@/components/skeleton";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
@@ -15,8 +14,14 @@ import {
 } from "@/types/Customer";
 import { useCustomer, useCustomerList } from "@/hooks/useCostumer";
 
+type PaginationType = {
+  pageIndex: number;
+  pageSize: number;
+  [key: string]: unknown; // Caso haja propriedades adicionais
+};
+
 export default function ClientsPage() {
-  const [pagination, setPagination] = useState({
+  const [pagination, setPagination] = useState<PaginationType>({
     pageIndex: 0,
     pageSize: 10,
   });

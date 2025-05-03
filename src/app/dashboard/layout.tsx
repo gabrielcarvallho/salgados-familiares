@@ -2,18 +2,16 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
 import { SidebarInset } from "@/components/ui/sidebar";
-import { SiteHeader } from "@/components/site-header";
-import { SectionCards } from "@/components/section-cards";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { PermissionsProvider } from "@/hooks/contexts/PermissionContext";
 
-const geistSans = Geist({
+Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
+Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });

@@ -77,7 +77,6 @@ export const MultiSelect = React.forwardRef<
       placeholder = "Select options",
       maxCount = 3,
       modalPopover = false,
-      asChild = false,
       className,
       ...props
     },
@@ -145,11 +144,7 @@ export const MultiSelect = React.forwardRef<
       setIsPopoverOpen((prev) => !prev);
     };
 
-    const clearExtraOptions = () => {
-      const newSelectedValues = selectedValues.slice(0, maxCount);
-      setSelectedValues(newSelectedValues);
-      onValueChange(newSelectedValues);
-    };
+
 
     const toggleAll = () => {
       if (selectedValues.length === options.length) {

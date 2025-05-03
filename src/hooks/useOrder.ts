@@ -12,6 +12,7 @@ import type {
 import { PaymentMethodsResponse } from "@/types/PaymentMethod";
 import { CustomerResponse } from "@/types/Customer";
 import { count } from "console";
+import { handleApiError } from "./api/apiErrorHandler";
 
 // Hook para obter uma ordem por ID (usando SWR)
 export function useOrderById(id: string) {
@@ -76,11 +77,10 @@ export function useOrder() {
     try {
       const response = await axiosInstance.post(`/orders/`, order);
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao criar ordem"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }
@@ -95,11 +95,10 @@ export function useOrder() {
         order,
       );
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao atualizar pedido"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }
@@ -114,12 +113,10 @@ export function useOrder() {
         order,
       });
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail ||
-          "Ocorreu um erro ao criar ordem com endereço"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }
@@ -132,11 +129,10 @@ export function useOrder() {
     try {
       const response = await axiosInstance.delete(`/orders/?id=${id}`, {});
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao deletar ordem"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }

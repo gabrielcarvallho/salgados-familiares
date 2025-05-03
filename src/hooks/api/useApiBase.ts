@@ -2,6 +2,7 @@ import useSWR, { SWRConfiguration } from "swr";
 import { useRouter } from "next/navigation";
 import { ApiError } from "@/types/ApiBase";
 import api from "./api";
+import { AxiosError } from "axios";
 
 export function useApiBase<T>(
   endpoint: string | null,
@@ -15,12 +16,13 @@ export function useApiBase<T>(
     try {
       const response = await api.get(url);
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
+      const axiosError = error as AxiosError;
       const apiError: ApiError = new Error(
-        "An error occurred while fetching the data.",
+        "An error occurred while fetching the data."
       );
-      apiError.info = error.response?.data;
-      apiError.status = error.response?.status;
+      apiError.info = axiosError.response?.data;
+      apiError.status = axiosError.response?.status;
       throw apiError;
     }
   };
@@ -46,9 +48,9 @@ export function useApiBase<T>(
             try {
               console.log("Revalidating after token refresh");
               await revalidate();
-            } catch (error: any) {
+            } catch (retryError) {
               console.log(retryCount);
-              console.log("Token refresh failed:", error);
+              console.log("Token refresh failed:", retryError);
               router.push("/login");
             }
           } else {

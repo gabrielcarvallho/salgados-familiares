@@ -1,14 +1,12 @@
 import { DrawerConfig } from "@/components/datatable";
 import {
-  CustomerRequest,
   CustomerResponse,
-  CustomersResponse,
   CustomerUpdateRequest,
   CustomerUpdateRequestSchema,
 } from "@/types/Customer";
 import { ColumnDef } from "@tanstack/react-table";
 
-export const columns: ColumnDef<CustomerResponse, any>[] = [
+export const columns: ColumnDef<CustomerResponse, string>[] = [
   {
     id: "Razão Social",
     accessorKey: "company_name", // Use accessorKey com id definido

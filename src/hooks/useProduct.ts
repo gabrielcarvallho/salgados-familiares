@@ -2,6 +2,7 @@ import { useState } from "react";
 import axiosInstance from "@/lib/axios";
 import { useApiBase } from "./api/useApiBase";
 import { ProductRequest, ProductResponse, ProductsResponse, ProductUpdateRequest } from "@/types/Product";
+import { handleApiError } from "./api/apiErrorHandler";
 
 // Hook para listar produtos (usando SWR)
 // Corrigir a tipagem e acesso aos dados
@@ -44,11 +45,10 @@ export function useProduct() {
     try {
       const response = await axiosInstance.post(`/products/`, product);
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao criar produto"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }
@@ -63,11 +63,10 @@ export function useProduct() {
         product,
       );
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao atualizar produto"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }
@@ -80,11 +79,10 @@ export function useProduct() {
     try {
       const response = await axiosInstance.delete(`/products/?id=${id}`, {});
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao deletar produto"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }

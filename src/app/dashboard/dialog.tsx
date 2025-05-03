@@ -55,7 +55,6 @@ export function DialogUsuario() {
     watch,
     setValue,
     control,
-    formState: { errors },
   } = form;
 
   // 1. "watch" para is_admin

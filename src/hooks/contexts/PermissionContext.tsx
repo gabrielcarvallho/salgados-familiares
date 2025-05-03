@@ -3,16 +3,14 @@
 import React, {
   createContext,
   useContext,
-  ReactNode,
   useEffect,
   useState,
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useCurrentUser, useUser } from "@/hooks/useUser"; // Assumindo que este hook existe conforme mencionado
+import { useCurrentUser } from "@/hooks/useUser"; // Assumindo que este hook existe conforme mencionado
 import {
   PermissionsContextType,
   PermissionsProviderProps,
-  UserGroup,
   UserGroupName,
 } from "@/types/Auth";
 import { Group } from "@/types/User";
@@ -114,7 +112,7 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
         router.push("/dashboard"); // Redireciona para o dashboard principal
       }
     }
-  }, [user, isLoading, pathname, router]);
+  }, [user, isLoading, pathname, router, canAccess, isRedirecting]);
 
   // Enquanto estiver carregando, mostra um spinner ou tela de carregamento
   if (isLoading) {

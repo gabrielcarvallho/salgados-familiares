@@ -32,11 +32,6 @@ import { useCustomer, useCustomerList } from "@/hooks/useCostumer";
 import { useState } from "react";
 import { cleanCNPJ, cleanPhone, convertDateFormat, formatCEP, formatCNPJ, formatDateInput, formatPhone } from "@/lib/utils";
 
-// Utility functions for formatting and converting dates
-
-
-
-
 
 export function DialogClientes() {
   const { mutate } = useCustomerList()
@@ -90,7 +85,7 @@ export function DialogClientes() {
       form.reset(EMPTY_CUSTOMER);
       setFormSubmitted(false);
       setOpen(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Erro ao cadastrar cliente:", error);
       toast.error("Falha ao cadastrar cliente!", {
         description: err || String(error),
@@ -287,7 +282,7 @@ export function DialogClientes() {
                           onChange={(e) => {
                             field.onChange(e.target.value);
                           }}
-                          onBlur={(e) => {
+                          onBlur={() => {
                             // Ao perder o foco, tentamos garantir que o formato está correto
                             field.onBlur();
                           }}

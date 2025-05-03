@@ -11,18 +11,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Loader2, Plus } from "lucide-react";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useProduct, useProductList } from "@/hooks/useProduct";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from "@/components/ui/form";
 import { toast } from "sonner";
 import { ProductRequest, productRequestSchema } from "@/types/Product";
@@ -52,7 +49,7 @@ export function DialogProdutos() {
       toast.success("Seu produto foi criado!", {
         duration: 3000,
       });
-    } catch (error: any) {
+    } catch (error) {
       toast.error("Falha ao criar seu produto.", {
         description: productError || String(error),
         duration: 3000,

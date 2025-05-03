@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -8,9 +8,9 @@ const api = axios.create({
 });
 
 let isRefreshing = false;
-let failedQueue: any[] = [];
+let failedQueue: { resolve: () => void; reject: (error: Error) => void }[] = [];
 
-const processQueue = (error: any) => {
+const processQueue = (error: Error | null) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
@@ -33,7 +33,7 @@ api.interceptors.response.use(
       !originalRequest.url.includes("/accounts/token/refresh/") // Evita loop infinito
     ) {
       if (isRefreshing) {
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
           .then(() => api(originalRequest))
@@ -44,14 +44,15 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const retry = await api.post("/accounts/token/refresh/");
-
+        await api.post("/accounts/token/refresh/");
+        
         processQueue(null);
         isRefreshing = false;
         return api(originalRequest);
-      } catch (refreshError: any) {
+      } catch (refreshError) {
         console.error("Erro ao renovar o token:", refreshError);
-        processQueue(refreshError);
+        const error = refreshError instanceof Error ? refreshError : new Error("Token refresh failed");
+        processQueue(error);
         isRefreshing = false;
 
         // Redireciona para login quando o refresh token falha

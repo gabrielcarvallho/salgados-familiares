@@ -9,10 +9,10 @@ import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { columns, drawerConfig } from "./data-config";
 import { ProductResponse, productUpdateRequestSchema } from "@/types/Product";
-import { CustomerUpdateRequestSchema } from "@/types/Customer";
+import { PaginationType } from "@/types/User";
 
 export default function ProductsPage() {
-  const [pagination, setPagination] = useState({
+  const [pagination, setPagination] = useState<PaginationType>({
     pageIndex: 0,
     pageSize: 10,
   });
@@ -24,7 +24,7 @@ export default function ProductsPage() {
   );
 
   // No handlePaginationChange:
-  const handlePaginationChange = useCallback((newPagination: any) => {
+  const handlePaginationChange = useCallback((newPagination: PaginationType) => {
     setPagination({
       pageIndex: newPagination.pageIndex,
       pageSize: newPagination.pageSize,

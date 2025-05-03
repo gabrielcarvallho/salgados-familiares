@@ -1,6 +1,6 @@
 import React from "react";
 import { ColumnDef } from "@tanstack/react-table";
-import { DataTable, DrawerConfig } from "@/components/datatable";
+import { DrawerConfig } from "@/components/datatable";
 import { Badge } from "@/components/ui/badge";
 import { useOrderStatus, usePaymentMethods } from "@/hooks/useOrder";
 import {

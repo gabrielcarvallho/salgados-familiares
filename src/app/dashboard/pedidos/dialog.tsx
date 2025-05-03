@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/form";
 import { toast } from "sonner";
 
-import { useCustomer, useCustomerList } from "@/hooks/useCostumer";
+import { useCustomerList } from "@/hooks/useCostumer";
 import { useState } from "react";
 import {
   convertDateFormat,
