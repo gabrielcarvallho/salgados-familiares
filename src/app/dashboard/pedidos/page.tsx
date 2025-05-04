@@ -6,7 +6,7 @@ import { DialogPedidos } from "./dialog";
 import { ProductsSkeletonLoading } from "@/components/skeleton";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
-import { columns, getOrderDrawerConfig } from "./data-config";
+import { columns, useOrderDrawerConfig } from "./data-config";
 import { useOrder, useOrderList } from "@/hooks/useOrder";
 import { OrderResponse, OrderUpdateRequest, orderUpdateRequestSchema } from "@/types/Order";
 
@@ -52,7 +52,7 @@ export default function OrdersPage() {
     }
   };
 
-  const drawerConfig = getOrderDrawerConfig();
+  const drawerConfig = useOrderDrawerConfig();
 
 
   return (
