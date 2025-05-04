@@ -1,7 +1,7 @@
 import { useState } from "react";
 import axiosInstance from "@/lib/axios";
 import { useApiBase } from "./api/useApiBase";
-import { ProductRequest, ProductResponse, ProductsResponse, ProductUpdateRequest } from "@/types/Product";
+import { ProductRequest, ProductResponse, ProductUpdateRequest } from "@/types/Product";
 import { handleApiError } from "./api/apiErrorHandler";
 
 // Hook para listar produtos (usando SWR)

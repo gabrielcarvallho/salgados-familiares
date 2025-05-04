@@ -4,7 +4,6 @@ import axiosInstance from "@/lib/axios";
 import { useApiBase } from "./api/useApiBase";
 import { Group } from "@/types/User";
 import { Login } from "@/types/Auth";
-import { AxiosError, AxiosResponse } from "axios";
 import { handleApiError } from "./api/apiErrorHandler";
 
 // Hook para obter grupos de autorização (usando SWR)
