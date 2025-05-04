@@ -136,27 +136,8 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
 }) {
   const isMobile = useIsMobile();
   const item = row.original;
-  const [formData, setFormData] = useState<TData>({ ...item });
+  const [formData, setFormData] = useState<any>({});
   const [isLoading, setIsLoading] = useState(false);
-
-  if (!drawerConfig) {
-    // Se não houver configuração de drawer, apenas renderizar a linha
-    return (
-      <TableRow data-state={row.getIsSelected() && "selected"}>
-        {row.getVisibleCells().map((cell) => (
-          <TableCell key={cell.id}>
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </TableCell>
-        ))}
-      </TableRow>
-    );
-  }
-
-  const handleChange = (fieldName: string, value: any) => {
-    const newData = { ...formData };
-    setNested(newData, fieldName, value);
-    setFormData(newData);
-  };
 
   // pega um valor deep (ex.: "contact.name")
   function getNested(obj: any, path: string) {
@@ -174,24 +155,32 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
     target[last] = value;
   }
 
-  // Modifique a inicialização do formData
+  // This useEffect hook must be called unconditionally at the top level
   useEffect(() => {
-    // começa vazio
-    const initialData: any = {};
-    drawerConfig.fields.forEach((field) => {
-      let parsed;
-      if (field.defaultValue) {
-        // se definimos defaultValue, ele vence tudo
-        parsed = field.defaultValue(item);
-      } else {
-        // senão, pega do raw e depois parseValue
-        const raw = getNested(item, field.name);
-        parsed = field.parseValue ? field.parseValue(raw) : raw;
-      }
-      setNested(initialData, field.name, parsed);
-    });
-    setFormData(initialData);
-  }, [item]);
+    if (drawerConfig) {
+      // começa vazio
+      const initialData: any = {};
+      drawerConfig.fields.forEach((field) => {
+        let parsed;
+        if (field.defaultValue) {
+          // se definimos defaultValue, ele vence tudo
+          parsed = field.defaultValue(item);
+        } else {
+          // senão, pega do raw e depois parseValue
+          const raw = getNested(item, field.name);
+          parsed = field.parseValue ? field.parseValue(raw) : raw;
+        }
+        setNested(initialData, field.name, parsed);
+      });
+      setFormData(initialData);
+    }
+  }, [item, drawerConfig]);
+
+  const handleChange = (fieldName: string, value: any) => {
+    const newData = { ...formData };
+    setNested(newData, fieldName, value);
+    setFormData(newData);
+  };
 
   const handleSave = async () => {
     if (!onUpdate || !drawerConfig) return;
@@ -213,6 +202,20 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
     }
   };
 
+  // If no drawerConfig, just render the row
+  if (!drawerConfig) {
+    return (
+      <TableRow data-state={row.getIsSelected() && "selected"}>
+        {row.getVisibleCells().map((cell) => (
+          <TableCell key={cell.id}>
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </TableCell>
+        ))}
+      </TableRow>
+    );
+  }
+
+  // If we have drawerConfig, render row with drawer
   return (
     <Drawer direction={isMobile ? "bottom" : "right"}>
       <DrawerTrigger asChild>
@@ -313,9 +316,9 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
         </div>
         <DrawerFooter>
           <Button
-          variant={'outline'}
+            variant={'outline'}
             onClick={handleSave}
-            className="bg-[#FF8F3F] text-primary-foreground "
+            className="bg-[#FF8F3F] text-primary-foreground"
             disabled={isLoading}
           >
             {isLoading ? "Salvando..." : "Salvar alterações"}

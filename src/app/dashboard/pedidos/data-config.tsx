@@ -7,7 +7,6 @@ import {
   badgesVariant,
   formatDateToBR,
   formatDateInput,
-  convertDateFormat,
   formatStatus,
   formatPaymentMethod,
 } from "@/lib/utils";
@@ -83,16 +82,13 @@ export const columns: ColumnDef<OrderResponse, any>[] = [
   },
 ];
 
-// Configuração do drawer com defaultValue
-export function getOrderDrawerConfig(): DrawerConfig<
-  OrderResponse,
-  OrderUpdateRequest
-> {
+// Convert getOrderDrawerConfig to a custom hook
+export function useOrderDrawerConfig() {
   const { paymentMethods = [] } = usePaymentMethods();
   const { orderStatus: orderStatuses = [] } = useOrderStatus();
   const { products } = useProductList();
-
-  return {
+  
+  const drawerConfig: DrawerConfig<OrderResponse, OrderUpdateRequest> = {
     title: (o) => `Pedido #${o.id}`,
     description: (o) => `Cliente: ${o.customer.company_name}`,
     updateSchema: orderUpdateRequestSchema,
@@ -287,4 +283,6 @@ export function getOrderDrawerConfig(): DrawerConfig<
       },
     ],
   };
+  
+  return drawerConfig;
 }
