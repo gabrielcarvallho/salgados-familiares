@@ -186,24 +186,36 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
     setFormData(initialData);
   }, [item]);
 
-  const handleSave = async () => {
-    if (!onUpdate || !drawerConfig) return;
-    setIsLoading(true);
-    try {
-      // Clone raso e aplicar formatValue
-      const raw: any = { ...formData };
-      drawerConfig.fields.forEach((field) => {
-        if (field.formatValue) {
-          raw[field.name] = field.formatValue(getNested(formData, field.name));
-        }
-      });
-      // Valida e STRIPA chaves extras
-      const toSend = drawerConfig.updateSchema.parse(raw);
-      await onUpdate(item, toSend);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Replace the existing handleSave function in your DataTable component
+const handleSave = async () => {
+  if (!onUpdate || !drawerConfig) return;
+  setIsLoading(true);
+  try {
+    // Create a structured object that matches the schema expectations
+    const updatedData: any = {};
+    
+    // Process each field using formatValue if provided
+    drawerConfig.fields.forEach((field) => {
+      const value = getNested(formData, field.name);
+      // Apply formatValue if available, otherwise use the raw value
+      updatedData[field.name] = field.formatValue ? field.formatValue(value) : value;
+    });
+    
+    // At this point, this should match your Zod schema structure
+    console.log("Data before validation:", updatedData);
+    
+    // Validate against the schema - this is where the error was happening
+    const validatedData = drawerConfig.updateSchema.parse(updatedData);
+    
+    // Pass the original item and the validated data to onUpdate
+    await onUpdate(item, validatedData);
+  } catch (error) {
+    console.error("Error during form validation or update:", error);
+    // You might want to show an error toast here
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <Drawer direction={isMobile ? "bottom" : "right"}>

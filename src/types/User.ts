@@ -55,7 +55,7 @@ export const createUserRequestSchema = z
     path: ["confirm_password"], // mostra erro no campo certo
   });
 
-export const pediningInvitations = z.object({
+export const pendiningInvitations = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
   token: z.string().jwt(),
@@ -64,21 +64,31 @@ export const pediningInvitations = z.object({
   expire_at: z.string().date()
 })
 
-export const pediningInvitationsResponse = z.object({
+
+export const resendInviteSchema = z.object({
+  token: z.string(), // ou apenas z.string() se não for UUID
+});
+
+// Se você quiser derivar do seu esquema completo, pode fazer:
+// export const resendInviteSchema = fullSchema.pick({ token: true });
+
+export const pendiningInvitationsResponse = z.object({
   count: z.coerce.number(),
   next: z.coerce.number().nullable(),
   previous: z.coerce.number().nullable(),
-  pending_invitations: pediningInvitations
+  pending_invitations: z.array(pendiningInvitations)
 })
 
 // --- Types inferidos ---
 export type Group = z.infer<typeof groupSchema>;
+export type ResendInvite = z.infer<typeof resendInviteSchema>;
 export type GroupsResponse = z.infer<typeof groupsResponseSchema>;
 export type UserResponse = z.infer<typeof userResponseSchema>;
 export type UsersResponse = z.infer<typeof usersResponseSchema>;
 export type InviteRequest = z.infer<typeof inviteRequestSchema>;
 export type CreateUserRequest = z.infer<typeof createUserRequestSchema>;
-export type PendingInvitationsResponse = z.infer<typeof pediningInvitationsResponse>;
+export type PendingInvitationsResponse = z.infer<typeof pendiningInvitationsResponse>;
+export type PendingInvitations = z.infer<typeof pendiningInvitations>;
 
 
 export const EMPTY_USER: InviteRequest = {

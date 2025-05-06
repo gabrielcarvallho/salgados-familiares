@@ -5,6 +5,7 @@ import {
   CreateUserRequest,
   GroupsResponse,
   InviteRequest,
+  PendingInvitations,
   PendingInvitationsResponse,
   UserResponse,
   UsersResponse,
@@ -34,13 +35,17 @@ export function useUserById(id: string) {
   };
 }
 
-// Hook para listar todos os usuários (usando SWR)
-export function useUserList() {
-  const { data, error, isLoading } = useApiBase<UsersResponse>(
-    `/accounts/users/?list`
-  );
+
+export function useUserList(page = 1, page_size = 10) {
+  const { data, error, isLoading, mutate } = useApiBase<{
+    count: number;
+    user: UsersResponse[];
+  }>(`/accounts/users/?list&page=${page}&page_size=${page_size}`);
+
   return {
-    users: data?.users ?? [], // garante um array mesmo se der erro
+    mutate,
+    users: data?.user ?? [],  // <<< campo correto
+    totalItems: data?.count ?? 0,
     isLoading,
     isError: error ? String(error) : null,
   };
@@ -55,20 +60,23 @@ export function useGroupList() {
     isError: error ? String(error) : null,
   };
 }
-export function getPendingInvitations(page = 1, page_size = 10) {
+
+
+export function usePendingInvitations(page = 1, page_size = 10) {
   const { data, error, isLoading, mutate } = useApiBase<{
     count: number;
-    pendiningInvitations: PendingInvitationsResponse[]; // Alterado de 'results' para 'products'
-  }>(`/products/?list&page=${page}&page_size=${page_size}`);
+    pending_invitations: PendingInvitations[];
+  }>(`/accounts/users/invitation/?list&page=${page}&page_size=${page_size}`);
 
   return {
-    data,
-    users: data?.pendiningInvitations ?? [], // Acessa a propriedade correta
+    mutate,
+    invitations: data?.pending_invitations ?? [],  // <<< campo correto
     totalItems: data?.count ?? 0,
     isLoading,
     isError: error ? String(error) : null,
   };
 }
+
 
 export function useUser() {
   const [isLoading, setIsLoading] = useState(false);
@@ -88,6 +96,24 @@ export function useUser() {
     } catch (error: any) {
       setError(
         error.response?.data?.detail || "Ocorreu um erro ao criar usuário"
+      );
+      throw new Error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  const resendInvite = async (token: string) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await axiosInstance.put(
+        `/accounts/users/invitation/?token=${token}`,
+      );
+      return response;
+    } catch (error: any) {
+      setError(
+        error.response?.data?.detail || "Ocorreu um erro ao re-enviar convite para o usuário"
       );
       throw new Error(error);
     } finally {
@@ -135,5 +161,5 @@ export function useUser() {
     }
   };
 
-  return { isLoading, error, create, invite, del };
+  return { isLoading, error, create, invite, del, resendInvite };
 }
