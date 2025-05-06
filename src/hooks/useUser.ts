@@ -5,6 +5,8 @@ import {
   CreateUserRequest,
   GroupsResponse,
   InviteRequest,
+  PendingInvitations,
+  PendingInvitationsResponse,
   UserResponse,
   UsersResponse,
 } from "@/types/User";
@@ -34,28 +36,48 @@ export function useUserById(id: string) {
   };
 }
 
-// Hook para listar todos os usuários (usando SWR)
-export function useUserList() {
-  const { data, error, isLoading } = useApiBase<UsersResponse>(
-    `/accounts/users/?list`
-  );
+
+export function useUserList(page = 1, page_size = 10) {
+  const { data, error, isLoading, mutate } = useApiBase<{
+    count: number;
+    user: UsersResponse[];
+  }>(`/accounts/users/?list&page=${page}&page_size=${page_size}`);
+
   return {
-    users: data?.users ?? [], // garante um array mesmo se der erro
+    mutate,
+    users: data?.user ?? [],  // <<< campo correto
+    totalItems: data?.count ?? 0,
     isLoading,
     isError: error ? String(error) : null,
   };
 }
 
 export function useGroupList() {
-  const { data, error, isLoading } = useApiBase<GroupsResponse>(
-    `/accounts/groups/`
-  );
+  const { data, error, isLoading } =
+    useApiBase<GroupsResponse>(`/accounts/groups/`);
   return {
     groups: data?.groups ?? [], // garante um array mesmo se der erro
     isLoading,
     isError: error ? String(error) : null,
   };
 }
+
+
+export function usePendingInvitations(page = 1, page_size = 10) {
+  const { data, error, isLoading, mutate } = useApiBase<{
+    count: number;
+    pending_invitations: PendingInvitations[];
+  }>(`/accounts/users/invitation/?list&page=${page}&page_size=${page_size}`);
+
+  return {
+    mutate,
+    invitations: data?.pending_invitations ?? [],  // <<< campo correto
+    totalItems: data?.count ?? 0,
+    isLoading,
+    isError: error ? String(error) : null,
+  };
+}
+
 
 export function useUser() {
   const [isLoading, setIsLoading] = useState(false);
@@ -80,14 +102,33 @@ export function useUser() {
       setIsLoading(false);
     }
   };
+  const resendInvite = async (token: string) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await axiosInstance.put(
+        `/accounts/users/invitation/?token=${token}`,
+      );
+      return response;
+    } catch (error: any) {
+      setError(
+        error.response?.data?.detail || "Ocorreu um erro ao re-enviar convite para o usuário"
+      );
+      throw new Error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const invite = async (user: InviteRequest) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await axiosInstance.post(`/accounts/users/invitation/`, 
-        user,
+      const response = await axiosInstance.post(
+        `/accounts/users/invitation/`,
+        user
       );
       return response;
     } catch (error) {
@@ -118,5 +159,5 @@ export function useUser() {
     }
   };
 
-  return { isLoading, error, create, invite, del };
+  return { isLoading, error, create, invite, del, resendInvite };
 }

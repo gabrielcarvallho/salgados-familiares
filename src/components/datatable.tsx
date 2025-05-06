@@ -217,6 +217,21 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
     );
   }
 
+  // Modifique a inicialização do formData
+  useEffect(() => {
+    // começa vazio
+    const initialData: any = {};
+    drawerConfig.fields.forEach((field) => {
+      // lê cada valor aninhado (usando getNested, ou simplesmente item[field.name] se for flat)
+      const val = getNested(item, field.name);
+      // aplica parseValue se houver
+      const parsed = field.parseValue ? field.parseValue(val) : val;
+      setNested(initialData, field.name, parsed);
+    });
+    setFormData(initialData);
+  }, [item]);
+
+
   return (
     <>
       <Drawer direction={isMobile ? "bottom" : "right"}>

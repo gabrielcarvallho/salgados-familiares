@@ -1,58 +1,68 @@
 "use client";
-import { SectionCards } from "@/components/section-cards";
 import { SiteHeader } from "@/components/site-header";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { useState } from "react";
-import { DialogUsuario } from "./dialog";
-import { usePermissions } from "@/hooks/contexts/PermissionContext";
+  Card,
+  CardAction,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Users, DollarSign, Landmark, Activity } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-interface OrderUpdate {
-  id: string;
-  status: string;
-}
+import { useCallback, useState } from "react";
+import { DialogUsuario } from "./dialog";
+import { useReports } from "@/hooks/useStatistics";
+import { usePendingInvitations, useUser, useUserList } from "@/hooks/useUser";
+import {
+  PendingInvitations,
+  pendiningInvitations,
+  ResendInvite,
+  resendInviteSchema,
+} from "../../types/User";
+import { toast } from "sonner";
+import { ProductsSkeletonLoading } from "@/components/skeleton";
+import { DataTable } from "@/components/datatable";
+import { columns, drawerConfig } from "./data-config";
+import { TabsContent } from "@radix-ui/react-tabs";
 
 export default function Page() {
-  const [activeTab, setActiveTab] = useState("hoje");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [activeTab, setActiveTab] = useState("1");
 
-  const { userGroups, canAccess } = usePermissions()
-  
-  // Sample order updates data
-  const orderUpdates: OrderUpdate[] = [
-    { id: "431", status: "Entrou em produção" },
-    { id: "430", status: "Está pronto para entrega" },
-    { id: "432", status: "Acabou de ser efetuado e está aguardando pagamento" },
-    { id: "429", status: "Foi entregue com sucesso" },
-    {
-      id: "427",
-      status: "Pagamento foi aprovado e brevemente entrará em produção",
-    },
-    { id: "426", status: "Foi entregue com sucesso" },
-    {
-      id: "425",
-      status: "Pagamento foi aprovado e brevemente entrará em produção",
-    },
-    { id: "424", status: "Foi entregue com sucesso" },
-    { id: "423", status: "Entrou em produção" },
-    { id: "422", status: "Está pronto para entrega" },
-  ];
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
-  // Calculate total pages
-  const totalPages = Math.ceil(orderUpdates.length / itemsPerPage);
+  const { users, isLoading: usersLoading, isError: usersError } = useUserList();
+  const { resendInvite } = useUser();
+  const { invitations, isLoading, isError, totalItems } = usePendingInvitations(
+    pagination.pageIndex + 1,
+    pagination.pageSize
+  );
 
-  // Get current items
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = orderUpdates.slice(indexOfFirstItem, indexOfLastItem);
+  // No handlePaginationChange:
+  const handlePaginationChange = useCallback((newPagination: any) => {
+    setPagination({
+      pageIndex: newPagination.pageIndex,
+      pageSize: newPagination.pageSize,
+    });
+  }, []);
+
+  const handleResendInvite = async (original: PendingInvitations) => {
+    const { token } = resendInviteSchema.parse({ token: original.token });
+    try {
+      await resendInvite(token);
+      toast.success("Convite enviado novamente com sucesso!");
+    } catch (error) {
+      console.error("Erro ao re-enviar convite:", error);
+      toast.error("Falha ao re-enviar convite");
+      throw error;
+    }
+  };
+
+  const days = parseInt(activeTab, 10);
+  const { reports } = useReports(days);
 
   return (
     <div>
@@ -64,95 +74,108 @@ export default function Page() {
 
           {/* Period filters with Tabs */}
           <Tabs
-            defaultValue="hoje"
+            defaultValue="1"
             value={activeTab}
             onValueChange={setActiveTab}
             className="mb-4"
           >
             <TabsList>
-              <TabsTrigger value="hoje">Hoje</TabsTrigger>
-              <TabsTrigger value="7dias">7 dias</TabsTrigger>
-              <TabsTrigger value="30dias">30 dias</TabsTrigger>
+              <TabsTrigger value="1">Hoje</TabsTrigger>
+              <TabsTrigger value="7">7 dias</TabsTrigger>
+              <TabsTrigger value="30">30 dias</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
 
-        <SectionCards />
-
-        {/* Latest updates section with table */}
-        <div className="px-4 lg:px-6">
-          <h2 className="text-xl font-semibold mb-4">Últimas atualizações</h2>
-          <div className="rounded-md border">
-            <table className="w-full">
-              <tbody>
-                {currentItems.map((order) => (
-                  <tr key={order.id} className="border-b last:border-0">
-                    <td className="px-4 py-3">
-                      <h3 className="font-medium">Pedido #{order.id}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {order.status}
-                      </p>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className="mt-4">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    href="#"
-                    size="default"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setCurrentPage((prev) => Math.max(prev - 1, 1));
-                    }}
-                    className={
-                      currentPage === 1
-                        ? "pointer-events-none opacity-50 size-2"
-                        : ""
-                    }
-                  />
-                </PaginationItem>
-
-                {Array.from({ length: totalPages }).map((_, index) => (
-                  <PaginationItem key={index}>
-                    <PaginationLink
-                      href="#"
-                      isActive={currentPage === index + 1}
-                      size="default"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setCurrentPage(index + 1);
-                      }}
-                    >
-                      {index + 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-
-                <PaginationItem>
-                  <PaginationNext
-                    href="#"
-                    size="default"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-                    }}
-                    className={
-                      currentPage === totalPages
-                        ? "pointer-events-none opacity-50"
-                        : ""
-                    }
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
+        <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-3">
+          <Card className="@container/card">
+            <CardHeader>
+              <CardDescription>Vendas totais</CardDescription>
+              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                +{reports?.total_sales}
+              </CardTitle>
+              <CardAction>
+                <DollarSign className="size-4" />
+              </CardAction>
+            </CardHeader>
+          </Card>
+          <Card className="@container/card">
+            <CardHeader>
+              <CardDescription>Clientes cadastrados</CardDescription>
+              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                +{reports?.active_users}
+              </CardTitle>
+              <CardAction>
+                <Users className="size-4" />
+              </CardAction>
+            </CardHeader>
+          </Card>
+          <Card className="@container/card">
+            <CardHeader>
+              <CardDescription>Receita</CardDescription>
+              <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+                R${reports?.total_value}
+              </CardTitle>
+              <CardAction>
+                <Landmark className="size-4" />
+              </CardAction>
+            </CardHeader>
+          </Card>
+        </div>
+        <div>
+          <Tabs
+            defaultValue="0"
+            className="mb-4"
+          >
+            <TabsList className="ml-4 my-4">
+              <TabsTrigger value="0">Todos os usuários</TabsTrigger>
+              <TabsTrigger value="1">Usuários pendentes</TabsTrigger>
+            </TabsList>
+            <TabsContent value="0">
+              {isLoading ? (
+                <ProductsSkeletonLoading />
+              ) : isError ? (
+                <div className="p-4 text-center text-red-500">
+                  Erro ao carregar usuários: {isError}
+                </div>
+              ) : (
+                <DataTable
+                  drawerConfig={drawerConfig}
+                  updateSchema={resendInviteSchema} // ← aqui
+                  title="Todos os usuários"
+                  columns={columns}
+                  data={users || []}
+                  totalCount={totalItems || 0}
+                  pageSize={pagination.pageSize}
+                  currentPage={pagination.pageIndex}
+                  onUpdate={(orig) => handleResendInvite(orig)}
+                  onPaginationChange={handlePaginationChange}
+                />
+              )}
+            </TabsContent>
+            <TabsContent value="1">
+              {isLoading ? (
+                <ProductsSkeletonLoading />
+              ) : isError ? (
+                <div className="p-4 text-center text-red-500">
+                  Erro ao carregar usuários: {isError}
+                </div>
+              ) : (
+                <DataTable
+                  drawerConfig={drawerConfig}
+                  updateSchema={resendInviteSchema} // ← aqui
+                  title="Usuários"
+                  columns={columns}
+                  data={invitations || []}
+                  totalCount={totalItems || 0}
+                  pageSize={pagination.pageSize}
+                  currentPage={pagination.pageIndex}
+                  onUpdate={(orig) => handleResendInvite(orig)}
+                  onPaginationChange={handlePaginationChange}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

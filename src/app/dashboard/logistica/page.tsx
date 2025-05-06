@@ -11,6 +11,7 @@ import {
 import { PedidoDetails } from "./components/PedidoDetails";
 import { PedidoItem } from "./types";
 import { salgadosData, pedidosData } from "./data";
+import { useProductionSchedule } from '../../../hooks/useStatistics';
 
 export default function LogisticaPage() {
   const [openConfigDialog, setOpenConfigDialog] = useState(false);
@@ -23,6 +24,8 @@ export default function LogisticaPage() {
     null
   );
   const [novoStatus, setNovoStatus] = useState<string>("");
+
+const { productionSchedule } = useProductionSchedule()
 
   // Inicializa as quantidades diárias
   useEffect(() => {
@@ -78,7 +81,7 @@ export default function LogisticaPage() {
         />
 
         {/* Demanda de amanhã */}
-        <SalgadosList salgados={salgadosData} />
+        <SalgadosList salgados={productionSchedule} />
 
         {/* Últimos pedidos */}
         <PedidosList pedidos={pedidos} onPedidoClick={handleRowClick} />
