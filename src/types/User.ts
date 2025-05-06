@@ -52,8 +52,24 @@ export const createUserRequestSchema = z
   })
   .refine((data) => data.password === data.confirm_password, {
     message: "As senhas precisam ser iguais",
-    path: ["confirm_passowrd"], // mostra erro no campo certo
+    path: ["confirm_password"], // mostra erro no campo certo
   });
+
+export const pediningInvitations = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  token: z.string().jwt(),
+  accepted: z.boolean(),
+  created_at: z.string().date(),
+  expire_at: z.string().date()
+})
+
+export const pediningInvitationsResponse = z.object({
+  count: z.coerce.number(),
+  next: z.coerce.number().nullable(),
+  previous: z.coerce.number().nullable(),
+  pending_invitations: pediningInvitations
+})
 
 // --- Types inferidos ---
 export type Group = z.infer<typeof groupSchema>;
@@ -62,6 +78,7 @@ export type UserResponse = z.infer<typeof userResponseSchema>;
 export type UsersResponse = z.infer<typeof usersResponseSchema>;
 export type InviteRequest = z.infer<typeof inviteRequestSchema>;
 export type CreateUserRequest = z.infer<typeof createUserRequestSchema>;
+export type PendingInvitationsResponse = z.infer<typeof pediningInvitationsResponse>;
 
 
 export const EMPTY_USER: InviteRequest = {

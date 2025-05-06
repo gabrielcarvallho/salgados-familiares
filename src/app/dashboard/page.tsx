@@ -12,6 +12,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import {
+  Card,
+  CardAction,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Users, DollarSign, Landmark, Activity } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Pagination,
@@ -24,6 +33,8 @@ import {
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { DialogUsuario } from "./dialog";
+import { useReports } from "@/hooks/useStatistics";
+import { report } from "process";
 
 interface OrderUpdate {
   id: string;
@@ -31,7 +42,7 @@ interface OrderUpdate {
 }
 
 export default function Page() {
-  const [activeTab, setActiveTab] = useState("hoje");
+  const [activeTab, setActiveTab] = useState("1");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -63,6 +74,9 @@ export default function Page() {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = orderUpdates.slice(indexOfFirstItem, indexOfLastItem);
 
+  const days = parseInt(activeTab, 10);
+  const { reports } = useReports(days)
+
   return (
     <div>
       <div className="flex flex-col gap-4">
@@ -73,21 +87,65 @@ export default function Page() {
 
           {/* Period filters with Tabs */}
           <Tabs
-            defaultValue="hoje"
+            defaultValue="1"
             value={activeTab}
             onValueChange={setActiveTab}
             className="mb-4"
           >
             <TabsList>
-              <TabsTrigger value="hoje">Hoje</TabsTrigger>
-              <TabsTrigger value="7dias">7 dias</TabsTrigger>
-              <TabsTrigger value="30dias">30 dias</TabsTrigger>
+              <TabsTrigger value="1">Hoje</TabsTrigger>
+              <TabsTrigger value="7">7 dias</TabsTrigger>
+              <TabsTrigger value="30">30 dias</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
 
-        <SectionCards />
-
+        <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+      <Card className="@container/card">
+        <CardHeader>
+          <CardDescription>Vendas totais</CardDescription>
+          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+            +{reports?.total_sales}
+          </CardTitle>
+          <CardAction>
+            <DollarSign className="size-4" />
+          </CardAction>
+        </CardHeader>
+      </Card>
+      <Card className="@container/card">
+        <CardHeader>
+          <CardDescription>Clientes cadastrados</CardDescription>
+          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+            +{reports?.active_users}
+          </CardTitle>
+          <CardAction>
+            <Users className="size-4" />
+          </CardAction>
+        </CardHeader>
+      </Card>
+      <Card className="@container/card">
+        <CardHeader>
+          <CardDescription>Receita</CardDescription>
+          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+            R${reports?.total_value}
+          </CardTitle>
+          <CardAction>
+            <Landmark className="size-4" />
+          </CardAction>
+        </CardHeader>
+      </Card>
+      <Card className="@container/card">
+        <CardHeader>
+          <CardDescription>Vendedores ativos</CardDescription>
+          <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
+            +21
+          </CardTitle>
+          <CardAction>
+            <Activity className="size-4" />
+          </CardAction>
+        </CardHeader>
+      </Card>
+    </div>
         {/* Latest updates section with table */}
         <div className="px-4 lg:px-6">
           <h2 className="text-xl font-semibold mb-4">Últimas atualizações</h2>

@@ -31,3 +31,14 @@ export const formatGroup = (group: string | undefined) => {
     }
   }
 };
+
+export function getTomorrowDayMonth(): { day: number; month: number } {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+
+  return {
+    day: tomorrow.getDate(),       // 1–31
+    month: tomorrow.getMonth() + 1 // 1–12 (getMonth() é 0-based)
+  };
+}

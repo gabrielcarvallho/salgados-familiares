@@ -5,30 +5,31 @@ import {
   CreateUserRequest,
   GroupsResponse,
   InviteRequest,
-  PendingInvitationsResponse,
   UserResponse,
   UsersResponse,
 } from "@/types/User";
+import { ProductionScheduleResponse } from "@/types/Logistics";
+import { ReportResponse } from "@/types/Reports";
 
 // Hook para obter o usuário atual (usando SWR)
-export function useCurrentUser() {
-  const { data, error, isLoading } = useApiBase<{ user: UserResponse }>(
-    `/accounts/users`
+export function useProductionSchedule() {
+  const { data, error, isLoading } = useApiBase<{ production_schedule: ProductionScheduleResponse[] }>(
+    `/logistic`
   );
   return {
-    user: data?.user ?? null,
+    productionSchedule: data?.production_schedule ?? [],
     isLoading,
     isError: error ? String(error) : null,
   };
 }
 
 // Hook para obter um usuário por ID (usando SWR)
-export function useUserById(id: string) {
-  const { data, error, isLoading } = useApiBase<{ user: UserResponse }>(
-    `/accounts/users/?id=${id}`
+export function useReports(days: number) {
+  const { data, error, isLoading } = useApiBase<{ report: ReportResponse }>(
+    `/reports/?days=${days}`
   );
   return {
-    user: data?.user ?? null,
+    reports: data?.report ?? null,
     isLoading,
     isError: error ? String(error) : null,
   };
@@ -47,24 +48,11 @@ export function useUserList() {
 }
 
 export function useGroupList() {
-  const { data, error, isLoading } =
-    useApiBase<GroupsResponse>(`/accounts/groups/`);
+  const { data, error, isLoading } = useApiBase<GroupsResponse>(
+    `/accounts/groups/`
+  );
   return {
     groups: data?.groups ?? [], // garante um array mesmo se der erro
-    isLoading,
-    isError: error ? String(error) : null,
-  };
-}
-export function getPendingInvitations(page = 1, page_size = 10) {
-  const { data, error, isLoading, mutate } = useApiBase<{
-    count: number;
-    pendiningInvitations: PendingInvitationsResponse[]; // Alterado de 'results' para 'products'
-  }>(`/products/?list&page=${page}&page_size=${page_size}`);
-
-  return {
-    data,
-    users: data?.pendiningInvitations ?? [], // Acessa a propriedade correta
-    totalItems: data?.count ?? 0,
     isLoading,
     isError: error ? String(error) : null,
   };
@@ -100,9 +88,8 @@ export function useUser() {
     setError(null);
 
     try {
-      const response = await axiosInstance.post(
-        `/accounts/users/invitation/`,
-        user
+      const response = await axiosInstance.post(`/accounts/users/invitation/`, 
+        user,
       );
       return response;
     } catch (error: any) {
