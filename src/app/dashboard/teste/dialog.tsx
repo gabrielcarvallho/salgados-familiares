@@ -48,7 +48,7 @@ import {
   useOrderStatus,
   usePaymentMethods,
 } from "@/hooks/useOrder";
-import { MultiSelect } from "./multiselect";
+import { MultiSelect } from "../pedidos/multiselect";
 import { SelectedItem } from "@/types/Product";
 import { useProductList } from "@/hooks/useProduct";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -173,13 +173,7 @@ export function DialogPedidos() {
     }
   };
 
-  // Função auxiliar para calcular o total
-  const calculateTotal = (items: any) => {
-    return items.reduce((total: any, item: any) => {
-      const product = products.find((p) => p.id === item.product_id);
-      return total + (product?.price || 0) * item.quantity;
-    }, 0);
-  };
+
 
   // Helper function to render error messages safely
   const renderErrorMessage = (error: any) => {
@@ -189,16 +183,6 @@ export function DialogPedidos() {
       : "Campo obrigatório";
   };
 
-  // Helper function para formatar a data para exibição
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return "Selecione a data";
-    try {
-      return format(parseISO(dateString), 'dd/MM/yyyy');
-    } catch (error) {
-      console.error("Erro ao formatar data:", error);
-      return "Data inválida";
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -258,7 +242,7 @@ export function DialogPedidos() {
                 </FormItem>
               )}
             />
-            <FormField
+            {/* <FormField
               control={form.control}
               name="products"
               render={({ field }) => {
@@ -433,7 +417,7 @@ export function DialogPedidos() {
                   </FormMessage>
                 </FormItem>
               )}
-            />
+            /> */}
             <DialogFooter>
               <Button
                 type="button"

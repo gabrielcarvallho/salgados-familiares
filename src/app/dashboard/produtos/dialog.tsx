@@ -26,7 +26,7 @@ import { ProductRequest, productRequestSchema } from "@/types/Product";
 
 export function DialogProdutos() {
   const { create, isLoading, error: productError } = useProduct();
-  const { mutate } = useProductList()
+  const { mutate } = useProductList();
 
   const form = useForm<ProductRequest>({
     resolver: zodResolver(productRequestSchema),
@@ -35,6 +35,8 @@ export function DialogProdutos() {
       price: 0,
       weight: "",
       batch_packages: 0,
+      daily_batch_capacity: 0,
+      batch_production_days: 0,
     },
   });
 
@@ -45,7 +47,7 @@ export function DialogProdutos() {
   const onSubmit = async (data: ProductRequest) => {
     try {
       await create(data);
-      mutate()
+      mutate();
       toast.success("Seu produto foi criado!", {
         duration: 3000,
       });
@@ -105,28 +107,6 @@ export function DialogProdutos() {
 
             <FormField
               control={form.control}
-              name="batch_packages"
-              render={({ field }) => (
-                <div className="flex flex-col gap-2">
-                  <FormItem>
-                    <FormLabel>Pacotes/Fornada</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Insira quantos pacotes saem por fornada"
-                        {...field}
-                      />
-                    </FormControl>
-                    {errors.batch_packages && (
-                      <p className="text-red-500 text-sm">
-                        {errors.batch_packages.message}
-                      </p>
-                    )}
-                  </FormItem>
-                </div>
-              )}
-            />
-            <FormField
-              control={form.control}
               name="price"
               render={({ field }) => (
                 <div className="flex flex-col gap-2">
@@ -163,6 +143,72 @@ export function DialogProdutos() {
                     {errors.weight && (
                       <p className="text-red-500 text-sm">
                         {errors.weight.message}
+                      </p>
+                    )}
+                  </FormItem>
+                </div>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="batch_packages"
+              render={({ field }) => (
+                <div className="flex flex-col gap-2">
+                  <FormItem>
+                    <FormLabel>Pacotes/Fornada</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Insira quantos pacotes saem por fornada"
+                        {...field}
+                      />
+                    </FormControl>
+                    {errors.batch_packages && (
+                      <p className="text-red-500 text-sm">
+                        {errors.batch_packages.message}
+                      </p>
+                    )}
+                  </FormItem>
+                </div>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="daily_batch_capacity"
+              render={({ field }) => (
+                <div className="flex flex-col gap-2">
+                  <FormItem>
+                    <FormLabel>Fornadas/dia</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Insira quantas fornadas saem por dia "
+                        {...field}
+                      />
+                    </FormControl>
+                    {errors.daily_batch_capacity && (
+                      <p className="text-red-500 text-sm">
+                        {errors.daily_batch_capacity.message}
+                      </p>
+                    )}
+                  </FormItem>
+                </div>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="batch_production_days"
+              render={({ field }) => (
+                <div className="flex flex-col gap-2">
+                  <FormItem>
+                    <FormLabel>Tempo para produção (dia(s))</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Insira quantos dias demoram para ficar pronto"
+                        {...field}
+                      />
+                    </FormControl>
+                    {errors.batch_production_days && (
+                      <p className="text-red-500 text-sm">
+                        {errors.batch_production_days.message}
                       </p>
                     )}
                   </FormItem>

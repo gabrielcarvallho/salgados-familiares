@@ -62,6 +62,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ZodType } from "zod";
+import { AlertDelete } from "./alert-dialog";
+import { Loader2, Trash2, XIcon } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -80,7 +82,6 @@ export type FormField = {
   parseValue?: (value: any) => any; // Conversão ao carregar
   formatValue?: (value: any) => any; // Conversão ao salvar
   defaultValue?: (value: any) => any; // Conversão ao salvar
-  
 };
 
 // Configuração para o drawer
@@ -89,6 +90,7 @@ export type DrawerConfig<TData, TUpdate extends Record<string, any>> = {
   description?: (item: TData) => string;
   fields: FormField[];
   updateSchema: ZodType<TUpdate>;
+  mutate: any;
 };
 // Props para o componente DataTable
 export type DataTableProps<
@@ -101,10 +103,7 @@ export type DataTableProps<
   primaryField?: string;
   drawerConfig?: DrawerConfig<TData, TUpdate>;
   updateSchema: ZodType<TUpdate>;
-  onUpdate?: (
-    originalItem: TData,
-    updatedItem: TUpdate
-  ) => Promise<void> | void;
+  onUpdate?: (original: TData, updated: TUpdate) => Promise<void> | void;
   onCreate?: (newItem: TData) => Promise<void> | void;
   onDelete?: (item: TData) => Promise<void> | void;
   pageSize?: number;
@@ -115,97 +114,100 @@ export type DataTableProps<
   ) => Promise<{ data: TData[]; totalCount: number }>;
   apiEndpoint?: string;
   currentPage?: number;
-  // Adicionar esta prop para propagar alterações de paginação
-  onPaginationChange?: (pagination: {
-    pageIndex: number;
-    pageSize: number;
-  }) => void;
+  onPaginationChange?: (p: { pageIndex: number; pageSize: number }) => void;
+  saveButtonText?: React.ReactNode;
+  savingButtonText?: React.ReactNode;
+  mutate?: () => void;
 };
 
 function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
   row,
   drawerConfig,
   onUpdate,
+  onDelete,
+  saveButtonText = "Salvar",
+  savingButtonText = "Salvando...",
+  mutate,
 }: {
   row: Row<TData>;
   drawerConfig?: DrawerConfig<TData, TUpdate>;
-  onUpdate?: (
-    originalItem: TData,
-    updatedItem: TUpdate
-  ) => Promise<void> | void;
+  onUpdate?: (original: TData, updated: TUpdate) => Promise<void> | void;
+  onDelete?: (item: TData) => Promise<void> | void;
+  saveButtonText?: React.ReactNode;
+  savingButtonText?: React.ReactNode;
+  mutate?: () => void;
 }) {
   const isMobile = useIsMobile();
   const item = row.original;
   const [formData, setFormData] = useState<any>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // pega um valor deep (ex.: "contact.name")
   function getNested(obj: any, path: string) {
-    return path.split(".").reduce((o, key) => o?.[key], obj);
+    return path.split(".").reduce((o, k) => o?.[k], obj);
   }
-
-  // atribui valor deep (ex.: obj.contact.name = value)
   function setNested(obj: any, path: string, value: any) {
     const keys = path.split(".");
     const last = keys.pop()!;
-    const target = keys.reduce((o, key) => {
-      if (o[key] == null) o[key] = {}; // garante a existência do objeto
-      return o[key];
+    const target = keys.reduce((o, k) => {
+      if (o[k] == null) o[k] = {};
+      return o[k];
     }, obj as any);
     target[last] = value;
   }
 
-  // This useEffect hook must be called unconditionally at the top level
   useEffect(() => {
-    if (drawerConfig) {
-      // começa vazio
-      const initialData: any = {};
-      drawerConfig.fields.forEach((field) => {
-        let parsed;
-        if (field.defaultValue) {
-          // se definimos defaultValue, ele vence tudo
-          parsed = field.defaultValue(item);
-        } else {
-          // senão, pega do raw e depois parseValue
-          const raw = getNested(item, field.name);
-          parsed = field.parseValue ? field.parseValue(raw) : raw;
-        }
-        setNested(initialData, field.name, parsed);
-      });
-      setFormData(initialData);
-    }
+    if (!drawerConfig) return;
+    const initial: any = {};
+    drawerConfig.fields.forEach((f) => {
+      const raw = f.defaultValue
+        ? f.defaultValue(item)
+        : getNested(item, f.name);
+      setNested(initial, f.name, f.parseValue ? f.parseValue(raw) : raw);
+    });
+    setFormData(initial);
   }, [item, drawerConfig]);
 
-  const handleChange = (fieldName: string, value: any) => {
-    const newData = { ...formData };
-    setNested(newData, fieldName, value);
-    setFormData(newData);
+  const handleChange = (name: string, val: any) => {
+    const updated = { ...formData };
+    setNested(updated, name, val);
+    setFormData(updated);
   };
 
   const handleSave = async () => {
     if (!onUpdate || !drawerConfig) return;
     setIsLoading(true);
     try {
-      // Clone raso e aplicar formatValue
       const raw: any = { ...formData };
-      console.log(raw)
-      drawerConfig.fields.forEach((field) => {
-        if (field.formatValue) {
-          raw[field.name] = field.formatValue(getNested(formData, field.name));
-        }
+      drawerConfig.fields.forEach((f) => {
+        if (f.formatValue)
+          raw[f.name] = f.formatValue(getNested(formData, f.name));
       });
-      // Valida e STRIPA chaves extras
-      const toSend = drawerConfig.updateSchema.parse(raw);
-      await onUpdate(item, toSend);
+      const validated = drawerConfig.updateSchema.parse(raw);
+      await onUpdate(item, validated);
+      mutate?.();
+    } catch (e) {
+      console.error(e);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // If no drawerConfig, just render the row
+  const handleDeleteConfirm = async () => {
+    if (!onDelete) return;
+    try {
+      await onDelete(item);
+      setDeleteDialogOpen(false);
+      mutate?.();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   if (!drawerConfig) {
     return (
-      <TableRow data-state={row.getIsSelected() && "selected"}>
+      <TableRow>
         {row.getVisibleCells().map((cell) => (
           <TableCell key={cell.id}>
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -215,86 +217,88 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
     );
   }
 
-  // If we have drawerConfig, render row with drawer
   return (
-    <Drawer direction={isMobile ? "bottom" : "right"}>
-      <DrawerTrigger asChild>
-        <TableRow
-          data-state={row.getIsSelected() && "selected"}
-          className="cursor-pointer hover:bg-muted/50"
-        >
-          {row.getVisibleCells().map((cell) => (
-            <TableCell key={cell.id}>
-              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-            </TableCell>
-          ))}
-        </TableRow>
-      </DrawerTrigger>
-      <DrawerContent>
-        <DrawerHeader className="gap-1">
-          <DrawerTitle className="text-2xl font-semibold">{drawerConfig.title(item)}</DrawerTitle>
-          {drawerConfig.description && (
-            <DrawerDescription>
-              {drawerConfig.description(item)}
-            </DrawerDescription>
-          )}
-        </DrawerHeader>
-        <div className="flex flex-col gap-4 overflow-y-auto px-4 text-sm">
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-4">
-              {drawerConfig.fields.map((field) => {
-                // pega o valor aninhado ou fallback
-                const current =
-                  getNested(formData, field.name) ??
-                  (field.type === "number" ? 0 : "");
-
+    <>
+      <Drawer direction={isMobile ? "bottom" : "right"}>
+        <DrawerTrigger asChild>
+          <TableRow className="cursor-pointer hover:bg-muted/50">
+            {row.getVisibleCells().map((cell) => (
+              <TableCell key={cell.id}>
+                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+              </TableCell>
+            ))}
+          </TableRow>
+        </DrawerTrigger>
+        <DrawerContent>
+          <DrawerHeader>
+            <div className="flex w-full items-center justify-between">
+              <div>
+                <DrawerTitle>{drawerConfig.title(item)}</DrawerTitle>
+                {drawerConfig.description && (
+                  <DrawerDescription>
+                    {drawerConfig.description(item)}
+                  </DrawerDescription>
+                )}
+              </div>
+              <div className="space-x-2">
+                {onDelete && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => setDeleteDialogOpen(true)}
+                    className="cursor-pointer"
+                  >
+                    <Trash2 />
+                  </Button>
+                )}
+                <DrawerClose asChild>
+                  <Button variant="outline" className="">
+                    <XIcon />
+                  </Button>
+                </DrawerClose>
+              </div>
+            </div>
+          </DrawerHeader>
+          <div className="p-4">
+            <div className="grid grid-cols-2 gap-4 space-y-2">
+              {drawerConfig.fields.map((f) => {
+                const curr =
+                  getNested(formData, f.name) ?? (f.type === "number" ? 0 : "");
                 return (
                   <div
-                    key={field.name}
-                    className={`flex flex-col gap-3 ${
-                      field.colSpan === 2 ? "col-span-2" : ""
-                    }`}
+                    key={f.name}
+                    className={f.colSpan === 2 ? "col-span-2 space-y-2" : ""}
                   >
-                    <Label htmlFor={field.name}>{field.label}</Label>
-
-                    {field.type === "text" && (
+                    <Label htmlFor={f.name}>{f.label}</Label>
+                    {f.type === "text" && (
                       <Input
-                        id={field.name}
-                        name={field.name}
-                        value={current as string}
+                        id={f.name}
+                        value={curr}
+                        onChange={(e) => handleChange(f.name, e.target.value)}
+                        disabled={isLoading}
+                      />
+                    )}
+                    {f.type === "number" && (
+                      <Input
+                        id={f.name}
+                        type="number"
+                        value={curr}
+                        disabled={isLoading}
                         onChange={(e) =>
-                          handleChange(field.name, e.target.value)
+                          handleChange(f.name, parseFloat(e.target.value) || 0)
                         }
                       />
                     )}
-
-                    {field.type === "number" && (
-                      <Input
-                        id={field.name}
-                        name={field.name}
-                        type="number"
-                        step="0.01"
-                        value={current as number}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          handleChange(
-                            field.name,
-                            v === "" ? 0 : parseFloat(v)
-                          );
-                        }}
-                      />
-                    )}
-
-                    {field.type === "select" && field.options && (
+                    {f.type === "select" && f.options && (
                       <Select
-                        value={String(current)}
-                        onValueChange={(v) => handleChange(field.name, v)}
+                        value={String(curr)}
+                        onValueChange={(v) => handleChange(f.name, v)}
+                        disabled={isLoading}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent>
-                          {field.options.map((opt) => (
+                          {f.options.map((opt) => (
                             <SelectItem key={opt.value} value={opt.value}>
                               {opt.label}
                             </SelectItem>
@@ -302,33 +306,34 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
                         </SelectContent>
                       </Select>
                     )}
-
-                    {field.type === "custom" &&
-                      field.customRender &&
-                      field.customRender(current, (v) =>
-                        handleChange(field.name, v)
-                      )}
+                    {f.type === "custom" &&
+                      f.customRender?.(curr, (v) => handleChange(f.name, v))}
                   </div>
                 );
               })}
             </div>
           </div>
-        </div>
-        <DrawerFooter>
-          <Button
-            variant={'outline'}
-            onClick={handleSave}
-            className="bg-[#FF8F3F] text-primary-foreground"
-            disabled={isLoading}
-          >
-            {isLoading ? "Salvando..." : "Salvar alterações"}
-          </Button>
-          <DrawerClose asChild>
-            <Button variant="outline">Fechar</Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
+          <DrawerFooter>
+            <div className="flex gap-2 w-full justify-end">
+              <Button
+                onClick={handleSave}
+                disabled={isLoading}
+                className="bg-[#FF8F3F] text-white w-full"
+                variant={"outline"}
+              >
+                {isLoading ? savingButtonText : saveButtonText}
+              </Button>
+            </div>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+      <AlertDelete
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleDeleteConfirm}
+        trigger={<Button variant="destructive">Excluir</Button>}
+      />
+    </>
   );
 }
 
@@ -342,6 +347,10 @@ export function DataTable<
   primaryField,
   drawerConfig,
   onUpdate,
+  onDelete,
+  mutate,
+  saveButtonText,
+  savingButtonText,
   pageSize = 10,
   totalCount: initialTotalCount = 0,
   fetchData,
@@ -426,10 +435,6 @@ export function DataTable<
       setData(initialData);
       setTotalCount(initialTotalCount);
     }
-    // REMOVE this call from here:
-    // if (onPaginationChange) {
-    //   onPaginationChange(pagination);
-    // }
   }, [
     pagination.pageIndex,
     pagination.pageSize,
@@ -603,6 +608,10 @@ export function DataTable<
                       row={row}
                       drawerConfig={drawerConfig}
                       onUpdate={onUpdate}
+                      onDelete={onDelete}
+                      saveButtonText={saveButtonText}
+                      savingButtonText={savingButtonText}
+                      mutate={mutate}
                     />
                   ))
               ) : (
@@ -611,7 +620,11 @@ export function DataTable<
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    {isLoading ? "Carregando..." : "Nenhum item encontrado."}
+                    {isLoading ? 
+                    <>
+                    <Loader2 className="animate-spin h-4 w-4 mr-2"/>
+                    Carregando...
+                    </> : "Nenhum item encontrado."}
                   </TableCell>
                 </TableRow>
               )}

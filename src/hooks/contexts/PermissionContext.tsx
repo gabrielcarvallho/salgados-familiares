@@ -14,6 +14,7 @@ import {
   UserGroupName,
 } from "@/types/Auth";
 import { Group } from "@/types/User";
+import { LoadingAnimation } from "@/components/ui/loading";
 
 // Define os tipos de permissões por grupo
 
@@ -25,10 +26,10 @@ const routePermissions: Record<UserGroupName, string[]> = {
     "/dashboard/produtos",
     "/dashboard/logistica",
     "/dashboard/clientes",
-    "/dashboard/entregadores", // Rota adicional para entregadores
+    "/dashboard/entrega", // Rota adicional para entregadores
   ],
-  sales_person: ["/dashboard", "/dashboard/pedidos", "/dashboard/clientes"],
-  delivery_person: ["/dashboard", "/dashboard/entregadores"],
+  sales_person: ["/dashboard/pedidos", "/dashboard/clientes"],
+  delivery_person: ["/dashboard/entrega"],
 };
 
 // Verifica se um usuário tem permissão para acessar uma rota específica
@@ -118,7 +119,7 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        Carregando...
+        <LoadingAnimation />
       </div>
     );
   }

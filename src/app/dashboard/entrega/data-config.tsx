@@ -2,25 +2,19 @@ import React from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { DrawerConfig } from "@/components/datatable";
 import { Badge } from "@/components/ui/badge";
-import {
-  useOrder,
-  useOrderList,
-  useOrderStatus,
-  usePaymentMethods,
-} from "@/hooks/useOrder";
+import { useOrderList, useOrderStatus, usePaymentMethods } from "@/hooks/useOrder";
 import {
   badgesVariant,
   formatDateToBR,
-  formatDateInput,
   formatStatus,
   formatPaymentMethod,
+  formatCEP,
 } from "@/lib/utils";
 import {
   OrderUpdateRequest,
   orderUpdateRequestSchema,
   OrderResponse,
 } from "@/types/Order";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -29,32 +23,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { IconTrash } from "@tabler/icons-react";
 import { useProductList } from "@/hooks/useProduct";
-import { useDrawerFormContext } from "@/hooks/contexts/DrawerFormContext";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { format, parseISO } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
-import { ptBR } from "date-fns/locale";
-import { mutate } from "swr";
-import DatePicker from "@/components/ui/date-picker";
-
-const formatDate = (dateString: string | null | undefined) => {
-  if (!dateString) return "Selecione a data";
-  try {
-    return format(parseISO(dateString), "dd/MM/yyyy");
-  } catch (error) {
-    console.error("Erro ao formatar data:", error);
-    return "Data inválida";
-  }
-};
+import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
 
 // Colunas da tabela
 export const columns: ColumnDef<OrderResponse, any>[] = [
+  {
+    id: "id",
+    accessorKey: "id",
+    header: "Pedido",
+    cell: ({ row }) => row.original.id,
+  },
   {
     id: "cliente",
     accessorKey: "customer.company_name",
@@ -76,12 +56,6 @@ export const columns: ColumnDef<OrderResponse, any>[] = [
     accessorKey: "delivery_date",
     header: "Data de entrega",
     cell: ({ row }) => formatDateToBR(row.original.delivery_date),
-  },
-  {
-    id: "due_date",
-    accessorKey: "due_date",
-    header: "Data de vencimento",
-    cell: ({ row }) => formatDateToBR(row.original.due_date),
   },
   {
     id: "order_status",
@@ -112,13 +86,14 @@ export function useDrawerConfig() {
   const { paymentMethods = [] } = usePaymentMethods();
   const { orderStatus: orderStatuses = [] } = useOrderStatus();
   const { products = [] } = useProductList();
-  const { mutate } = useOrderList();
+  const { mutate } = useOrderList()
 
   const drawerConfig: DrawerConfig<OrderResponse, OrderUpdateRequest> = {
     title: (o) => `Pedido #${o.id}`,
     description: (o) => `Cliente: ${o.customer.company_name}`,
     updateSchema: orderUpdateRequestSchema,
-    mutate: { mutate },
+    mutate: mutate,
+
     fields: [
       {
         name: "order_status_id",
@@ -128,7 +103,7 @@ export function useDrawerConfig() {
         defaultValue: (o) => o.order_status.id,
         formatValue: (v) => v,
         customRender: (value: string, onChange: (v: string) => void) => (
-          <Select value={value} onValueChange={onChange}>
+          <Select value={value} onValueChange={onChange} disabled>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Selecione status" />
             </SelectTrigger>
@@ -150,7 +125,7 @@ export function useDrawerConfig() {
         defaultValue: (o) => o.payment_method.id,
         formatValue: (v) => v,
         customRender: (value: string, onChange: (v: string) => void) => (
-          <Select value={value} onValueChange={onChange}>
+          <Select value={value} onValueChange={onChange} disabled>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Selecione método" />
             </SelectTrigger>
@@ -165,45 +140,35 @@ export function useDrawerConfig() {
         ),
       },
       {
-        name: "delivery_address_id",
-        label: "Endereço de entrega",
-        type: "custom",
-        colSpan: 2,
-        defaultValue: (o) => o.delivery_address.id,
-        formatValue: (v) => v,
-        customRender: (value: string, onChange: (v: string) => void) => (
-          <Select value={value} onValueChange={onChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione endereço" />
-            </SelectTrigger>
-            <SelectContent>{/* mapeie seus endereços aqui */}</SelectContent>
-          </Select>
-        ),
-      },
-      {
         name: "delivery_date",
         label: "Data de entrega",
         type: "custom",
         colSpan: 1,
-        // usa direto o yyyy-MM-dd que o DatePicker espera
-        defaultValue: (o) => o.delivery_date,
-        // formatValue continua identity: envia yyyy-MM-dd de volta
-        formatValue: (v) => v,
+        defaultValue: (o) => formatDateToBR(o.delivery_date),
+        formatValue: (v) => formatDateToBR(v),
         customRender: (value: string, onChange: (v: string) => void) => (
-          // passe o onChange diretamente
-          <DatePicker value={value} onChange={onChange} className="my-2"/>
+          <Input
+            disabled
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="dd/mm/yyyy"
+          />
         ),
       },
-
       {
         name: "due_date",
         label: "Data de vencimento",
         type: "custom",
         colSpan: 1,
-        defaultValue: (o) => o.due_date,
-        formatValue: (v) => v,
+        defaultValue: (o) => formatDateToBR(o.due_date),
+        formatValue: (v) => formatDateToBR(v),
         customRender: (value: string, onChange: (v: string) => void) => (
-          <DatePicker disabled value={value} onChange={onChange} />
+          <Input
+            disabled
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="dd/mm/yyyy"
+          />
         ),
       },
       {
@@ -222,37 +187,11 @@ export function useDrawerConfig() {
         customRender: (items = [], onChange) => {
           const list = Array.isArray(items) ? items : [];
 
-          const add = () =>
-            onChange([
-              ...list,
-              { product_id: products[0]?.id ?? "", quantity: 1 },
-            ]);
-
-          const remove = (idx: number) =>
-            onChange(list.filter((_, j) => j !== idx));
-
-          const updateItem = (
-            idx: number,
-            key: string,
-            value: string | number
-          ) =>
-            onChange(
-              list.map((item, j) =>
-                j === idx ? { ...item, [key]: value } : item
-              )
-            );
-
           return (
             <div className="flex flex-col gap-3">
-              <Button variant={"secondary"} onClick={add}>
-                Adicionar produto
-              </Button>
               {list.map((it, i) => (
                 <div key={i} className="flex gap-2 items-center">
-                  <Select
-                    value={it.product_id}
-                    onValueChange={(v) => updateItem(i, "product_id", v)}
-                  >
+                  <Select value={it.product_id} disabled>
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
@@ -267,19 +206,88 @@ export function useDrawerConfig() {
                   <Input
                     type="number"
                     value={it.quantity}
-                    onChange={(e) =>
-                      updateItem(i, "quantity", Number(e.target.value))
-                    }
                     className="w-16"
+                    disabled
                   />
-                  <Button variant="outline" onClick={() => remove(i)}>
-                    <IconTrash />
-                  </Button>
                 </div>
               ))}
             </div>
           );
         },
+      },
+
+      {
+        name: "delivery_address.cep",
+        label: "CEP",
+        type: "custom",
+        colSpan: 2,
+        defaultValue: (o) => formatCEP(o.delivery_address.cep),
+        formatValue: (v) => formatCEP(v),
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <Input
+            disabled
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="00000-000"
+          />
+        ),
+      },
+
+      // Endereço completo em campos separados
+      {
+        name: "delivery_address.street_name",
+        label: "",
+        type: "custom",
+        colSpan: 2,
+        formatValue: (v) => v,
+        parseValue: (v) => v,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="flex flex-col space-y-3">
+            <Label>Rua</Label>
+            <Input
+              disabled
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+            />
+          </div>
+        ),
+      },
+      {
+        name: "delivery_address.number",
+        label: "Número",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value) => <Input value={value} disabled />,
+      },
+      {
+        name: "delivery_address.district",
+        label: "Bairro",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value) => <Input value={value} disabled />,
+      },
+      {
+        name: "delivery_address.city",
+        label: "Cidade",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value) => <Input value={value} disabled />,
+      },
+      {
+        name: "delivery_address.state",
+        label: "Estado",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value) => <Input value={value} disabled />,
+      },
+
+      // Observação
+      {
+        name: "delivery_address.observation",
+        label: "Observação",
+        type: "custom",
+        colSpan: 2,
+        customRender: (value) => <Input value={value} disabled />,
       },
     ],
   };

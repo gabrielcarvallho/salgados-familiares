@@ -1,20 +1,23 @@
 "use client";
 
+import { useState, useCallback } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { DataTable } from "@/components/datatable";
 import { SiteHeader } from "@/components/site-header";
 import { DialogPedidos } from "./dialog";
 import { ProductsSkeletonLoading } from "@/components/skeleton";
-import { useState, useCallback } from "react";
-import { toast } from "sonner";
-import { columns, useOrderDrawerConfig } from "./data-config";
+import { columns, useDrawerConfig } from "./data-config";
 import { useOrder, useOrderList } from "@/hooks/useOrder";
-import { OrderResponse, OrderUpdateRequest, orderUpdateRequestSchema } from "@/types/Order";
+import {
+  OrderResponse,
+  OrderUpdateRequest,
+  orderUpdateRequestSchema,
+} from "@/types/Order";
+import { DrawerFormProvider } from "@/hooks/contexts/DrawerFormContext";
 
 export default function OrdersPage() {
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  });
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
   const { update, error: updateError } = useOrder();
   const { orders, isLoading, isError, totalItems, mutate } = useOrderList(
@@ -22,7 +25,10 @@ export default function OrdersPage() {
     pagination.pageSize
   );
 
-  // No handlePaginationChange:
+  // form methods for drawer
+  const formMethods = useForm<OrderUpdateRequest>();
+  const drawerConfig = useDrawerConfig();
+
   const handlePaginationChange = useCallback((newPagination: any) => {
     setPagination({
       pageIndex: newPagination.pageIndex,
@@ -38,35 +44,31 @@ export default function OrdersPage() {
       id: original.id,
       ...updated,
     };
-
     try {
       await update(payload);
       toast.success("Pedido atualizado com sucesso!");
-      mutate()
+      mutate();
     } catch (error) {
-      toast.error("Falha, tente novamente mais tarde!", {
+      toast.error("Falha ao atualizar pedido.", {
         description: updateError || String(error),
         duration: 3000,
-      });      
+      });
       throw error;
     }
   };
 
-  const drawerConfig = useOrderDrawerConfig();
-
-
   return (
-    <div>
-      <div className="flex flex-col gap-4">
-        <SiteHeader title="Pedidos" button={<DialogPedidos />} />
+    <div className="flex flex-col gap-4">
+      <SiteHeader title="Pedidos" button={<DialogPedidos />} />
 
-        {isLoading ? (
-          <ProductsSkeletonLoading />
-        ) : isError ? (
-          <div className="p-4 text-center text-red-500">
-            Erro ao carregar pedidos: {isError}
-          </div>
-        ) : (
+      {isLoading ? (
+        <ProductsSkeletonLoading />
+      ) : isError ? (
+        <div className="p-4 text-center text-red-500">
+          Erro ao carregar pedidos: {String(isError)}
+        </div>
+      ) : (
+        <DrawerFormProvider formMethods={formMethods}>
           <DataTable<OrderResponse, OrderUpdateRequest>
             updateSchema={orderUpdateRequestSchema}
             drawerConfig={drawerConfig}
@@ -78,9 +80,10 @@ export default function OrdersPage() {
             currentPage={pagination.pageIndex}
             onUpdate={handleUpdateOrder}
             onPaginationChange={handlePaginationChange}
+            mutate={mutate}
           />
-        )}
-      </div>
+        </DrawerFormProvider>
+      )}
     </div>
   );
 }

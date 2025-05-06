@@ -6,13 +6,13 @@ import { DialogClientes } from "./dialog";
 import { ProductsSkeletonLoading } from "@/components/skeleton";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
-import { columns, drawerConfig } from "./data-config";
+import { columns, useDrawerConfig } from "./data-config";
 import {
   CustomerResponse,
   CustomerUpdateRequest,
   CustomerUpdateRequestSchema,
 } from "@/types/Customer";
-import { useCustomer, useCustomerList } from "@/hooks/useCostumer";
+import { useCustomer, useCustomerList } from "@/hooks/useCustomer";
 
 type PaginationType = {
   pageIndex: number;
@@ -27,10 +27,12 @@ export default function ClientsPage() {
   });
 
   const { update, error: updateError } = useCustomer();
-  const { customers, isLoading, isError, totalItems } = useCustomerList(
+  const { customers, isLoading, isError, totalItems, mutate } = useCustomerList(
     pagination.pageIndex + 1,
     pagination.pageSize
   );
+
+  const drawerConfig = useDrawerConfig()
 
   // No handlePaginationChange:
   const handlePaginationChange = useCallback((newPagination: any) => {
@@ -51,12 +53,12 @@ export default function ClientsPage() {
 
     try {
       await update(payload);
-      toast.success("Produto atualizado com sucesso!");
+      toast.success("Cliente atualizado com sucesso!");
     } catch (error) {
       toast.error("Falha, tente novamente mais tarde!", {
         description: updateError || String(error),
         duration: 3000,
-      });      
+      });
       throw error;
     }
   };
@@ -84,6 +86,7 @@ export default function ClientsPage() {
             currentPage={pagination.pageIndex}
             onUpdate={handleUpdateProduct}
             onPaginationChange={handlePaginationChange}
+            mutate={mutate}
           />
         )}
       </div>

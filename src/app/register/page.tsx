@@ -2,8 +2,6 @@
 export const dynamic = "force-dynamic";
 
 import RegisterFormClient from "./RegisterFormClient";
-import { Metadata } from "next";
-
 
 
 export default function RegisterPage({ searchParams }: any) {

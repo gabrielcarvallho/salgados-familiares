@@ -1,23 +1,24 @@
+import {
+  cleanCEP,
+  cleanCNPJ,
+  cleanPhone,
+  convertDateFormat,
+} from "@/lib/utils";
 import { z } from "zod";
 
 // --- Contato ---
 export const contactSchema = z.object({
   id: z.string().uuid().optional().nullable(),
   name: z.string().min(1, "Nome é obrigatório"),
-  date_of_birth: z.string(),
-  contact_phone: z
-    .string()
-    .regex(
-      /^[0-9]{10,11}$/,
-      "Número de telefone inválido. Deve conter 10 ou 11 dígitos numéricos."
-    ),
+  date_of_birth: z.string().transform(convertDateFormat),
+  contact_phone: z.string().transform(cleanPhone),
   contact_email: z.string().email("Digite um endereço de e-mail válido."),
 });
 
 // --- Endereço ---
 export const addressSchema = z.object({
   id: z.string().uuid().optional().nullable(),
-  cep: z.string(),
+  cep: z.string().transform(cleanCEP),
   street_name: z.string().min(1, "Rua é obrigatória"),
   district: z.string().min(1, "Bairro é obrigatório"),
   number: z.string().min(1, "Número de residência é obrigatório"),
@@ -33,13 +34,17 @@ export const addressUpdateSchema = addressSchema.partial();
 export const CustomerRequestSchema = z.object({
   company_name: z.string().min(1, "Razão social é obrigatória"),
   brand_name: z.string().min(1, "Nome fantasia é obrigatória"),
-  cnpj: z.string().min(14, "CNPJ inválido. Deve conter 14 dígitos numéricos."),
+  cnpj: z
+    .string()
+    .min(14, "CNPJ inválido. Deve conter 14 dígitos numéricos.")
+    .transform(cleanCNPJ),
   phone_number: z
     .string()
     .regex(
       /^[0-9]{10,11}$/,
       "Número de telefone inválido. Deve conter 10 ou 11 dígitos numéricos."
-    ),
+    )
+    .transform(cleanPhone),
   email: z.string().email("Digite um endereço de e-mail válido."),
   state_tax_registration: z.string().optional(),
   billing_address: addressSchema.omit({ id: true }),
@@ -51,15 +56,16 @@ export const CustomerRequestSchema = z.object({
 const shallowPartial = CustomerRequestSchema.partial();
 
 // 2) Omite billing_address e contact (pois vamos redefinir eles):
-const withoutNested =
-  shallowPartial.omit({ billing_address: true, contact: true });
+const withoutNested = shallowPartial.omit({
+  billing_address: true,
+  contact: true,
+});
 
 // 3) Estende com as versões parciais dos sub-schemas:
-export const CustomerUpdateRequestSchema =
-  withoutNested.extend({
-    billing_address: addressUpdateSchema.optional(),
-    contact: contactSchema.partial().optional(),
-  });
+export const CustomerUpdateRequestSchema = withoutNested.extend({
+  billing_address: addressUpdateSchema.optional(),
+  contact: contactSchema.partial().optional(),
+});
 
 // --- Cliente: Response schema ---
 export const CustomerResponseSchema = z.object({
@@ -67,7 +73,6 @@ export const CustomerResponseSchema = z.object({
   ...CustomerRequestSchema.shape,
   billing_address: addressSchema,
   contact: contactSchema,
-
 });
 
 // --- Paginação ---

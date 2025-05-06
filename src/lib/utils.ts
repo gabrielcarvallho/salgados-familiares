@@ -239,23 +239,23 @@ export const badgesVariant = (identifier: number): BadgeInfo => {
       return { badge, stats };
     }
     case 2: {
-      const stats = "Pagamento pendente";
-      const badge = "pagamentoPendente";
-      return { badge, stats };
-    }
-    case 3: {
-      const stats = "Pagamento aprovado";
-      const badge = "pagamentoAprovado";
-      return { badge, stats };
-    }
-    case 4: {
       const stats = "Pronta entrega";
       const badge = "prontoEntrega";
       return { badge, stats };
     }
-    case 5: {
+    case 3: {
       const stats = "Entregue";
       const badge = "entregue";
+      return { badge, stats };
+    }
+    case 4: {
+      const stats = "Pagamento pendente";
+      const badge = "pagamentoPendente";
+      return { badge, stats };
+    }
+    case 5: {
+      const stats = "Pagamento aprovado";
+      const badge = "pagamentoAprovado";
       return { badge, stats };
     }
     default: {
@@ -266,13 +266,16 @@ export const badgesVariant = (identifier: number): BadgeInfo => {
   }
 };
 
-
 export const formatStatus = (name: string) => {
   if (name === "Conclu├¡do") {
-    return "Concluído"
-  } else if(name === "Em produ├º├úo") {
-    return "Em produção"
+    return "Concluído";
+  } else if (name === "Em produ├º├úo") {
+    return "Em produção";
   } else {
-    return name
+    return name;
   }
+};
+
+export function cleanCEP(cep: string): string {
+  return cep.replace(/\D/g, "");
 }

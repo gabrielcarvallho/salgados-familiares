@@ -1,0 +1,141 @@
+import { useState } from "react";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Locale } from "date-fns";
+
+/**
+ * Props for the DatePicker component
+ */
+export interface DatePickerProps {
+  /** Date string in yyyy-mm-dd format */
+  value: string;
+  /** Callback function when date changes */
+  onChange: (date: string) => void;
+  /** Optional label for the date picker */
+  label?: string;
+  /** Placeholder text when no date is selected */
+  placeholder?: string;
+  /** Additional classes for the container */
+  className?: string;
+  /** Additional classes for the button */
+  buttonClassName?: string;
+  /** Additional classes for the popover */
+  popoverClassName?: string;
+  /** Format for the displayed date using date-fns format string */
+  dateFormat?: string;
+  /** Whether the date picker is disabled */
+  disabled?: boolean;
+  /** Whether the date picker is required */
+  required?: boolean;
+  /** Locale object from date-fns */
+  locale?: Locale;
+  /** Error message to display */
+  errorMessage?: string;
+  /** Callback function when the date picker loses focus */
+  onBlur?: () => void;
+  /** ID for the input element */
+  id?: string;
+  /** Name for the input element */
+  name?: string;
+}
+
+/**
+ * DatePicker component that formats dates in yyyy-mm-dd format
+ */
+export default function DatePicker({
+  value,
+  onChange,
+  label,
+  placeholder = "Selecione uma data",
+  className = "",
+  buttonClassName = "",
+  popoverClassName = "",
+  dateFormat = "PPP",
+  disabled = false,
+  required = false,
+  locale = ptBR,
+  errorMessage,
+  onBlur,
+  id,
+  name,
+}: DatePickerProps) {
+  // Format the date for display in the button
+  const formatDate = (dateString: string | undefined): string => {
+    if (!dateString) {
+      return placeholder;
+    }
+
+    try {
+      // Parse the ISO date string
+      const date = parseISO(dateString);
+      // Format using date-fns with provided locale
+      return format(date, dateFormat, { locale });
+    } catch (error) {
+      console.error("Invalid date format:", error);
+      return "Data inválida";
+    }
+  };
+
+  const handleBlur = () => {
+    if (onBlur) onBlur();
+  };
+
+  return (
+    <div className={cn("flex flex-col gap-2 my-2", className)}>
+      {label && (
+        <label className="text-sm font-medium" htmlFor={id}>
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+      )}
+
+      <Popover onOpenChange={(open: boolean) => !open && handleBlur()}>
+        <PopoverTrigger asChild>
+          <Button
+            id={id}
+            name={name}
+            type="button"
+            variant="outline"
+            disabled={disabled}
+            className={cn(
+              "w-full justify-between text-left font-normal",
+              !value && "text-gray-500",
+              errorMessage && "border-red-500",
+              buttonClassName
+            )}
+            aria-required={required}
+          >
+            {formatDate(value)}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className={cn("w-auto p-0", popoverClassName)}>
+          <Calendar
+            locale={locale}
+            mode="single"
+            selected={value ? parseISO(value) : undefined}
+            onSelect={(date) => {
+              if (!date) return;
+              const iso = date.toISOString().split("T")[0];
+              onChange(iso);
+            }}
+            initialFocus
+            // desabilita sábado(6) e domingo(0)
+            disabled={(date: Date) => {
+              const d = date.getDay();
+              return d === 0 || d === 6;
+            }}
+          />
+        </PopoverContent>
+      </Popover>
+
+      {errorMessage && <p className="text-sm text-red-500">{errorMessage}</p>}
+    </div>
+  );
+}

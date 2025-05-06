@@ -4,14 +4,12 @@ import { useApiBase } from "./api/useApiBase";
 import type {
   OrderRequest,
   OrderResponse,
-  OrdersResponse,
   OrderStatus,
   OrderUpdateRequest,
   OrderWithAddress,
 } from "@/types/Order";
 import { PaymentMethodsResponse } from "@/types/PaymentMethod";
 import { CustomerResponse } from "@/types/Customer";
-import { count } from "console";
 import { handleApiError } from "./api/apiErrorHandler";
 
 // Hook para obter uma ordem por ID (usando SWR)

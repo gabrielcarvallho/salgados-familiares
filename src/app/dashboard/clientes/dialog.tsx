@@ -28,18 +28,23 @@ import {
   EMPTY_CUSTOMER,
 } from "@/types/Customer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCustomer, useCustomerList } from "@/hooks/useCostumer";
+import { useCustomer, useCustomerList } from "@/hooks/useCustomer";
 import { useState } from "react";
-import { cleanCNPJ, cleanPhone, convertDateFormat, formatCEP, formatCNPJ, formatDateInput, formatPhone } from "@/lib/utils";
-
+import {
+  cleanCNPJ,
+  cleanPhone,
+  convertDateFormat,
+  formatCEP,
+  formatCNPJ,
+  formatDateInput,
+  formatPhone,
+} from "@/lib/utils";
 
 export function DialogClientes() {
-  const { mutate } = useCustomerList()
+  const { mutate } = useCustomerList();
   const { create, isLoading, error: err } = useCustomer();
   const [open, setOpen] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
-
-
 
   const form = useForm<CustomerRequest>({
     resolver: zodResolver(CustomerRequestSchema),
@@ -78,7 +83,7 @@ export function DialogClientes() {
       console.log("Dados formatados para envio:", dataToSubmit);
 
       await create(dataToSubmit);
-      mutate()
+      mutate();
       toast.success("Cliente cadastrado com sucesso!", {
         duration: 3000,
       });
@@ -205,9 +210,7 @@ export function DialogClientes() {
                   name="phone_number"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Telefone da empresa*
-                      </FormLabel>
+                      <FormLabel>Telefone da empresa*</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="(47) 99999-9999"
@@ -311,9 +314,7 @@ export function DialogClientes() {
                   name="contact.contact_phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Telefone para contato*
-                      </FormLabel>
+                      <FormLabel>Telefone para contato*</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="(47) 99999-9999"
@@ -328,7 +329,6 @@ export function DialogClientes() {
                     </FormItem>
                   )}
                 />
-                
               </TabsContent>
 
               <TabsContent value="endereco" className="space-y-4">
@@ -430,38 +430,35 @@ export function DialogClientes() {
                     </FormItem>
                   )}
                 />
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setOpen(false);
-                  setFormSubmitted(false);
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                variant="outline"
-                className="bg-[#FF8F3F] text-primary-foreground"
-                disabled={isSubmitting || isLoading}
-              >
-                {isLoading || isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Cadastrando...
-                  </>
-                ) : (
-                  "Cadastrar cliente"
-                )}
-              </Button>
-            </DialogFooter>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setOpen(false);
+                      setFormSubmitted(false);
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    className="bg-[#FF8F3F] text-primary-foreground"
+                    disabled={isSubmitting || isLoading}
+                  >
+                    {isLoading || isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Cadastrando...
+                      </>
+                    ) : (
+                      "Cadastrar cliente"
+                    )}
+                  </Button>
+                </DialogFooter>
               </TabsContent>
-
-              
             </Tabs>
-
 
             {formSubmitted && Object.keys(errors).length > 0 && (
               <div className="text-red-500 text-sm p-2 border border-red-300 rounded bg-red-50">
@@ -495,8 +492,6 @@ export function DialogClientes() {
                 </ul>
               </div>
             )}
-
-            
           </form>
         </Form>
       </DialogContent>

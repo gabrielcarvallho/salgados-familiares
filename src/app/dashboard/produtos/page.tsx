@@ -7,9 +7,10 @@ import { useProduct, useProductList } from "@/hooks/useProduct";
 import { ProductsSkeletonLoading } from "../../../components/skeleton";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
-import { columns, drawerConfig } from "./data-config";
+import { columns, useDrawerConfig } from "./data-config";
 import { ProductResponse, productUpdateRequestSchema } from "@/types/Product";
 import { PaginationType } from "@/types/User";
+import { AlertDelete } from "@/components/alert-dialog";
 
 export default function ProductsPage() {
   const [pagination, setPagination] = useState<PaginationType>({
@@ -17,8 +18,10 @@ export default function ProductsPage() {
     pageSize: 10,
   });
 
-  const { update, error: updateError } = useProduct();
-  const { data, isLoading, isError, totalItems } = useProductList(
+  const drawerConfig = useDrawerConfig()
+
+  const { update, error: updateError, del, error: delError } = useProduct();
+  const { data, isLoading, isError, totalItems, mutate } = useProductList(
     pagination.pageIndex + 1,
     pagination.pageSize
   );
@@ -40,6 +43,7 @@ export default function ProductsPage() {
     try {
       await update(payload);
       toast.success("Produto atualizado com sucesso!");
+      mutate()
     } catch (error) {
       console.error("Erro ao atualizar produto:", error);
       toast.error("Falha ao atualizar produto", {
@@ -49,6 +53,20 @@ export default function ProductsPage() {
       throw error;
     }
   };
+
+  const handleDeleteProduct = async (item: any) => {
+    try {
+      await del(item);
+      toast.success("Produto exlcuido com sucesso!");
+      mutate()
+    } catch (error) {
+      console.error("Erro ao excluir produto:", error);
+      toast.error("Falha ao excluir produto", {
+        description: updateError || String(error),
+        duration: 3000,
+      });
+      throw error;
+    }  }
 
   return (
     <div>
@@ -73,6 +91,8 @@ export default function ProductsPage() {
             currentPage={pagination.pageIndex}
             onUpdate={handleUpdateProduct}
             onPaginationChange={handlePaginationChange}
+            mutate={mutate}
+            onDelete={(item) => handleDeleteProduct(item)}
           />
         )}
       </div>

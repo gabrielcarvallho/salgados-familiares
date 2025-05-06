@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/pagination";
 import { useState } from "react";
 import { DialogUsuario } from "./dialog";
+import { usePermissions } from "@/hooks/contexts/PermissionContext";
 
 interface OrderUpdate {
   id: string;
@@ -23,6 +24,8 @@ export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  const { userGroups, canAccess } = usePermissions()
+  
   // Sample order updates data
   const orderUpdates: OrderUpdate[] = [
     { id: "431", status: "Entrou em produção" },
