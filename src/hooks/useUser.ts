@@ -8,6 +8,7 @@ import {
   UserResponse,
   UsersResponse,
 } from "@/types/User";
+import { handleApiError } from "./api/apiErrorHandler";
 
 // Hook para obter o usuário atual (usando SWR)
 export function useCurrentUser() {
@@ -71,11 +72,10 @@ export function useUser() {
         user
       );
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao criar usuário"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }
@@ -90,11 +90,10 @@ export function useUser() {
         user,
       );
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao convidar usuário"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }
@@ -110,11 +109,10 @@ export function useUser() {
         {}
       );
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao deletar usuário"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }

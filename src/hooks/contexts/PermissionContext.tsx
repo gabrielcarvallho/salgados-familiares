@@ -3,19 +3,18 @@
 import React, {
   createContext,
   useContext,
-  ReactNode,
   useEffect,
   useState,
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useCurrentUser, useUser } from "@/hooks/useUser"; // Assumindo que este hook existe conforme mencionado
+import { useCurrentUser } from "@/hooks/useUser"; // Assumindo que este hook existe conforme mencionado
 import {
   PermissionsContextType,
   PermissionsProviderProps,
-  UserGroup,
   UserGroupName,
 } from "@/types/Auth";
 import { Group } from "@/types/User";
+import { LoadingAnimation } from "@/components/ui/loading";
 
 // Define os tipos de permissões por grupo
 
@@ -27,10 +26,10 @@ const routePermissions: Record<UserGroupName, string[]> = {
     "/dashboard/produtos",
     "/dashboard/logistica",
     "/dashboard/clientes",
-    "/dashboard/entregadores", // Rota adicional para entregadores
+    "/dashboard/entrega", // Rota adicional para entregadores
   ],
-  sales_person: ["/dashboard", "/dashboard/pedidos", "/dashboard/clientes"],
-  delivery_person: ["/dashboard", "/dashboard/entregadores"],
+  sales_person: ["/dashboard/pedidos", "/dashboard/clientes"],
+  delivery_person: ["/dashboard/entrega"],
 };
 
 // Verifica se um usuário tem permissão para acessar uma rota específica
@@ -114,13 +113,13 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
         router.push("/dashboard"); // Redireciona para o dashboard principal
       }
     }
-  }, [user, isLoading, pathname, router]);
+  }, [user, isLoading, pathname, router, canAccess, isRedirecting]);
 
   // Enquanto estiver carregando, mostra um spinner ou tela de carregamento
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        Carregando...
+        <LoadingAnimation />
       </div>
     );
   }

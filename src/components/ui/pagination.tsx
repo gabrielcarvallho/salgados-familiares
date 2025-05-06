@@ -2,7 +2,11 @@ import * as React from "react";
 import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { ButtonProps, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { type VariantProps } from "class-variance-authority";
+
+// Primeiro, vamos criar o tipo ButtonProps que está faltando
+type ButtonVariantProps = VariantProps<typeof buttonVariants>;
 
 const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => (
   <nav
@@ -32,8 +36,9 @@ const PaginationItem = ({
 
 type PaginationLinkProps = {
   isActive?: boolean;
-} & Pick<ButtonProps, "size"> &
-  React.ComponentProps<"a">;
+  // Usando o tipo correto para size
+  size?: ButtonVariantProps["size"];
+} & Omit<React.ComponentProps<"a">, "size">;
 
 const PaginationLink = ({
   className,
@@ -57,7 +62,7 @@ const PaginationLink = ({
 const PaginationPrevious = ({
   className,
   ...props
-}: React.ComponentProps<typeof PaginationLink>) => (
+}: Omit<React.ComponentProps<typeof PaginationLink>, "size"> & { size?: ButtonVariantProps["size"] }) => (
   <PaginationLink
     aria-label="Go to previous page"
     size="default"
@@ -72,7 +77,7 @@ const PaginationPrevious = ({
 const PaginationNext = ({
   className,
   ...props
-}: React.ComponentProps<typeof PaginationLink>) => (
+}: Omit<React.ComponentProps<typeof PaginationLink>, "size"> & { size?: ButtonVariantProps["size"] }) => (
   <PaginationLink
     aria-label="Go to next page"
     size="default"

@@ -26,7 +26,7 @@ import { Profile } from "./profile";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
-  const { isAdmin, userGroups, canAccess } = usePermissions();
+  const { isAdmin, userGroups } = usePermissions();
 
   // Lista completa de itens de navegação
   const allNavItems = [

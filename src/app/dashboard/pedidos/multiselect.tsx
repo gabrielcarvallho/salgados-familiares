@@ -38,7 +38,7 @@ const multiSelectVariants = cva("m-1", {
 });
 
 export interface SelectedItem {
-  value: string;
+  id: string;
   quantity: number;
   price: number; // Adicione esta linha
 }
@@ -50,8 +50,8 @@ interface MultiSelectProps
     >,
     VariantProps<typeof multiSelectVariants> {
   options: {
-    label: string;
-    value: string;
+    id: string;
+    name: string;
     icon?: React.ComponentType<{ className?: string }>;
     price: number; // Torne obrigatório
   }[];
@@ -77,7 +77,6 @@ export const MultiSelect = React.forwardRef<
       placeholder = "Select options",
       maxCount = 3,
       modalPopover = false,
-      asChild = false,
       className,
       ...props
     },
@@ -101,21 +100,21 @@ export const MultiSelect = React.forwardRef<
     };
 
     const toggleOption = (optionValue: string) => {
-      const option = options.find((o) => o.value === optionValue);
+      const option = options.find((o) => o.id === optionValue);
       if (!option) return;
 
-      const exists = selectedValues.some((item) => item.value === optionValue);
+      const exists = selectedValues.some((item) => item.id === optionValue);
       let newSelectedValues: SelectedItem[];
 
       if (exists) {
         newSelectedValues = selectedValues.filter(
-          (item) => item.value !== optionValue
+          (item) => item.id !== optionValue
         );
       } else {
         newSelectedValues = [
           ...selectedValues,
           {
-            value: optionValue,
+            id: optionValue,
             quantity: 1,
             price: option.price, // Adicione o preço aqui
           },
@@ -126,9 +125,9 @@ export const MultiSelect = React.forwardRef<
       onValueChange(newSelectedValues);
     };
 
-    const handleQuantityChange = (value: string, newQuantity: number) => {
+    const handleQuantityChange = (id: string, newQuantity: number) => {
       const newSelectedValues = selectedValues.map((item) =>
-        item.value === value
+        item.id === id
           ? { ...item, quantity: Math.max(1, newQuantity) }
           : item
       );
@@ -145,18 +144,14 @@ export const MultiSelect = React.forwardRef<
       setIsPopoverOpen((prev) => !prev);
     };
 
-    const clearExtraOptions = () => {
-      const newSelectedValues = selectedValues.slice(0, maxCount);
-      setSelectedValues(newSelectedValues);
-      onValueChange(newSelectedValues);
-    };
+
 
     const toggleAll = () => {
       if (selectedValues.length === options.length) {
         handleClear();
       } else {
         const allValues = options.map((option) => ({
-          value: option.value,
+          id: option.id,
           quantity: 1,
           price: option.price, // Adicione esta linha
         }));
@@ -184,63 +179,42 @@ export const MultiSelect = React.forwardRef<
             {selectedValues.length > 0 ? (
               <div className="flex justify-between items-center w-full">
                 <div className="flex flex-wrap items-center gap-1">
-                  {selectedValues
-                    .slice(0, maxCount)
-                    .map(({ value, quantity }) => {
-                      const option = options.find((o) => o.value === value);
-                      const IconComponent = option?.icon;
-                      return (
-                        <Badge
-                          key={value}
-                          className={cn(
-                            "flex items-center gap-2",
-                            multiSelectVariants({ variant })
-                          )}
-                        >
-                          {IconComponent && (
-                            <IconComponent className="h-4 w-4" />
-                          )}
-                          <span>{option?.label}</span>
-                          <input
-                            type="number"
-                            min="1"
-                            value={quantity}
-                            onChange={(e) =>
-                              handleQuantityChange(
-                                value,
-                                parseInt(e.target.value)
-                              )
-                            }
-                            className="w-12 px-1 rounded bg-transparent border-none text-center"
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <XCircle
-                            className="h-4 w-4 cursor-pointer"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              toggleOption(value);
-                            }}
-                          />
-                        </Badge>
-                      );
-                    })}
-                  {selectedValues.length > maxCount && (
-                    <Badge
-                      className={cn(
-                        "bg-transparent text-foreground border-foreground/1 hover:bg-transparent",
-                        multiSelectVariants({ variant })
-                      )}
-                    >
-                      {`+ ${selectedValues.length - maxCount} more`}
-                      <XCircle
-                        className="ml-2 h-4 w-4 cursor-pointer"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          clearExtraOptions();
-                        }}
-                      />
-                    </Badge>
-                  )}
+                  {selectedValues.map(({ id, quantity }) => {
+                    const option = options.find((o) => o.id === id);
+                    const IconComponent = option?.icon;
+                    return (
+                      <Badge
+                        key={id}
+                        className={cn(
+                          "flex items-center gap-2",
+                          multiSelectVariants({ variant })
+                        )}
+                      >
+                        {IconComponent && <IconComponent className="h-4 w-4" />}
+                        <span>{option?.name}</span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={quantity}
+                          onChange={(e) =>
+                            handleQuantityChange(
+                              id,
+                              parseInt(e.target.value)
+                            )
+                          }
+                          className="w-12 px-1 rounded bg-transparent border-none text-center"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <XCircle
+                          className="h-4 w-4 cursor-pointer"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            toggleOption(id);
+                          }}
+                        />
+                      </Badge>
+                    );
+                  })}
                 </div>
                 <div className="flex items-center justify-between">
                   <XIcon
@@ -299,12 +273,12 @@ export const MultiSelect = React.forwardRef<
                 </CommandItem>
                 {options.map((option) => {
                   const isSelected = selectedValues.some(
-                    (item) => item.value === option.value
+                    (item) => item.id === option.id
                   );
                   return (
                     <CommandItem
-                      key={option.value}
-                      onSelect={() => toggleOption(option.value)}
+                      key={option.id}
+                      onSelect={() => toggleOption(option.id)}
                       className="cursor-pointer"
                     >
                       <div
@@ -320,7 +294,7 @@ export const MultiSelect = React.forwardRef<
                       {option.icon && (
                         <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
                       )}
-                      <span>{option.label}</span>
+                      <span>{option.name}</span>
                     </CommandItem>
                   );
                 })}

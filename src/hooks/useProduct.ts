@@ -1,12 +1,13 @@
 import { useState } from "react";
 import axiosInstance from "@/lib/axios";
 import { useApiBase } from "./api/useApiBase";
-import { ProductRequest, ProductResponse, ProductsResponse, ProductUpdateRequest } from "@/types/Product";
+import { ProductRequest, ProductResponse, ProductUpdateRequest } from "@/types/Product";
+import { handleApiError } from "./api/apiErrorHandler";
 
 // Hook para listar produtos (usando SWR)
 // Corrigir a tipagem e acesso aos dados
 export function useProductList(page = 1, page_size = 10) {
-  const { data, error, isLoading } = useApiBase<{
+  const { data, error, isLoading, mutate } = useApiBase<{
     count: number;
     products: ProductResponse[]; // Alterado de 'results' para 'products'
   }>(`/products/?list&page=${page}&page_size=${page_size}`);
@@ -18,6 +19,7 @@ export function useProductList(page = 1, page_size = 10) {
     totalItems: data?.count ?? 0,
     isLoading,
     isError: error ? String(error) : null,
+    mutate,
     
   };
 }
@@ -43,11 +45,10 @@ export function useProduct() {
     try {
       const response = await axiosInstance.post(`/products/`, product);
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao criar produto"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }
@@ -62,11 +63,10 @@ export function useProduct() {
         product,
       );
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao atualizar produto"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }
@@ -79,11 +79,10 @@ export function useProduct() {
     try {
       const response = await axiosInstance.delete(`/products/?id=${id}`, {});
       return response;
-    } catch (error: any) {
-      setError(
-        error.response?.data?.detail || "Ocorreu um erro ao deletar produto"
-      );
-      throw new Error(error);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
     } finally {
       setIsLoading(false);
     }

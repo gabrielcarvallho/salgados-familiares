@@ -11,7 +11,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -22,11 +21,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from "@/components/ui/form";
 import {
   Tooltip,
@@ -36,7 +33,7 @@ import {
 } from "@/components/ui/tooltip";
 
 export default function LoginPage() {
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, error: errorLogin } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
 
   const authSchema = z.object({
@@ -65,8 +62,9 @@ export default function LoginPage() {
         description: "Estamos te conectando...",
         duration: 3000,
       });
-    } catch (errorLogin) {
-      toast.error("Falha!", {
+    } catch (error) {
+      toast.error("Falha ao iniciar sessão.", {
+        description: errorLogin || String(error),
         duration: 3000,
       });
     }

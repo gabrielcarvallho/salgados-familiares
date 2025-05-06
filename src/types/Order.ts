@@ -1,21 +1,28 @@
 import { z } from "zod";
-import { addressSchema } from "./Customer";
+import { addressSchema, CustomerResponseSchema } from "./Customer";
+import { productResponseSchema } from "./Product";
+import { paymentMethodResponseSchema } from "./PaymentMethod";
 
 // --- Status de Pedido ---
-export const orderStatusSchema = z.object({
+export const orderStatus = z.object({
   id: z.string().uuid({ message: "ID de status inválido" }),
   description: z.string().min(1, "Descrição do status é obrigatória"),
+  identifier: z.coerce.number(),
+});
+
+export const orderStatusSchema = z.object({
+  order_status: z.array(orderStatus),
 });
 
 // --- Request de Pedido ---
 export const orderRequestSchema = z.object({
-  Customer_id: z.string().uuid({ message: "ID de cliente inválido" }),
+  customer_id: z.string().uuid({ message: "ID de cliente inválido" }),
   order_status_id: z.string().uuid({ message: "ID de status inválido" }),
   payment_method_id: z
     .string()
     .uuid({ message: "ID de método de pagamento inválido" }),
-  delivery_date: z.string().datetime({ offset: true }),
-  delivery_address_id: z.string().uuid({ message: "ID de endereço inválido" }),
+  delivery_date: z.string().min(1),
+  delivery_address_id: z.string().optional().nullable(),
   products: z.array(
     z.object({
       product_id: z.string().uuid({ message: "ID de produto inválido" }),
@@ -26,9 +33,25 @@ export const orderRequestSchema = z.object({
 
 export const orderUpdateRequestSchema = orderRequestSchema.partial();
 
+const orderItemSchema = z.object({
+  id: z.string().uuid(),
+  product: productResponseSchema,
+  quantity: z.number().min(1, "Quantidade deve ser maior que 0"),
+  total_price: z.number().min(0, "Preço total deve ser positivo"),
+});
 // --- Response de Pedido ---
-export const orderResponseSchema = orderRequestSchema.extend({
+export const orderResponseSchema = z.object({
   id: z.string().uuid({ message: "ID de pedido inválido" }),
+  customer: CustomerResponseSchema.omit({ billing_address: true }),
+  products: z.array(orderItemSchema),
+  total_price: z.coerce.number(),
+  payment_method: paymentMethodResponseSchema,
+  delivery_address: addressSchema,
+  delivery_date: z.string().datetime({ offset: true }),
+  due_date: z.string().datetime({ offset: true }),
+  order_status: orderStatus,
+  created_at: z.string().datetime({ offset: true }),
+  updated_at: z.string().datetime({ offset: true }),
 });
 
 // --- Pedido com Endereço de Entrega ---
@@ -55,3 +78,17 @@ export type OrdersResponse = z.infer<typeof ordersResponseSchema>;
 export type OrdersWithAddressResponse = z.infer<
   typeof ordersWithAddressResponseSchema
 >;
+
+export const EMPTY_ORDER: OrderRequest = {
+  customer_id: "",
+  order_status_id: "",
+  payment_method_id: "",
+  delivery_date: "",
+  delivery_address_id: "",
+  products: [
+    {
+      product_id: "",
+      quantity: 0,
+    },
+  ],
+};

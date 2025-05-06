@@ -16,7 +16,7 @@ export const paymentMethodResponseSchema = paymentMethodRequestSchema.extend({
 
 // --- List Response ---
 export const paymentMethodsResponseSchema = z.object({
-  paymentMethods: z.array(paymentMethodResponseSchema),
+  payment_methods: z.array(paymentMethodResponseSchema),
 });
 
 // --- Types inferidos ---

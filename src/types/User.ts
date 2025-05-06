@@ -69,3 +69,9 @@ export const EMPTY_USER: InviteRequest = {
     is_admin: false,
     group_id: 0
 };
+
+export type PaginationType = {
+  pageIndex: number;
+  pageSize: number;
+  [key: string]: unknown; // Caso haja propriedades adicionais
+};

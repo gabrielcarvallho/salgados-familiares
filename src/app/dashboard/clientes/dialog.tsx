@@ -28,94 +28,23 @@ import {
   EMPTY_CUSTOMER,
 } from "@/types/Customer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useCustomer } from "@/hooks/useCostumer";
+import { useCustomer, useCustomerList } from "@/hooks/useCustomer";
 import { useState } from "react";
-import { formatDateInput } from "@/lib/utils";
-
-// Utility functions for formatting and converting dates
-
-
-// Converts date from DD/MM/YYYY to YYYY-MM-DD format
-export const convertDateFormat = (date: string) => {
-  // If empty, return empty
-  if (!date) return "";
-  
-  // If already in YYYY-MM-DD format, return as is
-  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
-  
-  // If in DD/MM/YYYY format, convert to YYYY-MM-DD
-  const parts = date.split("/");
-  if (parts.length === 3) {
-    const day = parts[0].padStart(2, '0');
-    const month = parts[1].padStart(2, '0');
-    const year = parts[2].length === 2 ? `20${parts[2]}` : parts[2];
-    return `${year}-${month}-${day}`;
-  }
-  
-  // If in DD-MM-YYYY format, convert to YYYY-MM-DD
-  const dashParts = date.split("-");
-  if (dashParts.length === 3) {
-    const day = dashParts[0].padStart(2, '0');
-    const month = dashParts[1].padStart(2, '0');
-    const year = dashParts[2].length === 2 ? `20${dashParts[2]}` : dashParts[2];
-    return `${year}-${month}-${day}`;
-  }
-  
-  // Return original if can't convert
-  return date;
-};
-
-// Format CNPJ as user types (XX.XXX.XXX/YYYY-ZZ)
-export const formatCNPJ = (value: string) => {
-  const numericValue = value.replace(/\D/g, "");
-  
-  if (numericValue.length <= 2) {
-    return numericValue;
-  } else if (numericValue.length <= 5) {
-    return `${numericValue.slice(0, 2)}.${numericValue.slice(2)}`;
-  } else if (numericValue.length <= 8) {
-    return `${numericValue.slice(0, 2)}.${numericValue.slice(2, 5)}.${numericValue.slice(5)}`;
-  } else if (numericValue.length <= 12) {
-    return `${numericValue.slice(0, 2)}.${numericValue.slice(2, 5)}.${numericValue.slice(5, 8)}/${numericValue.slice(8)}`;
-  } else {
-    return `${numericValue.slice(0, 2)}.${numericValue.slice(2, 5)}.${numericValue.slice(5, 8)}/${numericValue.slice(8, 12)}-${numericValue.slice(12, 14)}`;
-  }
-};
-
-// Format phone as user types ((XX) XXXXX-XXXX)
-export const formatPhone = (value: string) => {
-  const numericValue = value.replace(/\D/g, "");
-  
-  if (numericValue.length <= 2) {
-    return numericValue;
-  } else if (numericValue.length <= 7) {
-    return `(${numericValue.slice(0, 2)}) ${numericValue.slice(2)}`;
-  } else {
-    return `(${numericValue.slice(0, 2)}) ${numericValue.slice(2, 7)}-${numericValue.slice(7, 11)}`;
-  }
-};
-
-// Format CEP as user types (XXXXX-XXX)
-export const formatCEP = (value: string) => {
-  const numericValue = value.replace(/\D/g, "");
-  
-  if (numericValue.length <= 5) {
-    return numericValue;
-  } else {
-    return `${numericValue.slice(0, 5)}-${numericValue.slice(5, 8)}`;
-  }
-};
+import {
+  cleanCNPJ,
+  cleanPhone,
+  convertDateFormat,
+  formatCEP,
+  formatCNPJ,
+  formatDateInput,
+  formatPhone,
+} from "@/lib/utils";
 
 export function DialogClientes() {
+  const { mutate } = useCustomerList();
   const { create, isLoading, error: err } = useCustomer();
   const [open, setOpen] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
-
-  // Função para limpar formatação de telefone (remove parênteses, espaços e hífens)
-  const cleanPhone = (phone: string) => phone.replace(/\D/g, "");
-
-  // Função para limpar formatação de CNPJ (remove pontos, barra e hífen)
-  const cleanCNPJ = (cnpj: string) => cnpj.replace(/\D/g, "");
 
   const form = useForm<CustomerRequest>({
     resolver: zodResolver(CustomerRequestSchema),
@@ -154,13 +83,14 @@ export function DialogClientes() {
       console.log("Dados formatados para envio:", dataToSubmit);
 
       await create(dataToSubmit);
+      mutate();
       toast.success("Cliente cadastrado com sucesso!", {
         duration: 3000,
       });
       form.reset(EMPTY_CUSTOMER);
       setFormSubmitted(false);
       setOpen(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Erro ao cadastrar cliente:", error);
       toast.error("Falha ao cadastrar cliente!", {
         description: err || String(error),
@@ -280,9 +210,7 @@ export function DialogClientes() {
                   name="phone_number"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Telefone da empresa*
-                      </FormLabel>
+                      <FormLabel>Telefone da empresa*</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="(47) 99999-9999"
@@ -357,7 +285,7 @@ export function DialogClientes() {
                           onChange={(e) => {
                             field.onChange(e.target.value);
                           }}
-                          onBlur={(e) => {
+                          onBlur={() => {
                             // Ao perder o foco, tentamos garantir que o formato está correto
                             field.onBlur();
                           }}
@@ -386,9 +314,7 @@ export function DialogClientes() {
                   name="contact.contact_phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Telefone para contato*
-                      </FormLabel>
+                      <FormLabel>Telefone para contato*</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="(47) 99999-9999"
@@ -403,7 +329,6 @@ export function DialogClientes() {
                     </FormItem>
                   )}
                 />
-                
               </TabsContent>
 
               <TabsContent value="endereco" className="space-y-4">
@@ -505,38 +430,35 @@ export function DialogClientes() {
                     </FormItem>
                   )}
                 />
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setOpen(false);
-                  setFormSubmitted(false);
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                variant="outline"
-                className="bg-[#FF8F3F] text-primary-foreground"
-                disabled={isSubmitting || isLoading}
-              >
-                {isLoading || isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Cadastrando...
-                  </>
-                ) : (
-                  "Cadastrar cliente"
-                )}
-              </Button>
-            </DialogFooter>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setOpen(false);
+                      setFormSubmitted(false);
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    className="bg-[#FF8F3F] text-primary-foreground"
+                    disabled={isSubmitting || isLoading}
+                  >
+                    {isLoading || isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Cadastrando...
+                      </>
+                    ) : (
+                      "Cadastrar cliente"
+                    )}
+                  </Button>
+                </DialogFooter>
               </TabsContent>
-
-              
             </Tabs>
-
 
             {formSubmitted && Object.keys(errors).length > 0 && (
               <div className="text-red-500 text-sm p-2 border border-red-300 rounded bg-red-50">
@@ -570,8 +492,6 @@ export function DialogClientes() {
                 </ul>
               </div>
             )}
-
-            
           </form>
         </Form>
       </DialogContent>
