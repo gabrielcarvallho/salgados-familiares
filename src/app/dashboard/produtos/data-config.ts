@@ -1,8 +1,8 @@
 import { DrawerConfig } from "@/components/datatable";
-import { ProductRequest, ProductResponse, productResponseSchema, ProductsResponse, ProductUpdateRequest, productUpdateRequestSchema } from "@/types/Product";
+import { ProductRequest, ProductResponse, ProductUpdateRequest, productUpdateRequestSchema } from "@/types/Product";
 import { ColumnDef } from "@tanstack/react-table";
 
-export const columns: ColumnDef<ProductResponse, any>[] = [
+export const columns: ColumnDef<ProductResponse, string>[] = [
     {
       id: "Nome",
       accessorKey: "name", // Use accessorKey com id definido
@@ -24,8 +24,20 @@ export const columns: ColumnDef<ProductResponse, any>[] = [
     {
       id: "Peso",
       accessorKey: "weight",
-      header: "Peso/unidade",
+      header: "Peso/unidade (g)",
       cell: ({ row }) => row.original.weight,
+    },
+    {
+      id: "TempoProducao",
+      accessorKey: "batch_production_days",
+      header: "Tempo de produção (dia(s))",
+      cell: ({ row }) => row.original.batch_production_days,
+    },
+    {
+      id: "ProducaoDiaria",
+      accessorKey: "daily_batch_capacity",
+      header: "Fornadas/dia",
+      cell: ({ row }) => row.original.daily_batch_capacity,
     },
   ];
 
@@ -34,7 +46,7 @@ export const columns: ColumnDef<ProductResponse, any>[] = [
   ProductResponse,
   ProductUpdateRequest
 > = {
-  title: (product) => `Produto: ${product.name}`,
+  title: (product) => `${product.name}`,
   description: () => "Detalhes do produto",
   updateSchema: productUpdateRequestSchema,
     fields: [
@@ -48,27 +60,30 @@ export const columns: ColumnDef<ProductResponse, any>[] = [
         name: "batch_packages",
         label: "Pacotes/Fornada",
         type: "number" as const,
+        colSpan: 2
       },
       {
         name: "price",
         label: "Preço (R$)",
         type: "number" as const,
+        colSpan: 2,
+
       },
       {
         name: "weight",
-        label: "Peso/unidade",
-        type: "number" as const,
-        colSpan: 1,
+        label: "Peso/unidade (g)",
+        type: "text" as const,
+        colSpan: 2,
       },
       {
         name: "batch_production_days",
-        label: "Tempo de produção",
+        label: "Tempo de produção (dia(s))",
         type: "number" as const,
-        colSpan: 1,
+        colSpan: 2,
       },
       {
         name: "daily_batch_capacity",
-        label: "Capacidade diária",
+        label: "Fornadas/dia",
         type: "number" as const,
         colSpan: 2,
       },
