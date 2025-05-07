@@ -125,76 +125,100 @@ export function useDrawerConfig() {
         label: "Status do pedido",
         type: "custom",
         colSpan: 2,
-        defaultValue: (o) => o.order_status.id,
-        formatValue: (v) => v,
-        customRender: (value: string, onChange: (v: string) => void) => (
-          <Select value={value} onValueChange={onChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione status" />
-            </SelectTrigger>
-            <SelectContent>
-              {orderStatuses.map((st) => (
-                <SelectItem key={st.id} value={st.id}>
-                  {formatStatus(st.description)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ),
+        // Ensure default value is a string
+        defaultValue: (o) => String(o.order_status.id),
+        formatValue: (v) => String(v),
+        customRender: (value: string, onChange: (v: string) => void) => {
+          // Make sure value is not undefined before rendering
+          const safeValue = value || '';
+          
+          return (
+            <Select 
+              value={safeValue} 
+              onValueChange={onChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione status" />
+              </SelectTrigger>
+              <SelectContent>
+                {orderStatuses.map((st) => (
+                  <SelectItem key={st.id} value={String(st.id)}>
+                    {formatStatus(st.description)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          );
+        },
       },
       {
         name: "payment_method_id",
         label: "Método de pagamento",
         type: "custom",
         colSpan: 2,
-        defaultValue: (o) => o.payment_method.id,
-        formatValue: (v) => v,
-        customRender: (value: string, onChange: (v: string) => void) => (
-          <Select value={value} onValueChange={onChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione método" />
-            </SelectTrigger>
-            <SelectContent>
-              {paymentMethods.map((pm) => (
-                <SelectItem key={pm.id} value={pm.id}>
-                  {formatPaymentMethod(pm.name)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ),
+        // Ensure default value is a string
+        defaultValue: (o) => String(o.payment_method.id),
+        formatValue: (v) => String(v),
+        customRender: (value: string, onChange: (v: string) => void) => {
+          // Make sure value is not undefined before rendering
+          const safeValue = value || '';
+          
+          return (
+            <Select 
+              value={safeValue} 
+              onValueChange={onChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione método" />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentMethods.map((pm) => (
+                  <SelectItem key={pm.id} value={String(pm.id)}>
+                    {formatPaymentMethod(pm.name)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          );
+        },
       },
       {
         name: "delivery_address_id",
         label: "Endereço de entrega",
         type: "custom",
         colSpan: 2,
-        defaultValue: (o) => o.delivery_address.id,
-        formatValue: (v) => v,
-        customRender: (value: string, onChange: (v: string) => void) => (
-          <Select value={value} onValueChange={onChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione endereço" />
-            </SelectTrigger>
-            <SelectContent>{/* mapeie seus endereços aqui */}</SelectContent>
-          </Select>
-        ),
+        // Ensure default value is a string
+        defaultValue: (o) => String(o.delivery_address.id),
+        formatValue: (v) => String(v),
+        customRender: (value: string, onChange: (v: string) => void) => {
+          // Make sure value is not undefined before rendering
+          const safeValue = value || '';
+          
+          return (
+            <Select 
+              value={safeValue} 
+              onValueChange={onChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione endereço" />
+              </SelectTrigger>
+              <SelectContent>{/* mapeie seus endereços aqui */}</SelectContent>
+            </Select>
+          );
+        },
       },
+      // Keep the rest of your fields as they were
       {
         name: "delivery_date",
         label: "Data de entrega",
         type: "custom",
         colSpan: 1,
-        // usa direto o yyyy-MM-dd que o DatePicker espera
         defaultValue: (o) => o.delivery_date,
-        // formatValue continua identity: envia yyyy-MM-dd de volta
         formatValue: (v) => v,
         customRender: (value: string, onChange: (v: string) => void) => (
-          // passe o onChange diretamente
           <DatePicker value={value} onChange={onChange} className="my-2"/>
         ),
       },
-
       {
         name: "due_date",
         label: "Data de vencimento",
@@ -214,7 +238,7 @@ export function useDrawerConfig() {
         defaultValue: (o) =>
           Array.isArray(o.products)
             ? o.products.map((p: { product: { id: any }; quantity: any }) => ({
-                product_id: p.product.id,
+                product_id: String(p.product.id), // Convert to string
                 quantity: p.quantity,
               }))
             : [],
@@ -225,7 +249,7 @@ export function useDrawerConfig() {
           const add = () =>
             onChange([
               ...list,
-              { product_id: products[0]?.id ?? "", quantity: 1 },
+              { product_id: products[0]?.id ? String(products[0].id) : "", quantity: 1 },
             ]);
 
           const remove = (idx: number) =>
@@ -250,7 +274,7 @@ export function useDrawerConfig() {
               {list.map((it, i) => (
                 <div key={i} className="flex gap-2 items-center">
                   <Select
-                    value={it.product_id}
+                    value={String(it.product_id) || ''}
                     onValueChange={(v) => updateItem(i, "product_id", v)}
                   >
                     <SelectTrigger className="w-32">
@@ -258,7 +282,7 @@ export function useDrawerConfig() {
                     </SelectTrigger>
                     <SelectContent>
                       {products.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
+                        <SelectItem key={p.id} value={String(p.id)}>
                           {p.name}
                         </SelectItem>
                       ))}

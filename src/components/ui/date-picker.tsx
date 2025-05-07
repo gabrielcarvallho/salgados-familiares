@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -10,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Locale } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 
 /**
  * Props for the DatePicker component
@@ -106,12 +109,14 @@ export default function DatePicker({
             disabled={disabled}
             className={cn(
               "w-full justify-between text-left font-normal",
+              "flex items-center", // flex to align icon
               !value && "text-gray-500",
               errorMessage && "border-red-500",
               buttonClassName
             )}
             aria-required={required}
           >
+            <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
             {formatDate(value)}
           </Button>
         </DropdownMenuTrigger>
@@ -131,6 +136,7 @@ export default function DatePicker({
               const d = date.getDay();
               return d === 0 || d === 6;
             }}
+            className="[&_[aria-selected='true']]:bg-[#FF8F3F] [&_[aria-selected='true']]:text-white"
           />
         </DropdownMenuContent>
       </DropdownMenu>

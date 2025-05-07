@@ -1,23 +1,20 @@
-// src/config/data-config2.tsx
 "use client";
 
 import React from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { DrawerConfig } from "@/components/datatable";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Label } from "@/components/ui/label";
-import { formatBoolean, formatDateToDDMMYYYY } from "@/lib/utils";
+import { formatBoolean, formatDateToDDMMYYYY, formatGroup } from "@/lib/utils";
 import {
-  PendingInvitations,
   ResendInvite,
   resendInviteSchema,
   UserResponse,
 } from "@/types/User";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SafeSelect } from "@/components/safeselect"; // Import the SafeSelect component
 import { useUserList, useGroupList } from "@/hooks/useUser";
+import DatePicker from "@/components/ui/date-picker";
 
-// Colunas da tabela de “Todos os usuários”
+// Colunas da tabela de "Todos os usuários"
 export const columns: ColumnDef<UserResponse, string>[] = [
   {
     id: "email",
@@ -41,8 +38,8 @@ export const columns: ColumnDef<UserResponse, string>[] = [
     id: "groups",
     header: "Grupos",
     accessorFn: (row) =>
-      row.groups.length > 0 ? row.groups.map(g => g.name).join(", ") : "—",
-    cell: info => info.getValue<string>(),
+      row.groups.length > 0 ? row.groups.map((g) => formatGroup(g.name)).join(", ") : "Administrador",
+    cell: (info) => info.getValue<string>(),
   },
 ];
 
@@ -52,8 +49,8 @@ export function useDrawerConfigAll() {
   const { groups: allGroups = [] } = useGroupList();
 
   const drawerConfig: DrawerConfig<UserResponse, ResendInvite> = {
-    title: user => user.email,
-    description: user => `Usuário desde ${formatDateToDDMMYYYY(user.date_joined)}`,
+    title: (user) => user.email,
+    description: (user) => `Usuário desde ${formatDateToDDMMYYYY(user.date_joined)}`,
     updateSchema: resendInviteSchema,
     mutate,
     fields: [
@@ -71,20 +68,23 @@ export function useDrawerConfigAll() {
         label: "É admin",
         type: "custom",
         colSpan: 1,
-        defaultValue: user => (user.is_admin ? "Sim" : "Não"),
+        defaultValue: (user) => (user.is_admin ? "Sim" : "Não"),
+        formatValue: (v: string) => (v || "") as string,
         parseValue: (v: string) => v === "Sim",
-        formatValue: (v: boolean) => (v ? "Sim" : "Não"),
-        customRender: (value: string, onChange) => (
-          <Select value={value} onValueChange={onChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Sim ou Não" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Sim">Sim</SelectItem>
-              <SelectItem value="Não">Não</SelectItem>
-            </SelectContent>
-          </Select>
-        ),
+        customRender: (value: string, onChange: (v: string) => void) => {
+          return (
+            <SafeSelect
+              value={value}
+              onValueChange={onChange}
+              options={[
+                { value: "Sim", label: "Sim" },
+                { value: "Não", label: "Não" }
+              ]}
+              placeholder="Sim ou Não"
+              className="w-full"
+            />
+          );
+        },
       },
 
       // Data de entrada (display BR, envia ISO)
@@ -93,42 +93,46 @@ export function useDrawerConfigAll() {
         label: "Data de entrada",
         type: "custom",
         colSpan: 1,
-        defaultValue: user => user.date_joined,
-        formatValue: (v: string) => v, // já em yyyy-MM-dd
+        defaultValue: (user) => user.date_joined,
+        formatValue: (v: string) => v,
         parseValue: (v: string) => v,
-        customRender: (value: string, onChange) => (
-          <Input
-            type="date"
-            value={value.split("T")[0]}
-            onChange={e => onChange(e.target.value)}
-          />
-        ),
+        customRender: (value: string, onChange: (v: string) => void) => {
+          const safeValue = value || "";
+          return (
+            <DatePicker
+              value={safeValue.split("T")[0]}
+              onChange={(e) => onChange(value)}
+            />
+          );
+        },
       },
 
-      // Separador visual (opcional)
-      // Grupos: select de todos os grupos, pré-seleciona o primeiro
+      // Grupo Principal
       {
         name: "group_id",
         label: "Grupo Principal",
         type: "custom",
         colSpan: 2,
-        defaultValue: user => String(user.groups[0]?.id ?? ""),
-        formatValue: (v: string) => [{ id: Number(v), name: "" }],
+        defaultValue: (user) => String(user.groups[0]?.id ?? ""),
+        formatValue: (v: string) => (v || "") as string,
         parseValue: (v: string) => Number(v),
-        customRender: (value: string, onChange) => (
-          <Select value={value} onValueChange={onChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione o grupo" />
-            </SelectTrigger>
-            <SelectContent>
-              {allGroups.map(g => (
-                <SelectItem key={g.id} value={String(g.id)}>
-                  {g.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ),
+        customRender: (value: string, onChange: (v: string) => void) => {
+          // Transform allGroups into the format expected by SafeSelect
+          const groupOptions = allGroups.map(g => ({
+            value: String(g.id),
+            label: formatGroup(g.name)
+          }));
+          
+          return (
+            <SafeSelect
+              value={value}
+              onValueChange={onChange}
+              options={groupOptions}
+              placeholder="Selecione o grupo"
+              className="w-full"
+            />
+          );
+        },
       },
     ],
   };

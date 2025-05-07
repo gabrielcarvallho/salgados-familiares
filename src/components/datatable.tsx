@@ -143,10 +143,12 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   function getNested(obj: any, path: string) {
     return path.split(".").reduce((o, k) => o?.[k], obj);
   }
+  
   function setNested(obj: any, path: string, value: any) {
     const keys = path.split(".");
     const last = keys.pop()!;
@@ -157,19 +159,34 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
     target[last] = value;
   }
 
+  // Initialize form data when drawer opens or when item changes
   useEffect(() => {
-    if (!drawerConfig) return;
+    if (!drawerConfig || !isDrawerOpen) return;
+    
+    console.log("Initializing form data for item:", item);
     const initial: any = {};
+    
     drawerConfig.fields.forEach((f) => {
+      // Get value using defaultValue function or direct nested access
       const raw = f.defaultValue
         ? f.defaultValue(item)
         : getNested(item, f.name);
-      setNested(initial, f.name, f.parseValue ? f.parseValue(raw) : raw);
+        
+      // Apply parseValue if provided
+      const parsedValue = f.parseValue ? f.parseValue(raw) : raw;
+
+      console.log(`Field ${f.name}:`, { raw, parsed: parsedValue });
+      
+      // Set the value in our form data object
+      setNested(initial, f.name, parsedValue);
     });
+    
+    console.log("Initial form data:", initial);
     setFormData(initial);
-  }, [item, drawerConfig]);
+  }, [item, drawerConfig, isDrawerOpen]);
 
   const handleChange = (name: string, val: any) => {
+    console.log(`Changing ${name} to:`, val);
     const updated = { ...formData };
     setNested(updated, name, val);
     setFormData(updated);
@@ -177,33 +194,39 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
 
   const handleSave = async () => {
     if (!onUpdate || !drawerConfig) return;
-    // Garante que temos um schema antes de validar
+    
+    // Ensure we have an updateSchema before validating
     if (!drawerConfig.updateSchema) {
-      console.warn("Nenhum updateSchema definido no drawerConfig");
+      console.warn("No updateSchema defined in drawerConfig");
       return;
     }
   
     setIsLoading(true);
     try {
-      // monta o objeto raw, aplicando formatValue
-      const raw: any = { ...formData };
+      // Create the raw object, applying formatValue transformations
+      const raw: any = {};
+      
+      // Process each field
       drawerConfig.fields.forEach((f) => {
-        if (f.formatValue) {
-          raw[f.name] = f.formatValue(getNested(formData, f.name));
-        }
+        const currentValue = getNested(formData, f.name);
+        const formattedValue = f.formatValue ? f.formatValue(currentValue) : currentValue;
+        setNested(raw, f.name, formattedValue);
       });
-  
-      // agora parse com segurança
+      
+      console.log("Saving with data:", raw);
+      
+      // Validate with schema
       const validated: TUpdate = drawerConfig.updateSchema.parse(raw);
+      
+      // Call update handler
       await onUpdate(item, validated);
       mutate?.();
     } catch (e) {
-      console.error(e);
+      console.error("Error saving form:", e);
     } finally {
       setIsLoading(false);
     }
   };
-  
 
   const handleDeleteConfirm = async () => {
     if (!onDelete) return;
@@ -228,24 +251,19 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
     );
   }
 
-  // Modifique a inicialização do formData
-  useEffect(() => {
-    // começa vazio
-    const initialData: any = {};
-    drawerConfig.fields.forEach((field) => {
-      // lê cada valor aninhado (usando getNested, ou simplesmente item[field.name] se for flat)
-      const val = getNested(item, field.name);
-      // aplica parseValue se houver
-      const parsed = field.parseValue ? field.parseValue(val) : val;
-      setNested(initialData, field.name, parsed);
-    });
-    setFormData(initialData);
-  }, [item]);
-
-
   return (
     <>
-      <Drawer direction={isMobile ? "bottom" : "right"}>
+      <Drawer 
+        direction={isMobile ? "bottom" : "right"} 
+        open={isDrawerOpen} 
+        onOpenChange={(open) => {
+          setIsDrawerOpen(open);
+          // Reset form data when drawer closes
+          if (!open) {
+            setFormData({});
+          }
+        }}
+      >
         <DrawerTrigger asChild>
           <TableRow className="cursor-pointer hover:bg-muted/50">
             {row.getVisibleCells().map((cell) => (
@@ -285,22 +303,28 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
             </div>
           </DrawerHeader>
           <div className="p-4">
-            <div className="grid grid-cols-2 gap-4 space-y-2">
+            <div className="grid grid-cols-2 gap-4">
               {drawerConfig.fields.map((f) => {
-                const curr =
-                  getNested(formData, f.name) ?? (f.type === "number" ? 0 : "");
+                // Get current value from formData, with fallbacks
+                const curr = getNested(formData, f.name) ?? 
+                             (f.type === "number" ? 0 : 
+                             f.type === "select" ? "" : "");
+                              
+                console.log(`Rendering field ${f.name} with value:`, curr);
+                
                 return (
                   <div
                     key={f.name}
-                    className={f.colSpan === 2 ? "col-span-2 space-y-2" : ""}
+                    className={`mb-4 ${f.colSpan === 2 ? "col-span-2 space-y-2" : "space-y-2"}`}
                   >
                     <Label htmlFor={f.name}>{f.label}</Label>
                     {f.type === "text" && (
                       <Input
                         id={f.name}
-                        value={curr}
+                        value={curr || ""}
                         onChange={(e) => handleChange(f.name, e.target.value)}
                         disabled={isLoading}
+                        className="mt-1"
                       />
                     )}
                     {f.type === "number" && (
@@ -312,20 +336,21 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
                         onChange={(e) =>
                           handleChange(f.name, parseFloat(e.target.value) || 0)
                         }
+                        className="mt-1"
                       />
                     )}
                     {f.type === "select" && f.options && (
                       <Select
-                        value={String(curr)}
+                        value={String(curr || "")}
                         onValueChange={(v) => handleChange(f.name, v)}
                         disabled={isLoading}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="mt-1">
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent>
                           {f.options.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
+                            <SelectItem key={opt.value} value={String(opt.value)}>
                               {opt.label}
                             </SelectItem>
                           ))}
