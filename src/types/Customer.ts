@@ -25,6 +25,7 @@ export const addressSchema = z.object({
   city: z.string().min(1, "Cidade é obrigatória"),
   state: z.string().min(1, "Estado é obrigatório"),
   observation: z.string().optional(),
+  description: z.string().optional().nullable(),
 });
 
 // --- Atualização de Endereço (opcional) ---

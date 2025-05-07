@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Users, DollarSign, Landmark, Activity } from "lucide-react";
+import { Users, DollarSign, Landmark } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { useCallback, useState } from "react";
@@ -23,7 +23,8 @@ import {
 import { toast } from "sonner";
 import { ProductsSkeletonLoading } from "@/components/skeleton";
 import { DataTable } from "@/components/datatable";
-import { columns, drawerConfig } from "./data-config";
+import { columns as columnsPending, drawerConfig as drawerConfigPending } from "./data-config";
+import { columns as columnsAll, useDrawerConfigAll } from "./data-config2";
 import { TabsContent } from "@radix-ui/react-tabs";
 
 export default function Page() {
@@ -33,6 +34,8 @@ export default function Page() {
     pageIndex: 0,
     pageSize: 10,
   });
+
+  const drawerConfigAll = useDrawerConfigAll()
 
   const { users, isLoading: usersLoading, isError: usersError } = useUserList();
   const { resendInvite } = useUser();
@@ -140,15 +143,13 @@ export default function Page() {
                 </div>
               ) : (
                 <DataTable
-                  drawerConfig={drawerConfig}
-                  updateSchema={resendInviteSchema} // ← aqui
+                  drawerConfig={drawerConfigAll}
                   title="Todos os usuários"
-                  columns={columns}
-                  data={users || []}
+                  columns={columnsAll}
+                  data={users ?? []}       // ← passe o array interno
                   totalCount={totalItems || 0}
                   pageSize={pagination.pageSize}
                   currentPage={pagination.pageIndex}
-                  onUpdate={(orig) => handleResendInvite(orig)}
                   onPaginationChange={handlePaginationChange}
                 />
               )}
@@ -162,16 +163,18 @@ export default function Page() {
                 </div>
               ) : (
                 <DataTable
-                  drawerConfig={drawerConfig}
+                  drawerConfig={drawerConfigPending}
                   updateSchema={resendInviteSchema} // ← aqui
-                  title="Usuários"
-                  columns={columns}
+                  title="Usuários pendentes"
+                  columns={columnsPending}
                   data={invitations || []}
                   totalCount={totalItems || 0}
                   pageSize={pagination.pageSize}
                   currentPage={pagination.pageIndex}
                   onUpdate={(orig) => handleResendInvite(orig)}
                   onPaginationChange={handlePaginationChange}
+                  saveButtonText="Enviar convite novamente"
+                  savingButtonText="Enviando..."
                 />
               )}
             </TabsContent>
@@ -181,3 +184,7 @@ export default function Page() {
     </div>
   );
 }
+function useDragConfigAll() {
+  throw new Error("Function not implemented.");
+}
+

@@ -3,10 +3,10 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Locale } from "date-fns";
@@ -27,8 +27,8 @@ export interface DatePickerProps {
   className?: string;
   /** Additional classes for the button */
   buttonClassName?: string;
-  /** Additional classes for the popover */
-  popoverClassName?: string;
+  /** Additional classes for the dropdown content */
+  dropdownClassName?: string;
   /** Format for the displayed date using date-fns format string */
   dateFormat?: string;
   /** Whether the date picker is disabled */
@@ -57,7 +57,7 @@ export default function DatePicker({
   placeholder = "Selecione uma data",
   className = "",
   buttonClassName = "",
-  popoverClassName = "",
+  dropdownClassName = "",
   dateFormat = "PPP",
   disabled = false,
   required = false,
@@ -96,8 +96,8 @@ export default function DatePicker({
         </label>
       )}
 
-      <Popover onOpenChange={(open: boolean) => !open && handleBlur()}>
-        <PopoverTrigger asChild>
+      <DropdownMenu onOpenChange={(open: boolean) => !open && handleBlur()}>
+        <DropdownMenuTrigger asChild>
           <Button
             id={id}
             name={name}
@@ -114,8 +114,8 @@ export default function DatePicker({
           >
             {formatDate(value)}
           </Button>
-        </PopoverTrigger>
-        <PopoverContent className={cn("w-auto p-0", popoverClassName)}>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className={cn("p-0", dropdownClassName)}>
           <Calendar
             locale={locale}
             mode="single"
@@ -132,8 +132,8 @@ export default function DatePicker({
               return d === 0 || d === 6;
             }}
           />
-        </PopoverContent>
-      </Popover>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {errorMessage && <p className="text-sm text-red-500">{errorMessage}</p>}
     </div>

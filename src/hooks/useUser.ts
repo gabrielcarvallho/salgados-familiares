@@ -40,12 +40,12 @@ export function useUserById(id: string) {
 export function useUserList(page = 1, page_size = 10) {
   const { data, error, isLoading, mutate } = useApiBase<{
     count: number;
-    user: UsersResponse[];
+    users: UserResponse[];
   }>(`/accounts/users/?list&page=${page}&page_size=${page_size}`);
 
   return {
     mutate,
-    users: data?.user ?? [],  // <<< campo correto
+    users: data?.users ?? [],  // <<< campo correto
     totalItems: data?.count ?? 0,
     isLoading,
     isError: error ? String(error) : null,

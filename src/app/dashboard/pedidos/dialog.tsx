@@ -1,5 +1,16 @@
-"use client";
-import { Button } from "@/components/ui/button";
+"use client"
+
+import type React from "react"
+
+import { useState, useEffect } from "react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { format, parseISO } from "date-fns"
+import { ptBR } from "date-fns/locale"
+import { toast } from "sonner"
+
+// UI Components
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -8,31 +19,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Calendar1, Calendar1 as CalendarIcon, Loader2, Plus } from "lucide-react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { toast } from "sonner";
-import { ptBR } from 'date-fns/locale';
-
-
-import { useCustomerList } from "@/hooks/useCustomer";
-import { useState } from "react";
-import {
-  convertDateFormat,
-  dateValidator,
-  formatOrderStatus,
-  formatPaymentMethod,
-} from "@/lib/utils";
-import { EMPTY_ORDER, OrderRequest, orderRequestSchema } from "@/types/Order";
+} from "@/components/ui/dialog"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import {
   Select,
   SelectContent,
@@ -41,462 +29,504 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import {
-  useOrder,
-  useOrderList,
-  useOrderStatus,
-  usePaymentMethods,
-} from "@/hooks/useOrder";
-import { MultiSelect } from "./multiselect";
-import { SelectedItem } from "@/types/Product";
-import { useProductList } from "@/hooks/useProduct";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { format, parseISO } from "date-fns";
+} from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { Card, CardContent } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+
+// Icons
+import { CalendarIcon, CheckCircle2, CreditCard, Home, Loader2, MapPin, Minus, Package, Plus, Search, ShoppingCart, Trash2, User } from 'lucide-react'
+
+// Hooks and utilities
+import { useCustomerList } from "@/hooks/useCustomer"
+import { useOrder, useOrderList, useOrderStatus, usePaymentMethods } from "@/hooks/useOrder"
+import { useProductList } from "@/hooks/useProduct"
+import { formatOrderStatus, formatPaymentMethod } from "@/lib/utils"
+import { EMPTY_ORDER, type OrderRequest, orderRequestSchema } from "@/types/Order"
+import { ProductSelector } from "./productSelector"
+import DatePicker from "@/components/ui/date-picker"
+
+// Custom Product Selection Component
 
 export function DialogPedidos() {
-  const { products } = useProductList();
-  const { orderStatus, isLoading: isOrderStatusLoading } = useOrderStatus();
-  const { paymentMethods, isLoading: isPaymentMethodsLoading } =
-    usePaymentMethods();
-  const { customers, isLoading: isCustomersLoading } = useCustomerList();
-  const { create, isLoading, error: orderError } = useOrder();
-  const [open, setOpen] = useState(false);
-  const [formSubmitted, setFormSubmitted] = useState(false);
-  const { mutate } = useOrderList();
+  const { products } = useProductList()
+  const { orderStatus, isLoading: isOrderStatusLoading } = useOrderStatus()
+  const { paymentMethods, isLoading: isPaymentMethodsLoading } = usePaymentMethods()
+  const { customers, isLoading: isCustomersLoading } = useCustomerList()
+  const { create, isLoading, error: orderError } = useOrder()
+  const { mutate } = useOrderList()
+
+  const [open, setOpen] = useState(false)
+  const [formSubmitted, setFormSubmitted] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
+  const [customerAddresses, setCustomerAddresses] = useState<any[]>([])
 
   const form = useForm<OrderRequest>({
     resolver: zodResolver(orderRequestSchema),
     defaultValues: EMPTY_ORDER,
-    mode: "onSubmit",
-  });
+    mode: "onChange",
+  })
 
   const {
     control,
     formState: { errors, isSubmitting },
     handleSubmit,
     trigger,
-  } = form;
+    watch,
+    reset,
+    setValue,
+    getValues,
+  } = form
 
-  // Exibir todos os erros no console ao submeter o formulário
-  if (formSubmitted && Object.keys(errors).length > 0) {
-    console.log(
-      "Todos os erros do formulário:",
-      JSON.stringify(errors, null, 2)
-    );
+  const watchedProducts = watch("products")
+  const watchedCustomerId = watch("customer_id")
+
+  useEffect(() => {
+    if (watchedCustomerId) {
+      const customer = customers.find((c) => c.id === watchedCustomerId)
+      if (customer) {
+        setSelectedCustomer(customer)
+        const addresses = []
+        if (customer.billing_address) {
+          addresses.push({
+            ...customer.billing_address,
+            description: customer.billing_address.description || "Padrão",
+          })
+        }
+        setCustomerAddresses(addresses)
+        if (customer.billing_address?.id) {
+          setValue("delivery_address_id", customer.billing_address.id)
+        }
+      }
+    } else {
+      setSelectedCustomer(null)
+      setCustomerAddresses([])
+    }
+  }, [watchedCustomerId, customers, setValue])
+
+  // Remove any empty products before validating
+  const cleanProducts = () => {
+    const current = getValues("products") || []
+    const filtered = current.filter(item => item.product_id !== undefined && item.quantity > 0)
+    setValue("products", filtered)
   }
 
-  // Função de validação e submissão
   const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormSubmitted(true);
+    e.preventDefault()
+    setFormSubmitted(true)
 
-    console.log("Tentando validar o formulário...");
-    console.log("DADOS DO FORMULÁRIO ANTES DA VALIDAÇÃO:", {
-      completeFormData: form.getValues(),
-      cliente: form.getValues().customer_id,
-      produtos: form.getValues().products,
-      metodoPagamento: form.getValues().payment_method_id,
-      dataEntrega: {
-        valor: form.getValues().delivery_date,
-        ehValido: dateValidator(form.getValues().delivery_date), // Usa a função do schema
-      },
-      statusPedido: form.getValues().order_status_id,
-    });
+    // clean out junk entries
+    cleanProducts()
 
-    const formValid = await trigger();
-    console.log("O formulário é válido?", formValid);
+    console.log("Validando formulário, valores atuais:", getValues())
+    const formValid = await trigger()
+    console.log("Resultado da validação, erros:", errors)
 
     if (formValid) {
-      console.log("Formulário válido. Chamando onSubmit...");
-      handleSubmit(onSubmit)();
+      handleSubmit(onSubmit)()
     } else {
-      console.log("ERROS DO FORMULÁRIO:", errors);
-      toast.error("Por favor, corrija os erros no formulário", {
-        duration: 5000,
-      });
+      toast.error("Por favor, corrija os erros no formulário", { duration: 5000 })
     }
-  };
+  }
 
   const onSubmit = async (formData: OrderRequest) => {
     try {
-      console.log("Iniciando submissão do formulário com dados:", formData);
-
-      // Verificar se cliente existe
-      const customer = customers.find((c) => c.id === formData.customer_id);
+      const customer = customers.find((c) => c.id === formData.customer_id)
       if (!customer) {
-        console.error("Cliente não encontrado:", formData.customer_id);
-        toast.error("Cliente não encontrado");
-        return;
+        toast.error("Cliente não encontrado")
+        return
       }
-
-      // Verificar se o cliente tem billing_address antes de acessar
-      if (!customer.billing_address || !customer.billing_address.id) {
-        console.error(
-          "Endereço de cobrança não encontrado para o cliente:",
-          customer
-        );
-        toast.error("Endereço de cobrança não encontrado para este cliente");
-        return;
+      const delivery_address_id = formData.delivery_address_id || customer.billing_address?.id || null
+      if (!delivery_address_id) {
+        toast.error("Endereço de entrega não encontrado")
+        return
       }
-
-      const billing_address_id = customer.billing_address.id;
-      console.log("Endereço de cobrança encontrado:", billing_address_id);
-
-      // A data já está no formato YYYY-MM-DD conforme selecionada no DatePicker
-      console.log("Data de entrega:", formData.delivery_date);
-
-      const payload = {
-        ...formData,
-        delivery_address_id: billing_address_id,
-        // A data já está no formato correto do DatePicker
-      };
-
-      console.log(
-        "Payload completo para envio ao servidor:",
-        JSON.stringify(payload, null, 2)
-      );
-
-      await create(payload);
-      mutate();
-      console.log("Pedido cadastrado com sucesso!");
-      toast.success("Pedido cadastrado com sucesso!");
-      setOpen(false); // Fechar o dialog após sucesso
-      form.reset(EMPTY_ORDER); // Limpar o formulário após sucesso
+      // ensure no empty products
+      const payload = { ...formData, products: formData.products.filter(p => p.product_id), delivery_address_id }
+      console.log("Payload enviado:", payload)
+      await create(payload)
+      mutate()
+      toast.success("Pedido cadastrado com sucesso!")
+      setOpen(false)
+      reset(EMPTY_ORDER)
+      setSelectedCustomer(null)
+      setCustomerAddresses([])
     } catch (error: any) {
-      console.error("Erro ao cadastrar pedido:", error);
-      toast.error("Falha ao cadastrar pedido!", {
-        description: orderError || String(error),
-        duration: 3000,
-      });
+      toast.error("Falha ao cadastrar pedido!", { description: orderError || String(error), duration: 3000 })
     }
-  };
+  }
 
-  // Função auxiliar para calcular o total
-  const calculateTotal = (items: any) => {
-    return items.reduce((total: any, item: any) => {
-      const product = products.find((p) => p.id === item.product_id);
-      return total + (product?.price || 0) * item.quantity;
-    }, 0);
-  };
+  const calculateTotal = (items: any[]) =>
+    items.reduce((total, item) => {
+      const product = products.find((p) => p.id === item.product_id)
+      const price = product ? Number(product.price) || 0 : 0
+      return total + price * item.quantity
+    }, 0)
 
-  // Helper function to render error messages safely
-  const renderErrorMessage = (error: any) => {
-    if (!error) return null;
-    return typeof error.message === "string"
-      ? error.message
-      : "Campo obrigatório";
-  };
+  const formatAddress = (address: any) =>
+    address ? `${address.street_name}, ${address.number}, ${address.city} - ${address.state}` : ""
 
-  // Helper function para formatar a data para exibição
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return "Selecione a data";
-    try {
-      return format(parseISO(dateString), 'dd/MM/yyyy');
-    } catch (error) {
-      console.error("Erro ao formatar data:", error);
-      return "Data inválida";
+  const handleDialogClose = (isOpen: boolean) => {
+    if (!isOpen) {
+      reset(EMPTY_ORDER)
+      setFormSubmitted(false)
+      setSelectedCustomer(null)
+      setCustomerAddresses([])
     }
-  };
-
+    setOpen(isOpen)
+  }
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          className="bg-[#FF8F3F] text-primary-foreground"
-          onClick={() => setOpen(true)}
-        >
-          <Plus />
+        <Button variant="outline" className="bg-[#FF8F3F] text-primary-foreground hover:bg-[#E67D2E] transition-colors">
+          <Plus className="mr-2 h-4 w-4" />
           Adicionar pedido
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[550px]">
-        <DialogHeader>
-          <DialogTitle>Adicionar Pedido</DialogTitle>
-          <DialogDescription>
-            Preencha os campos abaixo para realizar um pedido novo
-          </DialogDescription>
+      <DialogContent className="sm:max-w-[650px] p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-2">
+          <DialogTitle className="text-2xl flex items-center">
+            <ShoppingCart className="mr-2 h-5 w-5 text-[#FF8F3F]" />
+            Adicionar Pedido
+          </DialogTitle>
+          <DialogDescription>Preencha os campos abaixo para realizar um pedido novo</DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
-            <FormField
-              control={control}
-              name="customer_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cliente*</FormLabel>
-                  <FormControl>
-                    {isCustomersLoading ? (
-                      <Loader2 className="animate-spin h-4 w-4" />
-                    ) : (
-                      <Select
-                        value={field.value ? String(field.value) : ""}
-                        onValueChange={(val) => field.onChange(val)}
-                      >
-                        <SelectTrigger className="w-full rounded border px-3 py-2">
-                          <SelectValue placeholder={"Selecione o cliente..."} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel>Clientes registrados:</SelectLabel>
-                            {customers.map((c) => (
-                              <SelectItem key={c.id} value={String(c.id)}>
-                                {c.company_name}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </FormControl>
-                  <FormMessage>
-                    {renderErrorMessage(errors.customer_id)}
-                  </FormMessage>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="products"
-              render={({ field }) => {
-                // Função para converter os valores da API para o formato do MultiSelect
-                const convertApiToMultiSelect = () => {
-                  if (!field.value) return [];
-
-                  // Mapeia cada item e filtra os nulls
-                  const validItems = field.value
-                    .map((item) => {
-                      const product = products.find(
-                        (p) => p.id === item.product_id
-                      );
-                      if (!product) return null;
-
-                      return {
-                        id: product.id,
-                        name: product.name,
-                        price: product.price,
-                        quantity: item.quantity,
-                      };
-                    })
-                    // type guard explícito: só seleciona os não-nulos
-                    .filter((x): x is SelectedItem => x != null);
-
-                  return validItems;
-                };
-
-                return (
-                  <FormItem>
-                    <FormLabel>Produtos*</FormLabel>
-                    <FormControl>
-                      <div className="space-y-2">
-                        <MultiSelect
-                          options={products}
-                          onValueChange={(selectedItems) => {
-                            const formattedProducts = selectedItems.map(
-                              (item) => ({
-                                product_id: item.id,
-                                quantity: item.quantity,
-                              })
-                            );
-                            field.onChange(formattedProducts);
-                          }}
-                          defaultValue={convertApiToMultiSelect()}
-                          placeholder="Selecione os produtos"
-                        />
-
-                        {field.value && field.value.length > 0 && (
-                          <div className="text-sm text-right font-medium">
-                            Total: R$ {calculateTotal(field.value).toFixed(2)}
+        <ScrollArea className="max-h-[70vh]">
+          <div className="p-6 pt-2">
+            <Form {...form}>
+              <form onSubmit={handleFormSubmit} className="space-y-5">
+                {/* Customer Selection */}
+                <FormField
+                  control={control}
+                  name="customer_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center text-base">
+                        <User className="mr-2 h-4 w-4 text-[#FF8F3F]" />
+                        Cliente*
+                      </FormLabel>
+                      <FormControl>
+                        {isCustomersLoading ? (
+                          <div className="flex items-center justify-center h-10 border rounded-md">
+                            <Loader2 className="animate-spin h-4 w-4" />
                           </div>
+                        ) : (
+                          <Select
+                            value={field.value ? String(field.value) : ""}
+                            onValueChange={(val) => field.onChange(val)}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Selecione o cliente..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectGroup>
+                                <SelectLabel>Clientes registrados:</SelectLabel>
+                                {customers.map((c) => (
+                                  <SelectItem key={c.id} value={String(c.id)}>
+                                    {c.company_name}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
                         )}
-                      </div>
-                    </FormControl>
-                    <FormMessage>
-                      {renderErrorMessage(errors.products)}
-                    </FormMessage>
-                  </FormItem>
-                );
-              }}
-            />
-            <FormField
-              control={control}
-              name="payment_method_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Método de pagamento*</FormLabel>
-                  <FormControl>
-                    {isPaymentMethodsLoading ? (
-                      <Loader2 className="animate-spin h-4 w-4" />
-                    ) : (
-                      <Select
-                        value={field.value ? String(field.value) : ""}
-                        onValueChange={(val) => field.onChange(val)}
-                      >
-                        <SelectTrigger className="w-full rounded border px-3 py-2">
-                          <SelectValue
-                            placeholder={"Selecione o método de pagamento..."}
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel>
-                              Métodos de pagamento disponíveis:
-                            </SelectLabel>
-                            {paymentMethods.map((m) => (
-                              <SelectItem key={m.id} value={String(m.id)}>
-                                {formatPaymentMethod(m.name)}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Address Selection - Only show when customer is selected */}
+                {selectedCustomer && (
+                  <FormField
+                    control={control}
+                    name="delivery_address_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center">
+                          <MapPin className="mr-2 h-4 w-4 text-[#FF8F3F]" />
+                          Endereço de entrega*
+                        </FormLabel>
+                        <FormControl>
+                          <Select
+                            value={field.value ? String(field.value) : ""}
+                            onValueChange={(val) => field.onChange(val)}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Selecione o endereço..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectGroup>
+                                <SelectLabel>Endereços disponíveis:</SelectLabel>
+                                {customerAddresses.map((address) => (
+                                  <SelectItem key={address.id} value={String(address.id)}>
+                                    {address.description} - {formatAddress(address)}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                  </FormControl>
-                  <FormMessage>
-                    {renderErrorMessage(errors.payment_method_id)}
-                  </FormMessage>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="delivery_date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Data de entrega*</FormLabel>
-                  <FormControl>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-between"
-                        >
-                          {formatDate(field.value)}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                        locale={ptBR}
-                          mode="single"
-                          selected={field.value ? parseISO(field.value) : undefined}
-                          onSelect={(date) => {
-                            if (date) {
-                              // Formato yyyy-MM-dd para o backend
-                              const iso = date.toISOString().split('T')[0];
-                              field.onChange(iso);
-                            }
-                          }}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </FormControl>
-                  <FormMessage>{errors.delivery_date?.message}</FormMessage>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={control}
-              name="order_status_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status do pedido*</FormLabel>
-                  <FormControl>
-                    {isOrderStatusLoading ? (
-                      <Loader2 className="animate-spin h-4 w-4" />
-                    ) : (
-                      <Select
-                        value={field.value ? String(field.value) : ""}
-                        onValueChange={(val) => field.onChange(val)}
-                      >
-                        <SelectTrigger className="w-full rounded border px-3 py-2">
-                          <SelectValue placeholder={"Selecione o status..."} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel>Status disponíveis:</SelectLabel>
-                            {orderStatus.map((s) => (
-                              <SelectItem key={s.id} value={String(s.id)}>
-                                {formatOrderStatus(s.description)}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </FormControl>
-                  <FormMessage>
-                    {renderErrorMessage(errors.order_status_id)}
-                  </FormMessage>
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setOpen(false);
-                  setFormSubmitted(false);
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                variant="outline"
-                className="bg-[#FF8F3F] text-primary-foreground"
-                disabled={isSubmitting || isLoading}
-              >
-                {isLoading || isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Cadastrando...
-                  </>
-                ) : (
-                  "Cadastrar pedido"
+                  />
                 )}
-              </Button>
-            </DialogFooter>
-            {formSubmitted && Object.keys(errors).length > 0 && (
-              <div className="text-red-500 text-sm p-2 border border-red-300 rounded bg-red-50">
-                <p className="font-medium mb-1">
-                  Por favor, corrija os seguintes erros:
-                </p>
-                <ul className="list-disc pl-5">
-                  {errors.customer_id && (
-                    <li>Cliente: {renderErrorMessage(errors.customer_id)}</li>
+
+                {/* Customer Info Card - Show when customer is selected */}
+                {selectedCustomer && (
+                  <Card className="bg-muted/40 border-muted">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-medium">{selectedCustomer.company_name}</h4>
+                          <p className="text-sm text-muted-foreground">{selectedCustomer.email}</p>
+                        </div>
+                        <Badge variant="outline" className="bg-[#FF8F3F]/10 text-[#FF8F3F] border-[#FF8F3F]/20">
+                          {selectedCustomer.active ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </div>
+
+                      {selectedCustomer.contact && (
+                        <div className="mt-2 text-sm">
+                          <p className="text-muted-foreground">Contato:</p>
+                          <p>{selectedCustomer.contact.name} - {selectedCustomer.contact.contact_phone}</p>
+                        </div>
+                      )}
+
+                      {selectedCustomer.billing_address && (
+                        <div className="mt-2 text-sm flex items-start">
+                          <Home className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div>
+                            <p className="text-muted-foreground">
+                              {selectedCustomer.billing_address.description || "Endereço Padrão"}:
+                            </p>
+                            <p>
+                              {selectedCustomer.billing_address.street_name}, {selectedCustomer.billing_address.number}
+                              {selectedCustomer.billing_address.complement &&
+                                `, ${selectedCustomer.billing_address.complement}`}
+                            </p>
+                            <p>
+                              {selectedCustomer.billing_address.district}, {selectedCustomer.billing_address.city} - {selectedCustomer.billing_address.state},{" "}
+                              {selectedCustomer.billing_address.cep}
+                            </p>
+                            {selectedCustomer.billing_address.observation && (
+                              <p className="text-muted-foreground italic">
+                                Obs: {selectedCustomer.billing_address.observation}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                <Separator />
+
+                {/* Products Selection - Custom Component */}
+                <FormField
+                  control={control}
+                  name="products"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center text-base">
+                        <Package className="mr-2 h-4 w-4 text-[#FF8F3F]" />Produtos*
+                      </FormLabel>
+                      <FormControl>
+                        <ProductSelector products={products} value={field.value || []} onChange={field.onChange} />
+                      </FormControl>
+                      <FormMessage />
+                      {watchedProducts.length > 0 && (
+                        <div className="mt-2 text-right font-medium">
+                          Total: <span className="text-[#FF8F3F]">R$ {calculateTotal(watchedProducts).toFixed(2)}</span>
+                        </div>
+                      )}
+                    </FormItem>
                   )}
-                  {errors.products && (
-                    <li>Produtos: {renderErrorMessage(errors.products)}</li>
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Payment Method */}
+                  <FormField
+                    control={control}
+                    name="payment_method_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center">
+                          <CreditCard className="mr-2 h-4 w-4 text-[#FF8F3F]" />
+                          Método de pagamento*
+                        </FormLabel>
+                        <FormControl>
+                          {isPaymentMethodsLoading ? (
+                            <div className="flex items-center justify-center h-10 border rounded-md">
+                              <Loader2 className="animate-spin h-4 w-4" />
+                            </div>
+                          ) : (
+                            <Select
+                              value={field.value ? String(field.value) : ""}
+                              onValueChange={(val) => field.onChange(val)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o método..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectGroup>
+                                  <SelectLabel>Métodos disponíveis:</SelectLabel>
+                                  {paymentMethods.map((m) => (
+                                    <SelectItem key={m.id} value={String(m.id)}>
+                                      {formatPaymentMethod(m.name)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Delivery Date - Fixed */}
+                  <FormField
+                  control={control}
+                  name="delivery_date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center">
+                        <CalendarIcon className="mr-2 h-4 w-4 text-[#FF8F3F]" />Data de entrega*
+                      </FormLabel>
+                      <FormControl>
+                        <DatePicker
+                          value={field.value || ''}
+                          onChange={(date) => field.onChange(date)}
+                          label={undefined}
+                          placeholder="Selecione uma data"
+                          required
+                          errorMessage={errors.delivery_date?.message}
+                          locale={ptBR}
+                          dateFormat="dd/MM/yyyy"
+                          buttonClassName="w-full"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                  {errors.delivery_date && (
-                    <li>
-                      Data de entrega:{" "}
-                      {renderErrorMessage(errors.delivery_date)}
-                    </li>
+                />
+                </div>
+
+                {/* Order Status */}
+                <FormField
+                  control={control}
+                  name="order_status_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center">
+                        <CheckCircle2 className="mr-2 h-4 w-4 text-[#FF8F3F]" />
+                        Status do pedido*
+                      </FormLabel>
+                      <FormControl>
+                        {isOrderStatusLoading ? (
+                          <div className="flex items-center justify-center h-10 border rounded-md">
+                            <Loader2 className="animate-spin h-4 w-4" />
+                          </div>
+                        ) : (
+                          <Select
+                            value={field.value ? String(field.value) : ""}
+                            onValueChange={(val) => field.onChange(val)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o status..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectGroup>
+                                <SelectLabel>Status disponíveis:</SelectLabel>
+                                {orderStatus.map((s) => (
+                                  <SelectItem key={s.id} value={String(s.id)}>
+                                    {formatOrderStatus(s.description)}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                  {errors.payment_method_id && (
-                    <li>
-                      Método de pagamento:{" "}
-                      {renderErrorMessage(errors.payment_method_id)}
-                    </li>
-                  )}
-                  {errors.order_status_id && (
-                    <li>
-                      Status do pedido:{" "}
-                      {renderErrorMessage(errors.order_status_id)}
-                    </li>
-                  )}
-                </ul>
-              </div>
-            )}
-          </form>
-        </Form>
+                />
+
+                {/* Error Summary */}
+                {formSubmitted && Object.keys(errors).length > 0 && (
+                  <Card className="border-destructive/50 bg-destructive/5">
+                    <CardContent className="p-4">
+                      <h4 className="font-medium text-destructive mb-2 flex items-center">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="mr-2"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="8" x2="12" y2="12" />
+                          <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                        Por favor, corrija os seguintes erros:
+                      </h4>
+                      <ul className="space-y-1 text-sm text-destructive">
+                        {errors.customer_id && <li>• Cliente: {errors.customer_id.message}</li>}
+                        {errors.delivery_address_id && <li>• Endereço de entrega: {errors.delivery_address_id.message}</li>}
+                        {errors.products && <li>• Produtos: {errors.products.message}</li>}
+                        {errors.delivery_date && <li>• Data de entrega: {errors.delivery_date.message}</li>}
+                        {errors.payment_method_id && <li>• Método de pagamento: {errors.payment_method_id.message}</li>}
+                        {errors.order_status_id && <li>• Status do pedido: {errors.order_status_id.message}</li>}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+              </form>
+            </Form>
+          </div>
+        </ScrollArea>
+
+        <DialogFooter className="p-6 pt-0">
+          <div className="flex w-full justify-between gap-2">
+            <Button type="button" variant="outline" onClick={() => handleDialogClose(false)}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleFormSubmit}
+              className="bg-[#FF8F3F] text-primary-foreground hover:bg-[#E67D2E] transition-colors"
+              disabled={isSubmitting || isLoading}
+            >
+              {isLoading || isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cadastrando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Cadastrar pedido
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

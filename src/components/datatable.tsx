@@ -89,8 +89,8 @@ export type DrawerConfig<TData, TUpdate extends Record<string, any>> = {
   title: (item: TData) => string;
   description?: (item: TData) => string;
   fields: FormField[];
-  updateSchema: ZodType<TUpdate>;
-  mutate: any;
+  updateSchema?: ZodType<TUpdate>;
+  mutate?: any;
 };
 // Props para o componente DataTable
 export type DataTableProps<
@@ -102,7 +102,7 @@ export type DataTableProps<
   title?: string;
   primaryField?: string;
   drawerConfig?: DrawerConfig<TData, TUpdate>;
-  updateSchema: ZodType<TUpdate>;
+  updateSchema?: ZodType<TUpdate>;
   onUpdate?: (original: TData, updated: TUpdate) => Promise<void> | void;
   onCreate?: (newItem: TData) => Promise<void> | void;
   onDelete?: (item: TData) => Promise<void> | void;
@@ -177,14 +177,24 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
 
   const handleSave = async () => {
     if (!onUpdate || !drawerConfig) return;
+    // Garante que temos um schema antes de validar
+    if (!drawerConfig.updateSchema) {
+      console.warn("Nenhum updateSchema definido no drawerConfig");
+      return;
+    }
+  
     setIsLoading(true);
     try {
+      // monta o objeto raw, aplicando formatValue
       const raw: any = { ...formData };
       drawerConfig.fields.forEach((f) => {
-        if (f.formatValue)
+        if (f.formatValue) {
           raw[f.name] = f.formatValue(getNested(formData, f.name));
+        }
       });
-      const validated = drawerConfig.updateSchema.parse(raw);
+  
+      // agora parse com segurança
+      const validated: TUpdate = drawerConfig.updateSchema.parse(raw);
       await onUpdate(item, validated);
       mutate?.();
     } catch (e) {
@@ -193,6 +203,7 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
       setIsLoading(false);
     }
   };
+  
 
   const handleDeleteConfirm = async () => {
     if (!onDelete) return;
