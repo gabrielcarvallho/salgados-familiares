@@ -81,7 +81,7 @@ import {
   type OrderRequest,
   orderRequestSchema,
 } from "@/types/Order";
-import { ProductSelector } from "./productSelector";
+import { ProductSelector } from "../../../components/productSelector";
 import DatePicker from "@/components/ui/date-picker";
 
 // Custom Product Selection Component
@@ -426,7 +426,7 @@ export function DialogPedidos() {
                   )}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   {/* Payment Method */}
                   <FormField
                     control={control}
@@ -499,7 +499,7 @@ export function DialogPedidos() {
                   />
 
                   {/* Order Status */}
-                  <FormField
+                  {/* <FormField
                     control={control}
                     name="order_status_id"
                     render={({ field }) => (
@@ -537,7 +537,7 @@ export function DialogPedidos() {
                         <FormMessage />
                       </FormItem>
                     )}
-                  />
+                  /> */}
                 </div>
 
                 {/* Error Summary */}
@@ -612,8 +612,9 @@ export function DialogPedidos() {
             </Button>
             <Button
               type="button"
+              variant={"outline"}
               onClick={handleFormSubmit}
-              className="bg-[#FF8F3F] text-primary-foreground hover:bg-[#E67D2E] transition-colors"
+              className="bg-[#FF8F3F] text-white"
               disabled={isSubmitting || isLoading}
             >
               {isLoading || isSubmitting ? (
@@ -622,9 +623,7 @@ export function DialogPedidos() {
                   Cadastrando...
                 </>
               ) : (
-                <>
-                  Cadastrar pedido
-                </>
+                <>Cadastrar pedido</>
               )}
             </Button>
           </div>

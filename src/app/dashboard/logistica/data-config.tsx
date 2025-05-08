@@ -8,6 +8,7 @@ import { type OrderUpdateRequest, orderUpdateRequestSchema, type OrderResponse }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useProductList } from "@/hooks/useProduct"
 import DatePicker from "@/components/ui/date-picker"
+import { ProductSelector } from "@/components/productSelector"
 import { Separator } from "@/components/ui/separator"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
@@ -21,8 +22,6 @@ import {
   Package,
   Calculator,
 } from "lucide-react"
-import { ProductSelector } from "@/components/productSelector"
-import { ReactElement, JSXElementConstructor, ReactNode, ReactPortal, Key } from "react"
 
 // Colunas da tabela
 export const columns: ColumnDef<OrderResponse, any>[] = [
@@ -64,6 +63,12 @@ export const columns: ColumnDef<OrderResponse, any>[] = [
       const { badge, stats } = badgesVariant(row.original.order_status.identifier)
       return <Badge variant={badge}>{stats}</Badge>
     },
+  },
+  {
+    id: "is_delivered",
+    accessorKey: "is_delivered",
+    header: "Entregue",
+    cell: ({ row }) => (row.original.is_delivered ? "Sim" : "Não"),
   },
   {
     id: "total_price",
@@ -127,19 +132,18 @@ export function useDrawerConfig() {
         name: "order_status_id",
         type: "custom",
         colSpan: 1,
-        
         defaultValue: (o) => String(o.order_status.id),
         formatValue: (v) => String(v),
         customRender: (value: string, onChange: (v: string) => void) => {
           const safeValue = value || ""
-          
           return (
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-[#FF8F3F]" />
                 <span>Status do pedido</span>
+                <span className="text-destructive">*</span>
               </Label>
-              <Select value={safeValue} onValueChange={onChange} disabled>
+              <Select value={safeValue} onValueChange={onChange}>
                 <SelectTrigger className="w-full focus-visible:ring-[#FF8F3F]">
                   <SelectValue placeholder="Selecione status" />
                 </SelectTrigger>
@@ -156,37 +160,23 @@ export function useDrawerConfig() {
         },
       },
 
+      // Método de pagamento
       {
         name: "payment_method_id",
         type: "custom",
         colSpan: 1,
-      
-        // 1) guardo valor + isEditable
-        defaultValue: (o) => ({
-          value: String(o.payment_method.id),
-        }),
-        isEditable: (o) => o.order_status.identifier === 0, // Adapte para cada campo
-        parseValue: (v) =>
-          typeof v === "object" && v !== null ? v.value : String(v),
-      
-        customRender: (valueObj, onChange) => {
-          // 4) aqui eu garanto que extraio o valor certo
-          const { value, isEditable } =
-            typeof valueObj === "object" && valueObj !== null
-              ? valueObj
-              : { value: "", isEditable: false };
-      
+        defaultValue: (o) => String(o.payment_method.id),
+        formatValue: (v) => String(v),
+        customRender: (value: string, onChange: (v: string) => void) => {
+          const safeValue = value || ""
           return (
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4 text-[#FF8F3F]" />
                 <span>Método de pagamento</span>
+                <span className="text-destructive">*</span>
               </Label>
-              <Select
-                value={value}
-                onValueChange={(v) => onChange({ value: v, isEditable })}
-                disabled={!isEditable}            // <<< uso direto o flag
-              >
+              <Select value={safeValue} onValueChange={onChange}>
                 <SelectTrigger className="w-full focus-visible:ring-[#FF8F3F]">
                   <SelectValue placeholder="Selecione método" />
                 </SelectTrigger>
@@ -199,76 +189,44 @@ export function useDrawerConfig() {
                 </SelectContent>
               </Select>
             </div>
-          );
+          )
         },
       },
-      
 
       // Datas
       {
         name: "delivery_date",
         type: "custom",
         colSpan: 1,
-        defaultValue: (o) => ({
-          value: o.delivery_date,
-        }),
-        isEditable: (o) => o.order_status.identifier === 0, // Adapte para cada campo
-        formatValue: (v) => typeof v === "object" ? v.value : v,
-        parseValue: (v) => typeof v === "object" ? v.value : v,
-        customRender: (valueObj, onChange) => {
-          const { value, isEditable } = 
-            typeof valueObj === "object" && valueObj !== null 
-              ? valueObj 
-              : { value: valueObj, isEditable: false };
-
-          return (
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <CalendarClock className="h-4 w-4 text-[#FF8F3F]" />
-                <span>Data de entrega</span>
-              </Label>
-              <DatePicker
-                disabled={!isEditable}
-                value={value}
-                onChange={(v) => onChange({ value: v, isEditable })}
-                className="w-full focus-visible:ring-[#FF8F3F]"
-              />
-            </div>
-          )
-        },
+        defaultValue: (o) => o.delivery_date,
+        formatValue: (v) => v,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-[#FF8F3F]" />
+              <span>Data de entrega</span>
+              <span className="text-destructive">*</span>
+            </Label>
+            <DatePicker value={value} onChange={onChange} className="w-full focus-visible:ring-[#FF8F3F]" />
+          </div>
+        ),
       },
 
       {
         name: "due_date",
         type: "custom",
         colSpan: 1,
-        defaultValue: (o) => ({
-          value: o.due_date,
-        }),
-        isEditable: (o) => o.order_status.identifier === 0, // Adapte para cada campo
-        formatValue: (v) => typeof v === "object" ? v.value : v,
-        parseValue: (v) => typeof v === "object" ? v.value : v,
-        customRender: (valueObj, onChange) => {
-          const { value, isEditable } = 
-            typeof valueObj === "object" && valueObj !== null 
-              ? valueObj 
-              : { value: valueObj, isEditable: false };
-
-          return (
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-[#FF8F3F]" />
-                <span>Data de vencimento</span>
-              </Label>
-              <DatePicker
-                disabled={!isEditable}
-                value={value}
-                onChange={(v) => onChange({ value: v, isEditable })}
-                className="w-full focus-visible:ring-[#FF8F3F]"
-              />
-            </div>
-          )
-        },
+        defaultValue: (o) => o.due_date,
+        formatValue: (v) => v,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-[#FF8F3F]" />
+              <span>Data de vencimento</span>
+            </Label>
+            <DatePicker disabled value={value} onChange={onChange} className="w-full focus-visible:ring-[#FF8F3F]" />
+          </div>
+        ),
       },
 
       // Produtos
@@ -291,25 +249,26 @@ export function useDrawerConfig() {
         name: "products",
         type: "custom",
         colSpan: 2,
-        isEditable: (o) => o.order_status.identifier === 0, // Adapte para cada campo
-        defaultValue: (o) => ({
-          items: Array.isArray(o.products)
+        defaultValue: (o) =>
+          Array.isArray(o.products)
             ? o.products.map((p: { product: { id: any }; quantity: any }) => ({
                 product_id: String(p.product.id),
                 quantity: p.quantity,
               }))
             : [],
-        }),
-
-        customRender: (valueObj, onChange) => {
-          const { items = [], isEditable = false } =
-            typeof valueObj === "object" && valueObj !== null
-              ? valueObj
-              : { items: [], isEditable: false };
+        formatValue: (v) => (Array.isArray(v) ? v : []),
+        customRender: (items = [], onChange) => {
+          // Converter o formato dos itens para o formato esperado pelo ProductSelector
+          const formattedItems = Array.isArray(items)
+            ? items.map((item) => ({
+                product_id: item.product_id,
+                quantity: item.quantity,
+              }))
+            : []
 
           // Função para atualizar os itens quando o ProductSelector mudar
           const handleProductChange = (newItems: any) => {
-            onChange({ items: newItems, isEditable })
+            onChange(newItems)
           }
 
           // Preparar os produtos para o ProductSelector
@@ -321,10 +280,10 @@ export function useDrawerConfig() {
 
           // Calcular o total do pedido
           const calculateTotal = () => {
-            if (!items.length) return 0
+            if (!formattedItems.length) return 0
 
-            return items.reduce((total: number, item: { product_id: string; quantity: number }) => {
-              const product = products.find((p) => String(p.id) === item.product_id)
+            return formattedItems.reduce((total, item) => {
+              const product = formattedProducts.find((p) => p.id === item.product_id)
               if (!product) return total
 
               const price =
@@ -334,79 +293,27 @@ export function useDrawerConfig() {
             }, 0)
           }
 
-          // Se for editável, mostrar o ProductSelector
-          if (isEditable) {
-            return (
-              <div className="space-y-4">
-                <div className="bg-muted/30 rounded-md p-4">
-                  <ProductSelector products={formattedProducts} value={items} onChange={handleProductChange} />
-                </div>
-
-                {items.length > 0 && (
-                  <Card className="bg-muted/40 border-muted">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Calculator className="h-4 w-4 text-[#FF8F3F]" />
-                        <h3 className="text-sm font-medium">Resumo do Pedido</h3>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total:</span>
-                        <span className="font-medium text-lg text-[#FF8F3F]">R$ {calculateTotal().toFixed(2)}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            )
-          }
-
-          // Se não for editável, mostrar a tabela de produtos
           return (
             <div className="space-y-4">
-              <Card className="bg-muted/30 border-muted">
-                <CardContent className="p-4">
-                  <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mb-3">
-                    <div className="col-span-6">Produto</div>
-                    <div className="col-span-3 text-center">Quantidade</div>
-                    <div className="col-span-3 text-right">Subtotal</div>
-                  </div>
+              <div className="bg-muted/30 rounded-md p-4">
+                <ProductSelector products={formattedProducts} value={formattedItems} onChange={handleProductChange} />
+              </div>
 
-                  {items.length > 0 ? (
-                    <>
-                      {items.map((item: { product_id: string; quantity: number }, idx: Key | null | undefined) => {
-                        const product = products.find((p) => String(p.id) === item.product_id)
-                        if (!product) return null
+              {formattedItems.length > 0 && (
+                <Card className="bg-muted/40 border-muted">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Calculator className="h-4 w-4 text-[#FF8F3F]" />
+                      <h3 className="text-sm font-medium">Resumo do Pedido</h3>
+                    </div>
 
-                        const price =
-                          typeof product.price === "number"
-                            ? product.price
-                            : Number.parseFloat(String(product.price)) || 0
-
-                        const subtotal = price * item.quantity
-
-                        return (
-                          <div
-                            key={idx}
-                            className="grid grid-cols-12 gap-2 items-center py-2 border-b border-muted last:border-0"
-                          >
-                            <div className="col-span-6 font-medium">{product.name}</div>
-                            <div className="col-span-3 text-center">{item.quantity}</div>
-                            <div className="col-span-3 text-right">R$ {subtotal.toFixed(2)}</div>
-                          </div>
-                        )
-                      })}
-
-                      <div className="flex justify-between items-center mt-4 pt-2 border-t border-muted">
-                        <span className="font-medium">Total:</span>
-                        <span className="font-medium text-lg text-[#FF8F3F]">R$ {calculateTotal().toFixed(2)}</span>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center py-4 text-muted-foreground">Nenhum produto encontrado</div>
-                  )}
-                </CardContent>
-              </Card>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Total:</span>
+                      <span className="font-medium text-lg text-[#FF8F3F]">R$ {calculateTotal().toFixed(2)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )
         },

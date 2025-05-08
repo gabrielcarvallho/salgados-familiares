@@ -16,6 +16,7 @@ export const orderStatusSchema = z.object({
 
 // --- Request de Pedido ---
 export const orderRequestSchema = z.object({
+  
   customer_id: z.string().uuid({ message: "ID de cliente inválido" }),
   order_status_id: z.string().uuid({ message: "ID de status inválido" }),
   payment_method_id: z
@@ -29,6 +30,7 @@ export const orderRequestSchema = z.object({
       quantity: z.coerce.number().min(1, "Quantidade deve ser maior que 0"),
     })
   ),
+  is_delivered: z.boolean().optional()
 });
 
 export const orderUpdateRequestSchema = orderRequestSchema.partial();
@@ -42,6 +44,8 @@ const orderItemSchema = z.object({
 // --- Response de Pedido ---
 export const orderResponseSchema = z.object({
   id: z.string().uuid({ message: "ID de pedido inválido" }),
+  order_number: z.coerce.number(),
+  is_delivered: z.boolean(),
   customer: CustomerResponseSchema.omit({ billing_address: true }),
   products: z.array(orderItemSchema),
   total_price: z.coerce.number(),

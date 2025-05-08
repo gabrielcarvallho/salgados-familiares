@@ -42,6 +42,8 @@ export default function ClientsPage() {
     });
   }, []);
 
+
+
   const handleUpdateProduct = async (
     original: CustomerResponse,
     updated: CustomerUpdateRequest

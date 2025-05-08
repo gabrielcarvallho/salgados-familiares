@@ -1,111 +1,137 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { DataTable } from "@/components/datatable";
 import { SiteHeader } from "@/components/site-header";
-import { SalgadosList } from "./components/SalgadosList";
-import { PedidosList } from "./components/PedidosList";
+import { ProductsSkeletonLoading } from "@/components/skeleton";
+import { columns, useDrawerConfig } from "./data-config";
+import { useOrder, useOrderList, useOrderStatus } from "@/hooks/useOrder";
 import {
-  ConfigDialog,
-  ConfigurarQuantidadesButton,
-} from "./components/ConfigDialog";
-import { PedidoDetails } from "./components/PedidoDetails";
-import { PedidoItem } from "./types";
-import { salgadosData, pedidosData } from "./data";
-import { useProductionSchedule } from '../../../hooks/useStatistics';
+  OrderResponse,
+  OrderUpdateRequest,
+  orderUpdateRequestSchema,
+} from "@/types/Order";
+import { DrawerFormProvider } from "@/hooks/contexts/DrawerFormContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useProductionSchedule } from "@/hooks/useStatistics";
+import { formatOrderStatus } from "@/lib/utils";
+import { SelectPortal } from "@radix-ui/react-select";
+import { SalgadosList } from "./SalgadosList";
 
-export default function LogisticaPage() {
-  const [openConfigDialog, setOpenConfigDialog] = useState(false);
-  const [openPedidoSheet, setOpenPedidoSheet] = useState(false);
-  const [quantidadesDiarias, setQuantidadesDiarias] = useState<{
-    [key: string]: string;
-  }>({});
-  const [pedidos, setPedidos] = useState<PedidoItem[]>(pedidosData);
-  const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoItem | null>(
-    null
+export default function OrdersPage() {
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Hooks called unconditionally at top
+  const { productionSchedule } = useProductionSchedule();
+  const { orderStatus: orderStatuses = [] } = useOrderStatus();
+
+  const { update, error: updateError } = useOrder();
+  const { orders, isLoading, isError, totalItems, mutate } = useOrderList(
+    pagination.pageIndex + 1,
+    pagination.pageSize
   );
-  const [novoStatus, setNovoStatus] = useState<string>("");
 
-const { productionSchedule } = useProductionSchedule()
+  // formMethods and drawerConfig also unconditionally
+  const formMethods = useForm<OrderUpdateRequest>();
+  const drawerConfig = useDrawerConfig();
 
-  // Inicializa as quantidades diárias
-  useEffect(() => {
-    const initialQuantidades: { [key: string]: string } = {};
-    salgadosData.forEach((salgado) => {
-      initialQuantidades[salgado.nome] = "";
+  const handlePaginationChange = useCallback((newPagination: any) => {
+    setPagination({
+      pageIndex: newPagination.pageIndex,
+      pageSize: newPagination.pageSize,
     });
-    setQuantidadesDiarias(initialQuantidades);
   }, []);
 
-  const handleQuantidadeChange = (nome: string, valor: string) => {
-    setQuantidadesDiarias({
-      ...quantidadesDiarias,
-      [nome]: valor,
-    });
-  };
-
-  const handleSalvarQuantidades = () => {
-    // Aqui você implementaria a lógica para salvar as quantidades no backend
-    console.log("Quantidades salvas:", quantidadesDiarias);
-    setOpenConfigDialog(false);
-  };
-
-  const handleRowClick = (pedido: PedidoItem) => {
-    setPedidoSelecionado(pedido);
-    setNovoStatus(pedido.status);
-    setOpenPedidoSheet(true);
-  };
-
-  const handleUpdateStatus = () => {
-    if (pedidoSelecionado && novoStatus) {
-      setPedidos(
-        pedidos.map((p) =>
-          p.id === pedidoSelecionado.id
-            ? { ...p, status: novoStatus as any }
-            : p
-        )
-      );
-      setOpenPedidoSheet(false);
+  const handleUpdateOrder = async (
+    original: OrderResponse,
+    updated: OrderUpdateRequest
+  ) => {
+    const payload = {
+      id: original.id,
+      ...updated,
+    };
+    try {
+      await update(payload);
+      toast.success("Pedido atualizado com sucesso!");
+      mutate();
+    } catch (error) {
+      toast.error("Falha ao atualizar pedido.", {
+        description: updateError || String(error),
+        duration: 3000,
+      });
+      throw error;
     }
   };
 
+  // Filtra os pedidos antes de passar ao DataTable
+  const filteredOrders =
+    statusFilter === "all"
+      ? orders
+      : orders.filter((o) => String(o.order_status.id) === statusFilter);
+
   return (
-    <div>
-      <div className="flex flex-col gap-4">
-        <SiteHeader
-          title="Logística"
-          button={
-            <ConfigurarQuantidadesButton
-              onClick={() => setOpenConfigDialog(true)}
-            />
-          }
-        />
-
-        {/* Demanda de amanhã */}
-        <SalgadosList salgados={productionSchedule} />
-
-        {/* Últimos pedidos */}
-        <PedidosList pedidos={pedidos} onPedidoClick={handleRowClick} />
-      </div>
-
-      {/* Dialog para configurar quantidades */}
-      <ConfigDialog
-        open={openConfigDialog}
-        onOpenChange={setOpenConfigDialog}
-        salgados={salgadosData}
-        quantidadesDiarias={quantidadesDiarias}
-        onQuantidadeChange={handleQuantidadeChange}
-        onSalvar={handleSalvarQuantidades}
+    <div className="flex flex-col gap-4">
+      <SiteHeader
+        title="Logística"
+        button={
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-44">
+              <SelectValue>
+                {statusFilter === "all"
+                  ? "Todos os status"
+                  : orderStatuses.find((s) => String(s.id) === statusFilter)
+                      ?.description}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectPortal>
+              <SelectContent position="popper">
+                <SelectItem value="all">Todos</SelectItem>
+                {orderStatuses.map((st) => (
+                  <SelectItem key={st.id} value={String(st.id)}>
+                    {formatOrderStatus(st.description)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </SelectPortal>
+          </Select>
+        }
       />
 
-      {/* Sheet para visualizar detalhes do pedido */}
-      <PedidoDetails
-        open={openPedidoSheet}
-        onOpenChange={setOpenPedidoSheet}
-        pedido={pedidoSelecionado}
-        novoStatus={novoStatus}
-        onStatusChange={setNovoStatus}
-        onUpdateStatus={handleUpdateStatus}
-      />
+      <SalgadosList salgados={productionSchedule}/>
+
+      {/* Filtro de Status */}
+
+      {isLoading ? (
+        <ProductsSkeletonLoading />
+      ) : isError ? (
+        <div className="p-4 text-center text-red-500">
+          Erro ao carregar pedidos: {String(isError)}
+        </div>
+      ) : (
+        <DrawerFormProvider formMethods={formMethods}>
+          <DataTable<OrderResponse, OrderUpdateRequest>
+            title="Pedidos"
+            columns={columns}
+            data={filteredOrders || []}
+            totalCount={filteredOrders?.length || 0}
+            pageSize={pagination.pageSize}
+            currentPage={pagination.pageIndex}
+            onUpdate={handleUpdateOrder}
+            onPaginationChange={handlePaginationChange}
+            mutate={mutate}
+            drawerConfig={drawerConfig}
+          />
+        </DrawerFormProvider>
+      )}
     </div>
   );
 }

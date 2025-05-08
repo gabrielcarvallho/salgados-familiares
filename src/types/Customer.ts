@@ -25,8 +25,16 @@ export const addressSchema = z.object({
   city: z.string().min(1, "Cidade é obrigatória"),
   state: z.string().min(1, "Estado é obrigatório"),
   observation: z.string().optional(),
-  description: z.string().optional().nullable(),
+  description: z.string().optional()
 });
+
+export const viaCEPSchema = z.object({
+  cep: z.string().transform(cleanCEP),
+  street: z.string().min(1, "Rua é obrigatória"),
+  neighborhood: z.string().min(1, "Bairro é obrigatório"),
+  city: z.string().min(1, "Cidade é obrigatória"),
+  state: z.string().min(2, "UF é obrigatório").max(2),
+})
 
 // --- Atualização de Endereço (opcional) ---
 export const addressUpdateSchema = addressSchema.partial();
@@ -94,6 +102,7 @@ export const customersResponseSchema = z.object({
 // --- Types inferred ---
 export type Contact = z.infer<typeof contactSchema>;
 export type Address = z.infer<typeof addressSchema>;
+export type ViaCEP = z.infer<typeof viaCEPSchema>;
 export type AddressUpdate = z.infer<typeof addressUpdateSchema>;
 // export type CreatedBy = z.infer<typeof createdBySchema>;
 export type CustomerRequest = z.infer<typeof CustomerRequestSchema>;

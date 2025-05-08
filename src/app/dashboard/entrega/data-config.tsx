@@ -1,39 +1,43 @@
-import React from "react";
-import { ColumnDef } from "@tanstack/react-table";
-import { DrawerConfig } from "@/components/datatable";
-import { Badge } from "@/components/ui/badge";
-import { useOrderList, useOrderStatus, usePaymentMethods } from "@/hooks/useOrder";
+"use client"
+import React from "react"
+import { ColumnDef } from "@tanstack/react-table"
+import { DrawerConfig } from "@/components/datatable"
+import { Badge } from "@/components/ui/badge"
+import { useOrderList, useOrderStatus, usePaymentMethods } from "@/hooks/useOrder"
 import {
   badgesVariant,
   formatDateToBR,
   formatStatus,
   formatPaymentMethod,
   formatCEP,
-} from "@/lib/utils";
+} from "@/lib/utils"
 import {
   OrderUpdateRequest,
   orderUpdateRequestSchema,
   OrderResponse,
-} from "@/types/Order";
+} from "@/types/Order"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { useProductList } from "@/hooks/useProduct";
-import { Separator } from "@/components/ui/separator";
-import { Label } from "@/components/ui/label";
+} from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { useProductList } from "@/hooks/useProduct"
+import { Separator } from "@/components/ui/separator"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
+import { CalendarClock, CreditCard, MapPin, Package, ShoppingCart, Building, Clock, Home, FileText, CheckCircle } from 'lucide-react'
 
 // Colunas da tabela
 export const columns: ColumnDef<OrderResponse, any>[] = [
   {
-    id: "id",
-    accessorKey: "id",
+    id: "order_number",
+    accessorKey: "order_number",
     header: "Pedido",
-    cell: ({ row }) => row.original.id,
+    cell: ({ row }) => row.original.order_number,
   },
   {
     id: "cliente",
@@ -64,8 +68,8 @@ export const columns: ColumnDef<OrderResponse, any>[] = [
     cell: ({ row }) => {
       const { badge, stats } = badgesVariant(
         row.original.order_status.identifier
-      );
-      return <Badge variant={badge}>{stats}</Badge>;
+      )
+      return <Badge variant={badge}>{stats}</Badge>
     },
   },
   {
@@ -76,104 +80,329 @@ export const columns: ColumnDef<OrderResponse, any>[] = [
       const n =
         typeof row.original.total_price === "number"
           ? row.original.total_price
-          : parseFloat(row.original.total_price as any) || 0;
-      return `R$ ${n.toFixed(2)}`;
+          : parseFloat(row.original.total_price as any) || 0
+      return `R$ ${n.toFixed(2)}`
     },
   },
-];
+]
 
 export function useDrawerConfig() {
-  const { paymentMethods = [] } = usePaymentMethods();
-  const { orderStatus: orderStatuses = [] } = useOrderStatus();
-  const { products = [] } = useProductList();
+  const { paymentMethods = [] } = usePaymentMethods()
+  const { orderStatus: orderStatuses = [] } = useOrderStatus()
+  const { products = [] } = useProductList()
   const { mutate } = useOrderList()
 
   const drawerConfig: DrawerConfig<OrderResponse, OrderUpdateRequest> = {
-    title: (o) => `Pedido #${o.id}`,
-    description: (o) => `Cliente: ${o.customer.company_name}`,
+    title: (o) => (
+      <div className="flex items-center gap-2">
+        <ShoppingCart className="h-5 w-5 text-[#FF8F3F]" />
+        <span>Pedido #{o.order_number}</span>
+      </div>
+    ),
+    description: (o) => (
+      <div className="flex items-center gap-2">
+        <Building className="h-4 w-4 text-muted-foreground" />
+        <span className="text-muted-foreground">Cliente: {o.customer.company_name}</span>
+        {o.order_status && (
+          <Badge 
+            variant={badgesVariant(o.order_status.identifier).badge}
+            className="ml-2"
+          >
+            {badgesVariant(o.order_status.identifier).stats}
+          </Badge>
+        )}
+      </div>
+    ),
     updateSchema: orderUpdateRequestSchema,
     mutate: mutate,
 
     fields: [
+      // Informações do Pedido
       {
-        name: "order_status_id",
-        label: "Status do pedido",
+        name: "order_info_separator",
         type: "custom",
         colSpan: 2,
+        customRender: () => (
+          <div className="col-span-2 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <ShoppingCart className="h-5 w-5 text-[#FF8F3F]" />
+              <h3 className="text-base font-medium">Informações do Pedido</h3>
+            </div>
+            <Separator className="mb-4" />
+          </div>
+        ),
+      },
+      
+      // Status do pedido
+      {
+        name: "order_status_id",
+        type: "custom",
+        colSpan: 1,
         defaultValue: (o) => o.order_status.id,
         formatValue: (v) => v,
         customRender: (value: string, onChange: (v: string) => void) => (
-          <Select value={value} onValueChange={onChange} disabled>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione status" />
-            </SelectTrigger>
-            <SelectContent>
-              {orderStatuses.map((st) => (
-                <SelectItem key={st.id} value={st.id}>
-                  {formatStatus(st.description)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-[#FF8F3F]" />
+              <span>Status do pedido</span>
+            </Label>
+            <Select value={value} onValueChange={onChange} disabled>
+              <SelectTrigger className="w-full focus-visible:ring-[#FF8F3F]">
+                <SelectValue placeholder="Selecione status" />
+              </SelectTrigger>
+              <SelectContent>
+                {orderStatuses.map((st) => (
+                  <SelectItem key={st.id} value={st.id}>
+                    {formatStatus(st.description)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         ),
       },
+      
+      // Método de pagamento
       {
         name: "payment_method_id",
-        label: "Método de pagamento",
         type: "custom",
-        colSpan: 2,
+        colSpan: 1,
         defaultValue: (o) => o.payment_method.id,
         formatValue: (v) => v,
         customRender: (value: string, onChange: (v: string) => void) => (
-          <Select value={value} onValueChange={onChange} disabled>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione método" />
-            </SelectTrigger>
-            <SelectContent>
-              {paymentMethods.map((pm) => (
-                <SelectItem key={pm.id} value={pm.id}>
-                  {formatPaymentMethod(pm.name)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-[#FF8F3F]" />
+              <span>Método de pagamento</span>
+            </Label>
+            <Select value={value} onValueChange={onChange} disabled>
+              <SelectTrigger className="w-full focus-visible:ring-[#FF8F3F]">
+                <SelectValue placeholder="Selecione método" />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentMethods.map((pm) => (
+                  <SelectItem key={pm.id} value={pm.id}>
+                    {formatPaymentMethod(pm.name)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         ),
       },
+      
+      // Datas
       {
         name: "delivery_date",
-        label: "Data de entrega",
         type: "custom",
         colSpan: 1,
         defaultValue: (o) => formatDateToBR(o.delivery_date),
         formatValue: (v) => formatDateToBR(v),
         customRender: (value: string, onChange: (v: string) => void) => (
-          <Input
-            disabled
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="dd/mm/yyyy"
-          />
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-[#FF8F3F]" />
+              <span>Data de entrega</span>
+            </Label>
+            <Input
+              disabled
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="dd/mm/yyyy"
+              className="focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
         ),
       },
+      
       {
         name: "due_date",
-        label: "Data de vencimento",
         type: "custom",
         colSpan: 1,
         defaultValue: (o) => formatDateToBR(o.due_date),
         formatValue: (v) => formatDateToBR(v),
         customRender: (value: string, onChange: (v: string) => void) => (
-          <Input
-            disabled
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="dd/mm/yyyy"
-          />
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-[#FF8F3F]" />
+              <span>Data de vencimento</span>
+            </Label>
+            <Input
+              disabled
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="dd/mm/yyyy"
+              className="focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
+      
+      // Endereço de Entrega
+      {
+        name: "address_separator",
+        type: "custom",
+        colSpan: 2,
+        customRender: () => (
+          <div className="col-span-2 mt-4 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="h-5 w-5 text-[#FF8F3F]" />
+              <h3 className="text-base font-medium">Endereço de Entrega</h3>
+            </div>
+            <Separator className="mb-4" />
+          </div>
+        ),
+      },
+      
+      // CEP
+      {
+        name: "delivery_address.cep",
+        type: "custom",
+        colSpan: 2,
+        defaultValue: (o) => formatCEP(o.delivery_address.cep),
+        formatValue: (v) => formatCEP(v),
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-[#FF8F3F]" />
+              <span>CEP</span>
+            </Label>
+            <Input
+              disabled
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="00000-000"
+              className="focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
+
+      // Endereço completo em campos separados
+      {
+        name: "delivery_address.street_name",
+        type: "custom",
+        colSpan: 2,
+        formatValue: (v) => v,
+        parseValue: (v) => v,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Home className="h-4 w-4 text-[#FF8F3F]" />
+              <span>Rua</span>
+            </Label>
+            <Input
+              disabled
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              className="focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
+      
+      // Número e Bairro
+      {
+        name: "delivery_address.number",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value) => (
+          <div className="space-y-2">
+            <Label>Número</Label>
+            <Input 
+              value={value} 
+              disabled 
+              className="focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
         ),
       },
       {
+        name: "delivery_address.district",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value) => (
+          <div className="space-y-2">
+            <Label>Bairro</Label>
+            <Input 
+              value={value} 
+              disabled 
+              className="focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
+      
+      // Cidade e Estado
+      {
+        name: "delivery_address.city",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value) => (
+          <div className="space-y-2">
+            <Label>Cidade</Label>
+            <Input 
+              value={value} 
+              disabled 
+              className="focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
+      {
+        name: "delivery_address.state",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value) => (
+          <div className="space-y-2">
+            <Label>Estado</Label>
+            <Input 
+              value={value} 
+              disabled 
+              className="focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
+
+      // Observação
+      {
+        name: "delivery_address.observation",
+        type: "custom",
+        colSpan: 2,
+        customRender: (value) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-[#FF8F3F]" />
+              <span>Observação</span>
+            </Label>
+            <Textarea 
+              value={value} 
+              disabled 
+              className="min-h-[80px] focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
+      
+      // Produtos
+      {
+        name: "products_separator",
+        type: "custom",
+        colSpan: 2,
+        customRender: () => (
+          <div className="col-span-2 mt-4 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Package className="h-5 w-5 text-[#FF8F3F]" />
+              <h3 className="text-base font-medium">Produtos</h3>
+            </div>
+            <Separator className="mb-4" />
+          </div>
+        ),
+      },
+      
+      {
         name: "products",
-        label: "Produtos",
         type: "custom",
         colSpan: 2,
         defaultValue: (o) =>
@@ -185,112 +414,61 @@ export function useDrawerConfig() {
             : [],
         formatValue: (v) => (Array.isArray(v) ? v : []),
         customRender: (items = [], onChange) => {
-          const list = Array.isArray(items) ? items : [];
+          const list = Array.isArray(items) ? items : []
 
           return (
-            <div className="flex flex-col gap-3">
-              {list.map((it, i) => (
-                <div key={i} className="flex gap-2 items-center">
-                  <Select value={it.product_id} disabled>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    type="number"
-                    value={it.quantity}
-                    className="w-16"
-                    disabled
-                  />
+            <Card className="bg-muted/30 border-muted">
+              <CardContent className="p-4">
+                <div className="flex flex-col gap-3">
+                  {list.length > 0 ? (
+                    <>
+                      <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mb-1">
+                        <div className="col-span-8">Produto</div>
+                        <div className="col-span-4 text-center">Quantidade</div>
+                      </div>
+                      {list.map((it, i) => {
+                        const product = products.find(p => p.id === it.product_id)
+                        return (
+                          <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                            <div className="col-span-8">
+                              <Select value={it.product_id} disabled>
+                                <SelectTrigger className="w-full focus-visible:ring-[#FF8F3F]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {products.map((p) => (
+                                    <SelectItem key={p.id} value={p.id}>
+                                      {p.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="col-span-4">
+                              <Input
+                                type="number"
+                                value={it.quantity}
+                                className="text-center focus-visible:ring-[#FF8F3F]"
+                                disabled
+                              />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </>
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      Nenhum produto encontrado
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          );
+              </CardContent>
+            </Card>
+          )
         },
       },
-
-      {
-        name: "delivery_address.cep",
-        label: "CEP",
-        type: "custom",
-        colSpan: 2,
-        defaultValue: (o) => formatCEP(o.delivery_address.cep),
-        formatValue: (v) => formatCEP(v),
-        customRender: (value: string, onChange: (v: string) => void) => (
-          <Input
-            disabled
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="00000-000"
-          />
-        ),
-      },
-
-      // Endereço completo em campos separados
-      {
-        name: "delivery_address.street_name",
-        label: "",
-        type: "custom",
-        colSpan: 2,
-        formatValue: (v) => v,
-        parseValue: (v) => v,
-        customRender: (value: string, onChange: (v: string) => void) => (
-          <div className="flex flex-col space-y-3">
-            <Label>Rua</Label>
-            <Input
-              disabled
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-            />
-          </div>
-        ),
-      },
-      {
-        name: "delivery_address.number",
-        label: "Número",
-        type: "custom",
-        colSpan: 1,
-        customRender: (value) => <Input value={value} disabled />,
-      },
-      {
-        name: "delivery_address.district",
-        label: "Bairro",
-        type: "custom",
-        colSpan: 1,
-        customRender: (value) => <Input value={value} disabled />,
-      },
-      {
-        name: "delivery_address.city",
-        label: "Cidade",
-        type: "custom",
-        colSpan: 1,
-        customRender: (value) => <Input value={value} disabled />,
-      },
-      {
-        name: "delivery_address.state",
-        label: "Estado",
-        type: "custom",
-        colSpan: 1,
-        customRender: (value) => <Input value={value} disabled />,
-      },
-
-      // Observação
-      {
-        name: "delivery_address.observation",
-        label: "Observação",
-        type: "custom",
-        colSpan: 2,
-        customRender: (value) => <Input value={value} disabled />,
-      },
     ],
-  };
+  }
 
-  return drawerConfig;
+  return drawerConfig
 }

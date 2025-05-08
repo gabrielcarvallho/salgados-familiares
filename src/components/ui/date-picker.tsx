@@ -94,7 +94,7 @@ export default function DatePicker({
   return (
     <div className={cn("flex flex-col gap-2 my-2", className)}>
       {label && (
-        <label className="text-sm font-medium" htmlFor={id}>
+        <label className="text-sm font-bold" htmlFor={id}>
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
@@ -108,8 +108,8 @@ export default function DatePicker({
             variant="outline"
             disabled={disabled}
             className={cn(
-              "w-full justify-between text-left font-normal",
-              "flex items-center", // flex to align icon
+              "w-full text-left font-normal ",
+              "flex justify-start", // flex to align icon
               !value && "text-gray-500",
               errorMessage && "border-red-500",
               buttonClassName

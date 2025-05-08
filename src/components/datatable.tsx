@@ -70,15 +70,17 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 // Tipo para os campos do formulário no drawer
 export type FormField = {
   name: string;
-  label: string;
+  label?: string;
   type: "text" | "number" | "select" | "custom";
   options?: { value: string; label: string }[];
   customRender?: (
     value: any,
-    onChange: (value: any) => void
+    onChange: (value: any) => void,
+    data?: any
   ) => React.ReactNode;
   colSpan?: number;
   // Novas props
+  isEditable?: (value: any) => any;
   parseValue?: (value: any) => any; // Conversão ao carregar
   formatValue?: (value: any) => any; // Conversão ao salvar
   defaultValue?: (value: any) => any; // Conversão ao salvar
@@ -86,8 +88,8 @@ export type FormField = {
 
 // Configuração para o drawer
 export type DrawerConfig<TData, TUpdate extends Record<string, any>> = {
-  title: (item: TData) => string;
-  description?: (item: TData) => string;
+  title: (item: TData) => any;
+  description?: (item: TData) => any;
   fields: FormField[];
   updateSchema?: ZodType<TUpdate>;
   mutate?: any;
@@ -141,14 +143,14 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
   const item = row.original;
   const [formData, setFormData] = useState<any>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false)
+  const [isSaving, setIsSaving] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   function getNested(obj: any, path: string) {
     return path.split(".").reduce((o, k) => o?.[k], obj);
   }
-  
+
   function setNested(obj: any, path: string, value: any) {
     const keys = path.split(".");
     const last = keys.pop()!;
@@ -162,25 +164,25 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
   // Initialize form data when drawer opens or when item changes
   useEffect(() => {
     if (!drawerConfig || !isDrawerOpen) return;
-    
+
     console.log("Initializing form data for item:", item);
     const initial: any = {};
-    
+
     drawerConfig.fields.forEach((f) => {
       // Get value using defaultValue function or direct nested access
       const raw = f.defaultValue
         ? f.defaultValue(item)
         : getNested(item, f.name);
-        
+
       // Apply parseValue if provided
       const parsedValue = f.parseValue ? f.parseValue(raw) : raw;
 
       console.log(`Field ${f.name}:`, { raw, parsed: parsedValue });
-      
+
       // Set the value in our form data object
       setNested(initial, f.name, parsedValue);
     });
-    
+
     console.log("Initial form data:", initial);
     setFormData(initial);
   }, [item, drawerConfig, isDrawerOpen]);
@@ -194,30 +196,34 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
 
   const handleSave = async () => {
     if (!onUpdate || !drawerConfig) return;
-    
+
     // Ensure we have an updateSchema before validating
     if (!drawerConfig.updateSchema) {
       console.warn("No updateSchema defined in drawerConfig");
       return;
     }
-  
+
     setIsLoading(true);
     try {
       // Create the raw object, applying formatValue transformations
       const raw: any = {};
-      
+
       // Process each field
       drawerConfig.fields.forEach((f) => {
         const currentValue = getNested(formData, f.name);
-        const formattedValue = f.formatValue ? f.formatValue(currentValue) : currentValue;
+        const formattedValue = f.formatValue
+          ? f.formatValue(currentValue)
+          : currentValue;
         setNested(raw, f.name, formattedValue);
       });
-      
+
       console.log("Saving with data:", raw);
-      
+
       // Validate with schema
       const validated: TUpdate = drawerConfig.updateSchema.parse(raw);
-      
+
+      console.log(validated)
+
       // Call update handler
       await onUpdate(item, validated);
       mutate?.();
@@ -253,9 +259,9 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
 
   return (
     <>
-      <Drawer 
-        direction={isMobile ? "bottom" : "right"} 
-        open={isDrawerOpen} 
+      <Drawer
+        direction={isMobile ? "bottom" : "right"}
+        open={isDrawerOpen}
         onOpenChange={(open) => {
           setIsDrawerOpen(open);
           // Reset form data when drawer closes
@@ -303,19 +309,21 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
             </div>
           </DrawerHeader>
           <div className="p-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-1 space-x-3">
               {drawerConfig.fields.map((f) => {
                 // Get current value from formData, with fallbacks
-                const curr = getNested(formData, f.name) ?? 
-                             (f.type === "number" ? 0 : 
-                             f.type === "select" ? "" : "");
-                              
+                const curr =
+                  getNested(formData, f.name) ??
+                  (f.type === "number" ? 0 : f.type === "select" ? "" : "");
+
                 console.log(`Rendering field ${f.name} with value:`, curr);
-                
+
                 return (
                   <div
                     key={f.name}
-                    className={`mb-4 ${f.colSpan === 2 ? "col-span-2 space-y-2" : "space-y-2"}`}
+                    className={`mb-4 ${
+                      f.colSpan === 2 ? "col-span-2 space-y-2" : "space-y-2"
+                    }`}
                   >
                     <Label htmlFor={f.name}>{f.label}</Label>
                     {f.type === "text" && (
@@ -350,7 +358,10 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
                         </SelectTrigger>
                         <SelectContent>
                           {f.options.map((opt) => (
-                            <SelectItem key={opt.value} value={String(opt.value)}>
+                            <SelectItem
+                              key={opt.value}
+                              value={String(opt.value)}
+                            >
                               {opt.label}
                             </SelectItem>
                           ))}
@@ -364,13 +375,13 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
               })}
             </div>
           </div>
-          <DrawerFooter>
+          <DrawerFooter className="sticky bottom-0 bg-background border-t z-10">
             <div className="flex gap-2 w-full justify-end">
               <Button
                 onClick={handleSave}
                 disabled={isLoading}
                 className="bg-[#FF8F3F] text-white w-full"
-                variant={"outline"}
+                variant="outline"
               >
                 {isLoading ? savingButtonText : saveButtonText}
               </Button>
@@ -671,11 +682,14 @@ export function DataTable<
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    {isLoading ? 
-                    <>
-                    <Loader2 className="animate-spin h-4 w-4 mr-2"/>
-                    Carregando...
-                    </> : "Nenhum item encontrado."}
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                        Carregando...
+                      </>
+                    ) : (
+                      "Nenhum item encontrado."
+                    )}
                   </TableCell>
                 </TableRow>
               )}

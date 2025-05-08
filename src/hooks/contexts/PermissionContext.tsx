@@ -7,7 +7,7 @@ import React, {
   useState,
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useCurrentUser } from "@/hooks/useUser"; // Assumindo que este hook existe conforme mencionado
+import { useCurrentUser } from "@/hooks/useUser";
 import {
   PermissionsContextType,
   PermissionsProviderProps,
@@ -15,8 +15,6 @@ import {
 } from "@/types/Auth";
 import { Group } from "@/types/User";
 import { LoadingAnimation } from "@/components/ui/loading";
-
-// Define os tipos de permissões por grupo
 
 // Define quais rotas cada grupo pode acessar
 const routePermissions: Record<UserGroupName, string[]> = {
@@ -26,10 +24,17 @@ const routePermissions: Record<UserGroupName, string[]> = {
     "/dashboard/produtos",
     "/dashboard/logistica",
     "/dashboard/clientes",
-    "/dashboard/entrega", // Rota adicional para entregadores
+    "/dashboard/entrega",
   ],
   sales_person: ["/dashboard/pedidos", "/dashboard/clientes"],
   delivery_person: ["/dashboard/entrega"],
+};
+
+// Define a página inicial para cada grupo após login
+export const homeRoutes: Record<UserGroupName, string> = {
+  admin: "/dashboard",
+  sales_person: "/dashboard/pedidos",
+  delivery_person: "/dashboard/entrega",
 };
 
 // Verifica se um usuário tem permissão para acessar uma rota específica
@@ -60,6 +65,17 @@ const hasPermission = (
   return false;
 };
 
+
+// Determina a página inicial do usuário com base em seus grupos
+export const getUserHomePage = (userGroups: string[], isAdmin: boolean): string => {
+  if (isAdmin) return homeRoutes.admin;
+  
+  if (userGroups.includes("sales_person")) return homeRoutes.sales_person;
+  if (userGroups.includes("delivery_person")) return homeRoutes.delivery_person;
+  
+  return "/dashboard";
+};
+
 const PermissionsContext = createContext<PermissionsContextType | undefined>(
   undefined
 );
@@ -77,8 +93,6 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
   const pathname = usePathname();
   const { user, isLoading } = useCurrentUser();
   const [isRedirecting, setIsRedirecting] = useState(false);
-
-  // Definir tipos para o objeto de usuário e grupos
 
   // Extrair grupos do usuário
   const userGroups = Array.isArray(user?.groups)
@@ -105,15 +119,16 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
     }
 
     // Verifica permissões para a rota atual, se o usuário estiver logado
-    if (!isLoading && user && pathname.startsWith("/dashboard")) {
-      const hasAccess = canAccess(pathname);
-
-      if (!hasAccess) {
+    if (!isLoading && user) {
+      // Se tentar acessar o dashboard principal ou estiver em uma rota não autorizada
+      if (pathname === "/dashboard" || (pathname.startsWith("/dashboard") && !canAccess(pathname))) {
+        const homePage = getUserHomePage(userGroups, isAdmin);
         setIsRedirecting(true);
-        router.push("/dashboard"); // Redireciona para o dashboard principal
+        router.push(homePage);
+        return;
       }
     }
-  }, [user, isLoading, pathname, router, canAccess, isRedirecting]);
+  }, [user, isLoading, pathname, router, canAccess, isRedirecting, userGroups, isAdmin]);
 
   // Enquanto estiver carregando, mostra um spinner ou tela de carregamento
   if (isLoading) {
@@ -137,3 +152,4 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
     </PermissionsContext.Provider>
   );
 }
+

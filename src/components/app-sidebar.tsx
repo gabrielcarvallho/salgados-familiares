@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/sidebar";
 import { usePermissions } from "@/hooks/contexts/PermissionContext";
 import { Profile } from "./profile";
+import { Croissant, Forklift, ShoppingBasket, TrendingUp } from "lucide-react";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
@@ -33,25 +34,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     {
       title: "Painel de controle",
       url: "/dashboard",
-      icon: IconHome,
-      requiredGroups: ["admin", "sales_person", "delivery_person"],
+      icon: TrendingUp,
+      requiredGroups: ["admin"],
     },
     {
       title: "Pedidos",
       url: "/dashboard/pedidos",
-      icon: IconShoppingCart,
+      icon: ShoppingBasket,
       requiredGroups: ["admin", "sales_person"],
     },
     {
       title: "Produtos",
       url: "/dashboard/produtos",
-      icon: IconPackage,
+      icon: Croissant,
       requiredGroups: ["admin"],
     },
     {
       title: "Logística",
       url: "/dashboard/logistica",
-      icon: IconTruck,
+      icon: Forklift,
       requiredGroups: ["admin"],
     },
     {
@@ -82,9 +83,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="px-4 py-2">
-              <div className="text-xl font-medium text-gray-500">Logo</div>
-            </div>
+              <div className="text-xl font-bold text-gray-500">Salgados Familiares</div>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

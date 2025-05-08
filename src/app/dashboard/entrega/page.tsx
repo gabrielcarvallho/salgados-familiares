@@ -40,7 +40,7 @@ export default function OrdersPage() {
   ) => {
     const payload = {
       id: original.id,
-      ...updated,
+      is_delivered: true,
     };
     try {
       await update(payload);

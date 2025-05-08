@@ -2,6 +2,17 @@
 @import "tw-animate-css";
 
 
+::selection {
+  background-color: #FF8F3F; /* A cor laranja que você deseja */
+  color: white; /* Cor do texto quando selecionado - opcional, pode ajustar conforme necessário */
+}
+
+/* Para compatibilidade com navegadores Mozilla (Firefox) */
+::-moz-selection {
+  background-color: #FF8F3F;
+  color: white;
+}
+
 
 @custom-variant dark (&:is(.dark *));
 

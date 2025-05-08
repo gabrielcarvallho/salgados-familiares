@@ -15,6 +15,7 @@ import {
   orderUpdateRequestSchema,
 } from "@/types/Order";
 import { DrawerFormProvider } from "@/hooks/contexts/DrawerFormContext";
+import { Button } from "@/components/ui/button";
 
 export default function OrdersPage() {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -57,9 +58,19 @@ export default function OrdersPage() {
     }
   };
 
+  const handleFinishWork = () => {};
+
   return (
     <div className="flex flex-col gap-4">
-      <SiteHeader title="Pedidos" button={<DialogPedidos />} />
+      <SiteHeader
+        title="Pedidos"
+        button={
+          <div className="space-x-2 flex -items-center">
+            <Button variant={"outline"}>Finalizar expediente</Button>
+            <DialogPedidos />
+          </div>
+        }
+      />
 
       {isLoading ? (
         <ProductsSkeletonLoading />

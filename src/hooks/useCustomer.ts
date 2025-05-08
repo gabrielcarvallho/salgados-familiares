@@ -1,11 +1,13 @@
 import { useState } from "react";
 import axiosInstance from "@/lib/axios";
 import { useApiBase } from "./api/useApiBase";
-import type {
-  AddressUpdate,
-  CustomerRequest,
-  CustomerResponse,
-  CustomerUpdateRequest,
+import {
+  viaCEPSchema,
+  type AddressUpdate,
+  type CustomerRequest,
+  type CustomerResponse,
+  type CustomerUpdateRequest,
+  type ViaCEP,
 } from "@/types/Customer";
 import { handleApiError } from "./api/apiErrorHandler";
 
@@ -21,6 +23,17 @@ export function useCustomerById(id: string) {
   };
 }
 
+export function useViaCEP(cep: string) {
+  const { data, error, isLoading } = useApiBase<ViaCEP>(
+    `https://brasilapi.com.br/api/cep/v1/${cep}`
+  );
+  return {
+    address: data ?? "",
+    isLoading,
+    isError: error ? String(error) : null,
+  };
+}
+
 
 export function useCustomerList(page = 1, page_size = 10) {
   const { data, error, isLoading, mutate } = useApiBase<{
@@ -28,7 +41,6 @@ export function useCustomerList(page = 1, page_size = 10) {
     customers: CustomerResponse[]; // Alterado de 'results' para 'products'
   }>(`/customers/?list&page=${page}&page_size=${page_size}`);
 
-  
   return {
     mutate,
     data,
@@ -48,9 +60,7 @@ export function useCustomer() {
     setError(null);
 
     try {
-      const response = await axiosInstance.post(`/customers/`, 
-        Customer,
-      );
+      const response = await axiosInstance.post(`/customers/`, Customer);
       return response;
     } catch (error) {
       const formattedError = handleApiError(error);
@@ -66,9 +76,7 @@ export function useCustomer() {
     setError(null);
 
     try {
-      const response = await axiosInstance.patch(`/customers/`,
-        Customer,
-      );
+      const response = await axiosInstance.patch(`/customers/`, Customer);
       return response;
     } catch (error) {
       const formattedError = handleApiError(error);
