@@ -80,7 +80,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar collapsible="offcanvas" className="" {...props}>
-      <SidebarHeader>
+      <SidebarHeader className="mb-2">
         <SidebarMenu>
           <SidebarMenuItem>
               <div className="text-xl font-bold text-gray-500">Salgados Familiares</div>
@@ -88,7 +88,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <div className="px-4 py-2 text-sm font-medium text-gray-500">Geral</div>
         <SidebarMenu className="h-full">
           {filteredNavItems.map((item) => {
             const isActive =

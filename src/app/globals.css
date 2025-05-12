@@ -13,6 +13,19 @@
   color: white;
 }
 
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+}
 
 @custom-variant dark (&:is(.dark *));
 

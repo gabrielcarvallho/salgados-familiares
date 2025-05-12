@@ -58,12 +58,9 @@ export function useDrawerConfig() {
       </div>
     ),
     description: (cliente) => (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <span>Detalhes do cliente</span>
-        <Badge variant="outline" className="ml-2 bg-[#FF8F3F]/10 text-[#FF8F3F] border-[#FF8F3F]/20">
+        <Badge variant="outline" className=" bg-[#FF8F3F]/10 text-[#FF8F3F] border-[#FF8F3F]/20 mt-2">
           {formatCNPJ(cliente.cnpj)}
         </Badge>
-      </div>
     ),
     updateSchema: CustomerUpdateRequestSchema,
     mutate: mutate,
@@ -190,7 +187,7 @@ export function useDrawerConfig() {
               <User className="h-5 w-5 text-[#FF8F3F]" />
               <h3 className="text-base font-medium">Informações de Contato</h3>
             </div>
-            <Separator className="mb-4" />
+            <Separator  />
           </div>
         ),
       },
@@ -275,7 +272,7 @@ export function useDrawerConfig() {
               <MapPin className="h-5 w-5 text-[#FF8F3F]" />
               <h3 className="text-base font-medium">Endereço de Cobrança</h3>
             </div>
-            <Separator className="mb-4" />
+            <Separator />
           </div>
         ),
       },

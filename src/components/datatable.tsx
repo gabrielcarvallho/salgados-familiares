@@ -62,8 +62,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ZodType } from "zod";
-import { AlertDelete } from "./alert-dialog";
-import { Loader2, Trash2, XIcon } from "lucide-react";
+import { AlertDelete } from "./alerts";
+import { Loader2, Search, Trash2, XIcon } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -222,7 +222,7 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
       // Validate with schema
       const validated: TUpdate = drawerConfig.updateSchema.parse(raw);
 
-      console.log(validated)
+      console.log(validated);
 
       // Call update handler
       await onUpdate(item, validated);
@@ -285,7 +285,7 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
               <div>
                 <DrawerTitle>{drawerConfig.title(item)}</DrawerTitle>
                 {drawerConfig.description && (
-                  <DrawerDescription>
+                  <DrawerDescription asChild>
                     {drawerConfig.description(item)}
                   </DrawerDescription>
                 )}
@@ -575,7 +575,10 @@ export function DataTable<
             col.id === "Nome" ||
             col.id === "Razão Social" ||
             col.id === "Cliente" ||
-            col.id === "id"
+            col.id === "id" ||
+            col.id === "brand_name" ||
+            col.id === "email" ||
+            col.id === "order_number"
         );
 
   return (
@@ -587,16 +590,22 @@ export function DataTable<
           </div>
           <div className="flex items-center gap-2">
             {searchColumn && (
-              <Input
-                placeholder={`Procurar por ${searchColumn.id}...`}
-                value={searchTerm}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setSearchTerm(v);
-                  table.setGlobalFilter(v);
-                }}
-                className="w-[100px] md:w-[200px] lg:w-[300px]"
-              />
+              <div className="relative flex items-center">
+                {/* Ícone absolutamente posicionado */}
+                <Search className="absolute left-4 text-gray-400 pointer-events-none w-4 h-4" />
+
+                {/* Input com padding-left para não ficar em cima do ícone */}
+                <Input
+                  placeholder="Procurar..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setSearchTerm(v);
+                    table.setGlobalFilter(v);
+                  }}
+                  className="w-[100px] md:w-[200px] lg:w-[300px] pl-10"
+                />
+              </div>
             )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

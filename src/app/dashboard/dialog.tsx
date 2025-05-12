@@ -85,7 +85,8 @@ export function DialogUsuario() {
   const groupId = watch("group_id");
 
   // Get selected group name for preview
-  const selectedGroup = groups.find((g) => g.id === groupId);
+// antes:
+const selectedGroup = groups.find((g) => Number(g.id) === groupId);
 
   const onSubmit = async (data: InviteRequest) => {
     try {
@@ -106,7 +107,7 @@ export function DialogUsuario() {
       <DialogTrigger asChild>
         <Button
           variant="outline"
-          className="bg-[#FF8F3F] text-primary-foreground hover:bg-[#E67D2E] transition-colors"
+          className="bg-[#FF8F3F] text-white"
         >
           <UserPlus className="mr-2 h-4 w-4" />
           Convidar usuário

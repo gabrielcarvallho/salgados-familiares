@@ -14,6 +14,7 @@ import {
   OrderUpdateRequest,
   orderUpdateRequestSchema,
 } from "@/types/Order";
+import { OrdersSkeletonLoading } from "@/components/ui/base-skeleton";
 
 export default function OrdersPage() {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -54,6 +55,10 @@ export default function OrdersPage() {
       throw error;
     }
   };
+
+    if (isLoading) {
+      return <OrdersSkeletonLoading />
+    }
 
   return (
     <div className="flex flex-col gap-4">

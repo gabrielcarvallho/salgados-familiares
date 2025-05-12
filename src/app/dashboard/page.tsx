@@ -21,51 +21,56 @@ import {
   resendInviteSchema,
 } from "../../types/User";
 import { toast } from "sonner";
-import { ProductsSkeletonLoading } from "@/components/skeleton";
 import { DataTable } from "@/components/datatable";
-import { columns as columnsPending, drawerConfig as drawerConfigPending } from "./data-config";
+import {
+  columns as columnsPending,
+  drawerConfig as drawerConfigPending,
+} from "./data-config";
 import { columns as columnsAll, useDrawerConfigAll } from "./data-config2";
 import { TabsContent } from "@radix-ui/react-tabs";
+import { DashboardSkeleton } from "./skeleton";
+
 
 export default function Page() {
-  const [activeTab, setActiveTab] = useState("1");
-
+  const [activeTab, setActiveTab] = useState("1")
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
-  });
+  })
 
   const drawerConfigAll = useDrawerConfigAll()
-
-  const { users, isLoading: usersLoading, isError: usersError } = useUserList();
-  const { resendInvite } = useUser();
+  const { users, isLoading: usersLoading, isError: usersError } = useUserList()
+  const { resendInvite } = useUser()
   const { invitations, isLoading, isError, totalItems } = usePendingInvitations(
     pagination.pageIndex + 1,
-    pagination.pageSize
-  );
+    pagination.pageSize,
+  )
 
-  // No handlePaginationChange:
   const handlePaginationChange = useCallback((newPagination: any) => {
     setPagination({
       pageIndex: newPagination.pageIndex,
       pageSize: newPagination.pageSize,
-    });
-  }, []);
+    })
+  }, [])
 
-  const handleResendInvite = async (original: PendingInvitations) => {
-    const { token } = resendInviteSchema.parse({ token: original.token });
+  const handleResendInvite = async (original: any) => {
     try {
-      await resendInvite(token);
-      toast.success("Convite enviado novamente com sucesso!");
+      await resendInvite(original.token)
+      toast.success("Convite enviado novamente com sucesso!")
     } catch (error) {
-      console.error("Erro ao re-enviar convite:", error);
-      toast.error("Falha ao re-enviar convite");
-      throw error;
+      console.error("Erro ao re-enviar convite:", error)
+      toast.error("Falha ao re-enviar convite")
+      throw error
     }
-  };
+  }
 
-  const days = parseInt(activeTab, 10);
-  const { reports } = useReports(days);
+  const days = Number.parseInt(activeTab, 10)
+  const { reports, isLoading: reportsLoading } = useReports(days)
+
+  // Show skeleton while any data is loading
+  if (isLoading || usersLoading || reportsLoading) {
+    return <DashboardSkeleton />
+  }
 
   return (
     <div>
@@ -104,7 +109,7 @@ export default function Page() {
           </Card>
           <Card className="@container/card">
             <CardHeader>
-              <CardDescription>Clientes cadastrados</CardDescription>
+              <CardDescription>Usuário ativos</CardDescription>
               <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
                 +{reports?.active_users}
               </CardTitle>
@@ -126,17 +131,14 @@ export default function Page() {
           </Card>
         </div>
         <div>
-          <Tabs
-            defaultValue="0"
-            className="mb-4"
-          >
+          <Tabs defaultValue="0" className="mb-4">
             <TabsList className="ml-4 my-4">
               <TabsTrigger value="0">Todos os usuários</TabsTrigger>
               <TabsTrigger value="1">Usuários pendentes</TabsTrigger>
             </TabsList>
             <TabsContent value="0">
               {isLoading ? (
-                <ProductsSkeletonLoading />
+                <></>
               ) : isError ? (
                 <div className="p-4 text-center text-red-500">
                   Erro ao carregar usuários: {isError}
@@ -146,7 +148,7 @@ export default function Page() {
                   drawerConfig={drawerConfigAll}
                   title="Todos os usuários"
                   columns={columnsAll}
-                  data={users ?? []}       // ← passe o array interno
+                  data={users ?? []} // ← passe o array interno
                   totalCount={totalItems || 0}
                   pageSize={pagination.pageSize}
                   currentPage={pagination.pageIndex}
@@ -156,7 +158,7 @@ export default function Page() {
             </TabsContent>
             <TabsContent value="1">
               {isLoading ? (
-                <ProductsSkeletonLoading />
+                <></>
               ) : isError ? (
                 <div className="p-4 text-center text-red-500">
                   Erro ao carregar usuários: {isError}
@@ -184,7 +186,3 @@ export default function Page() {
     </div>
   );
 }
-function useDragConfigAll() {
-  throw new Error("Function not implemented.");
-}
-

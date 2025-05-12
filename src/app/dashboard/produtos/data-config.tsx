@@ -1,15 +1,27 @@
-"use client"
+"use client";
 
-import type { DrawerConfig } from "@/components/datatable"
-import { useProductList } from "@/hooks/useProduct"
-import { type ProductResponse, type ProductUpdateRequest, productUpdateRequestSchema } from "@/types/Product"
-import type { ColumnDef } from "@tanstack/react-table"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Package, Tag, Scale, Clock, Factory, Layers, Calculator } from "lucide-react"
+import type { DrawerConfig } from "@/components/datatable";
+import { useProductList } from "@/hooks/useProduct";
+import {
+  type ProductResponse,
+  type ProductUpdateRequest,
+  productUpdateRequestSchema,
+} from "@/types/Product";
+import type { ColumnDef } from "@tanstack/react-table";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Package,
+  Tag,
+  Scale,
+  Clock,
+  Factory,
+  Layers,
+  Calculator,
+} from "lucide-react";
 
 export const columns: ColumnDef<ProductResponse, string>[] = [
   {
@@ -24,8 +36,10 @@ export const columns: ColumnDef<ProductResponse, string>[] = [
     header: "Preço",
     cell: ({ row }) => {
       const price =
-        typeof row.original.price === "number" ? row.original.price : Number.parseFloat(String(row.original.price)) || 0
-      return `R$ ${price.toFixed(2)}`
+        typeof row.original.price === "number"
+          ? row.original.price
+          : Number.parseFloat(String(row.original.price)) || 0;
+      return `R$ ${price.toFixed(2)}`;
     },
   },
   {
@@ -46,10 +60,10 @@ export const columns: ColumnDef<ProductResponse, string>[] = [
     header: "Fornadas/dia",
     cell: ({ row }) => row.original.daily_batch_capacity,
   },
-]
+];
 
 export function useDrawerConfig() {
-  const { mutate } = useProductList()
+  const { mutate } = useProductList();
 
   // Configuração do drawer para edição
   const drawerConfig: DrawerConfig<ProductResponse, ProductUpdateRequest> = {
@@ -60,15 +74,20 @@ export function useDrawerConfig() {
       </div>
     ),
     description: (product) => (
-      <div className="flex items-center gap-2">
-        <Tag className="h-4 w-4 text-muted-foreground" />
-        <span className="text-muted-foreground">Detalhes do produto</span>
-        <Badge variant="outline" className="ml-2 bg-[#FF8F3F]/10 text-[#FF8F3F] border-[#FF8F3F]/20">
-          R${" "}
-          {typeof product.price === "number"
-            ? product.price.toFixed(2)
-            : Number.parseFloat(String(product.price)).toFixed(2)}
-        </Badge>
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2 items-center mt-2">
+          <Tag className="h-4 w-4 text-muted-foreground" />
+          <span className="text-muted-foreground">Detalhes do produto</span>
+          </div>
+          <Badge
+            variant="outline"
+            className="bg-[#FF8F3F]/10 text-[#FF8F3F] border-[#FF8F3F]/20"
+          >
+            R${" "}
+            {typeof product.price === "number"
+              ? product.price.toFixed(2)
+              : Number.parseFloat(String(product.price)).toFixed(2)}
+          </Badge>
       </div>
     ),
     updateSchema: productUpdateRequestSchema,
@@ -80,12 +99,12 @@ export function useDrawerConfig() {
         type: "custom",
         colSpan: 2,
         customRender: () => (
-          <div className="col-span-2 mb-4">
+          <div className="col-span-2 ">
             <div className="flex items-center gap-2 mb-2">
               <Package className="h-5 w-5 text-[#FF8F3F]" />
               <h3 className="text-base font-medium">Informações Básicas</h3>
             </div>
-            <Separator className="mb-4" />
+            <Separator className="" />
           </div>
         ),
       },
@@ -169,7 +188,7 @@ export function useDrawerConfig() {
               <Factory className="h-5 w-5 text-[#FF8F3F]" />
               <h3 className="text-base font-medium">Informações de Produção</h3>
             </div>
-            <Separator className="mb-4" />
+            <Separator className="" />
           </div>
         ),
       },
@@ -244,8 +263,7 @@ export function useDrawerConfig() {
       },
 
       // Resumo do Produto
-      
     ],
-  }
-  return drawerConfig
+  };
+  return drawerConfig;
 }

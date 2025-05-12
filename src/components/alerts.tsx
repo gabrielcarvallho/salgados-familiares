@@ -19,7 +19,7 @@ interface AlertDeleteProps {
   /** Função chamada quando clica em "Deletar" */
   onConfirm: () => void;
   /** Botão que dispara o diálogo */
-  trigger: React.ReactNode;
+  trigger?: React.ReactNode;
 }
 
 export function AlertDelete({ open, onOpenChange, onConfirm }: AlertDeleteProps) {
@@ -36,6 +36,28 @@ export function AlertDelete({ open, onOpenChange, onConfirm }: AlertDeleteProps)
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} className="bg-red-600">
             Deletar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+
+export function AlertFinishWork({ open, onOpenChange, onConfirm }: AlertDeleteProps) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Você deseja finalizar seu expediente?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Essa ação não pode ser desfeita, ao finalizar expediente, seus pedidos irão para Logística e você não poderá mais editar seus pedidos.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction  onClick={onConfirm} className="bg-[#FF8F3F] text-white">
+            Finalizar expediente
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

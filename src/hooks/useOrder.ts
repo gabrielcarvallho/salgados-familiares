@@ -120,6 +120,21 @@ export function useOrder() {
     }
   };
 
+  const finishWork = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await axiosInstance.patch(`/orders/finish-work/`);
+    } catch (error) {
+      const formattedError = handleApiError(error);
+      setError(formattedError.message);
+      throw formattedError;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const del = async (id: string) => {
     setIsLoading(true);
     setError(null);
@@ -143,5 +158,6 @@ export function useOrder() {
     create,
     createWithAddress,
     del,
+    finishWork
   };
 }

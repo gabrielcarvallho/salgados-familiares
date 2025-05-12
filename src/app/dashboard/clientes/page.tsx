@@ -13,6 +13,7 @@ import {
   CustomerUpdateRequestSchema,
 } from "@/types/Customer";
 import { useCustomer, useCustomerList } from "@/hooks/useCustomer";
+import { OrdersSkeletonLoading } from "@/components/ui/base-skeleton";
 
 type PaginationType = {
   pageIndex: number;
@@ -64,6 +65,10 @@ export default function ClientsPage() {
       throw error;
     }
   };
+
+    if (isLoading) {
+      return <OrdersSkeletonLoading />
+    }
 
   return (
     <div>

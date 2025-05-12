@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { columns, useDrawerConfig } from "./data-config";
 import { ProductResponse, productUpdateRequestSchema } from "@/types/Product";
 import { PaginationType } from "@/types/User";
-import { AlertDelete } from "@/components/alert-dialog";
+import { OrdersSkeletonLoading } from "@/components/ui/base-skeleton";
 
 export default function ProductsPage() {
   const [pagination, setPagination] = useState<PaginationType>({
@@ -18,7 +18,7 @@ export default function ProductsPage() {
     pageSize: 10,
   });
 
-  const drawerConfig = useDrawerConfig()
+  const drawerConfig = useDrawerConfig();
 
   const { update, error: updateError, del, error: delError } = useProduct();
   const { data, isLoading, isError, totalItems, mutate } = useProductList(
@@ -27,14 +27,20 @@ export default function ProductsPage() {
   );
 
   // No handlePaginationChange:
-  const handlePaginationChange = useCallback((newPagination: PaginationType) => {
-    setPagination({
-      pageIndex: newPagination.pageIndex,
-      pageSize: newPagination.pageSize,
-    });
-  }, []);
+  const handlePaginationChange = useCallback(
+    (newPagination: PaginationType) => {
+      setPagination({
+        pageIndex: newPagination.pageIndex,
+        pageSize: newPagination.pageSize,
+      });
+    },
+    []
+  );
 
-  const handleUpdateProduct = async (original: ProductResponse, updated: Partial<ProductResponse>) => {
+  const handleUpdateProduct = async (
+    original: ProductResponse,
+    updated: Partial<ProductResponse>
+  ) => {
     const payload = {
       id: original.id,
       ...updated,
@@ -43,7 +49,7 @@ export default function ProductsPage() {
     try {
       await update(payload);
       toast.success("Produto atualizado com sucesso!");
-      mutate()
+      mutate();
     } catch (error) {
       console.error("Erro ao atualizar produto:", error);
       toast.error("Falha ao atualizar produto", {
@@ -58,7 +64,7 @@ export default function ProductsPage() {
     try {
       await del(item);
       toast.success("Produto exlcuido com sucesso!");
-      mutate()
+      mutate();
     } catch (error) {
       console.error("Erro ao excluir produto:", error);
       toast.error("Falha ao excluir produto", {
@@ -66,7 +72,12 @@ export default function ProductsPage() {
         duration: 3000,
       });
       throw error;
-    }  }
+    }
+  };
+
+    if (isLoading) {
+      return <OrdersSkeletonLoading />
+    }
 
   return (
     <div>
@@ -82,7 +93,7 @@ export default function ProductsPage() {
         ) : (
           <DataTable
             drawerConfig={drawerConfig}
-            updateSchema={productUpdateRequestSchema}    // ← aqui
+            updateSchema={productUpdateRequestSchema} // ← aqui
             title="Produtos"
             columns={columns}
             data={data?.products || []}

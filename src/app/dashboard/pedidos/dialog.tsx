@@ -152,60 +152,79 @@ export function DialogPedidos() {
     setValue("products", filtered);
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormSubmitted(true);
+  // Adicionar isto no início da função DialogPedidos, logo após obter os orderStatus
 
-    // clean out junk entries
-    cleanProducts();
+// Modificação 1: Ajustar useEffect para definir o order_status_id quando orderStatus estiver disponível
+useEffect(() => {
+  if (orderStatus && orderStatus.length > 0) {
+    setValue("order_status_id", orderStatus[0].id);
+  }
+}, [orderStatus, setValue]);
 
-    console.log("Validando formulário, valores atuais:", getValues());
-    const formValid = await trigger();
-    console.log("Resultado da validação, erros:", errors);
+// Modificação 2: Ajustar a função handleFormSubmit
+const handleFormSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setFormSubmitted(true);
 
-    if (formValid) {
-      handleSubmit(onSubmit)();
-    } else {
-      toast.error("Por favor, corrija os erros no formulário", {
-        duration: 5000,
-      });
+  // clean out junk entries
+  cleanProducts();
+  
+  // Garantir que order_status_id está definido
+  if (orderStatus && orderStatus.length > 0 && !getValues("order_status_id")) {
+    setValue("order_status_id", orderStatus[0].id);
+  }
+
+  console.log("Validando formulário, valores atuais:", getValues());
+  const formValid = await trigger();
+  console.log("Resultado da validação, erros:", errors);
+
+  if (formValid) {
+    handleSubmit(onSubmit)();
+  } else {
+    toast.error("Por favor, corrija os erros no formulário", {
+      duration: 5000,
+    });
+  }
+};
+
+// Modificação 3: Simplificar o onSubmit, já que order_status_id estará definido
+const onSubmit = async (formData: OrderRequest) => {
+  try {
+    const customer = customers.find((c) => c.id === formData.customer_id);
+    if (!customer) {
+      toast.error("Cliente não encontrado");
+      return;
     }
-  };
-
-  const onSubmit = async (formData: OrderRequest) => {
-    try {
-      const customer = customers.find((c) => c.id === formData.customer_id);
-      if (!customer) {
-        toast.error("Cliente não encontrado");
-        return;
-      }
-      const delivery_address_id =
-        formData.delivery_address_id || customer.billing_address?.id || null;
-      if (!delivery_address_id) {
-        toast.error("Endereço de entrega não encontrado");
-        return;
-      }
-      // ensure no empty products
-      const payload = {
-        ...formData,
-        products: formData.products.filter((p) => p.product_id),
-        delivery_address_id,
-      };
-      console.log("Payload enviado:", payload);
-      await create(payload);
-      mutate();
-      toast.success("Pedido cadastrado com sucesso!");
-      setOpen(false);
-      reset(EMPTY_ORDER);
-      setSelectedCustomer(null);
-      setCustomerAddresses([]);
-    } catch (error: any) {
-      toast.error("Falha ao cadastrar pedido!", {
-        description: orderError || String(error),
-        duration: 3000,
-      });
+    const delivery_address_id =
+      formData.delivery_address_id || customer.billing_address?.id || null;
+    if (!delivery_address_id) {
+      toast.error("Endereço de entrega não encontrado");
+      return;
     }
-  };
+    
+    // ensure no empty products
+    const payload = {
+      ...formData,
+      products: formData.products.filter((p) => p.product_id),
+      delivery_address_id
+      // order_status_id já está definido corretamente no formData
+    };
+    
+    console.log("Payload enviado:", payload);
+    await create(payload);
+    mutate();
+    toast.success("Pedido cadastrado com sucesso!");
+    setOpen(false);
+    reset(EMPTY_ORDER);
+    setSelectedCustomer(null);
+    setCustomerAddresses([]);
+  } catch (error: any) {
+    toast.error("Falha ao cadastrar pedido!", {
+      description: orderError || String(error),
+      duration: 3000,
+    });
+  }
+};
 
   const calculateTotal = (items: any[]) =>
     items.reduce((total, item) => {
@@ -457,7 +476,7 @@ export function DialogPedidos() {
                                   </SelectLabel>
                                   {paymentMethods.map((m) => (
                                     <SelectItem key={m.id} value={String(m.id)}>
-                                      {formatPaymentMethod(m.name)}
+                                      {m.name}
                                     </SelectItem>
                                   ))}
                                 </SelectGroup>

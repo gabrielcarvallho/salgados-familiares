@@ -5,12 +5,13 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { DataTable } from "@/components/datatable";
 import { SiteHeader } from "@/components/site-header";
-import { ProductsSkeletonLoading } from "@/components/skeleton";
+import { SalgadosSkeletonLoading } from "./skeleton";
+import { ProductsSkeletonLoading } from "@/components/ui/products-skeleton";
 import { columns, useDrawerConfig } from "./data-config";
 import { useOrder, useOrderList, useOrderStatus } from "@/hooks/useOrder";
 import {
-  OrderResponse,
-  OrderUpdateRequest,
+  type OrderResponse,
+  type OrderUpdateRequest,
   orderUpdateRequestSchema,
 } from "@/types/Order";
 import { DrawerFormProvider } from "@/hooks/contexts/DrawerFormContext";
@@ -31,14 +32,18 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Hooks called unconditionally at top
-  const { productionSchedule } = useProductionSchedule();
+  const { productionSchedule, isLoading: isLoadingSchedule } =
+    useProductionSchedule();
   const { orderStatus: orderStatuses = [] } = useOrderStatus();
 
   const { update, error: updateError } = useOrder();
-  const { orders, isLoading, isError, totalItems, mutate } = useOrderList(
-    pagination.pageIndex + 1,
-    pagination.pageSize
-  );
+  const {
+    orders,
+    isLoading: isLoadingOrders,
+    isError,
+    totalItems,
+    mutate,
+  } = useOrderList(pagination.pageIndex + 1, pagination.pageSize);
 
   // formMethods and drawerConfig also unconditionally
   const formMethods = useForm<OrderUpdateRequest>();
@@ -76,7 +81,7 @@ export default function OrdersPage() {
   const filteredOrders =
     statusFilter === "all"
       ? orders
-      : orders.filter((o) => String(o.order_status.id) === statusFilter);
+      : orders?.filter((o) => String(o.order_status.id) === statusFilter);
 
   return (
     <div className="flex flex-col gap-4">
@@ -106,11 +111,13 @@ export default function OrdersPage() {
         }
       />
 
-      <SalgadosList salgados={productionSchedule}/>
+      {isLoadingSchedule ? (
+        <SalgadosSkeletonLoading />
+      ) : (
+        <SalgadosList salgados={productionSchedule || []} />
+      )}
 
-      {/* Filtro de Status */}
-
-      {isLoading ? (
+      {isLoadingOrders ? (
         <ProductsSkeletonLoading />
       ) : isError ? (
         <div className="p-4 text-center text-red-500">
@@ -129,6 +136,7 @@ export default function OrdersPage() {
             onPaginationChange={handlePaginationChange}
             mutate={mutate}
             drawerConfig={drawerConfig}
+            updateSchema={orderUpdateRequestSchema}
           />
         </DrawerFormProvider>
       )}
