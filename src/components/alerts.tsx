@@ -34,7 +34,7 @@ export function AlertDelete({ open, onOpenChange, onConfirm }: AlertDeleteProps)
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-red-600">
+          <AlertDialogAction onClick={onConfirm} className="bg-red-600 text-white">
             Deletar
           </AlertDialogAction>
         </AlertDialogFooter>

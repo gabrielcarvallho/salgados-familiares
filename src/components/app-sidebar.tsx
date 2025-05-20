@@ -21,7 +21,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { usePermissions } from "@/hooks/contexts/PermissionContext";
+import { usePermissions } from "@/contexts/PermissionContext";
 import { Profile } from "./profile";
 import { Croissant, Forklift, ShoppingBasket, TrendingUp } from "lucide-react";
 
@@ -83,7 +83,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader className="mb-2">
         <SidebarMenu>
           <SidebarMenuItem>
-              <div className="text-xl font-bold text-gray-500">Salgados Familiares</div>
+            <div className="text-xl font-bold text-gray-500">
+              Salgadinhos Familiares
+            </div>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
@@ -114,7 +116,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           })}
         </SidebarMenu>
         <SidebarFooter>
-          <Profile/>
+          <Profile />
         </SidebarFooter>
       </SidebarContent>
     </Sidebar>

@@ -12,7 +12,7 @@ export const productRequestSchema = z.object({
     .optional(),
   batch_production_days: z.coerce
     .number()
-    .min(0, "Dias de produção devem ser >= 0")
+    .min(1, "Dias de produção devem ser > 0")
     .optional(),
 });
 export const productUpdateRequestSchema = productRequestSchema

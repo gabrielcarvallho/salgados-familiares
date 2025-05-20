@@ -2,12 +2,12 @@
 
 import { DataTable } from "@/components/datatable";
 import { SiteHeader } from "@/components/site-header";
-import { DialogProdutos } from "./dialog";
+import { DialogProdutos } from "./_components/dialog";
 import { useProduct, useProductList } from "@/hooks/useProduct";
 import { ProductsSkeletonLoading } from "../../../components/skeleton";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
-import { columns, useDrawerConfig } from "./data-config";
+import { columns, useDrawerConfig } from "./_components/data-config";
 import { ProductResponse, productUpdateRequestSchema } from "@/types/Product";
 import { PaginationType } from "@/types/User";
 import { OrdersSkeletonLoading } from "@/components/ui/base-skeleton";
@@ -103,7 +103,7 @@ export default function ProductsPage() {
             onUpdate={handleUpdateProduct}
             onPaginationChange={handlePaginationChange}
             mutate={mutate}
-            onDelete={(item) => handleDeleteProduct(item)}
+            onDelete={(item) => handleDeleteProduct(item.id)}
           />
         )}
       </div>

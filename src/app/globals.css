@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* globals.css */
+.toaster {
+  --sonner-toast-bg: #FF8F3F;      /* se sua versão do Sonner suportar essa única var */
+  --sonner-toast-text: #ffffff;
+}
+
 
 ::selection {
   background-color: #FF8F3F; /* A cor laranja que você deseja */

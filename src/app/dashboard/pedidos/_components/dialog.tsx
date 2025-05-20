@@ -5,7 +5,6 @@ import type React from "react";
 import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
@@ -37,32 +36,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 
 // Icons
 import {
   CalendarIcon,
-  CheckCircle2,
   CreditCard,
   Home,
   Loader2,
   MapPin,
-  Minus,
   Package,
   Plus,
-  Search,
   ShoppingCart,
-  Trash2,
   User,
 } from "lucide-react";
 
@@ -75,16 +63,15 @@ import {
   usePaymentMethods,
 } from "@/hooks/useOrder";
 import { useProductList } from "@/hooks/useProduct";
-import { formatOrderStatus, formatPaymentMethod } from "@/lib/utils";
 import {
   EMPTY_ORDER,
   type OrderRequest,
   orderRequestSchema,
 } from "@/types/Order";
-import { ProductSelector } from "../../../components/productSelector";
+import { ProductSelector } from "../../../../components/productSelector";
 import DatePicker from "@/components/ui/date-picker";
-
-// Custom Product Selection Component
+import { AddressForm } from "./new-address";
+import { Address } from "@/types/Customer";
 
 export function DialogPedidos() {
   const { products } = useProductList();
@@ -92,13 +79,20 @@ export function DialogPedidos() {
   const { paymentMethods, isLoading: isPaymentMethodsLoading } =
     usePaymentMethods();
   const { customers, isLoading: isCustomersLoading } = useCustomerList();
-  const { create, isLoading, error: orderError } = useOrder();
+  const {
+    create,
+    createWithAddress,
+    isLoading,
+    error: orderError,
+  } = useOrder();
   const { mutate } = useOrderList();
 
   const [open, setOpen] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  const [customerAddresses, setCustomerAddresses] = useState<any[]>([]);
+  const [customerAddresses, setCustomerAddresses] = useState<Address[]>([]);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [newAddress, setNewAddress] = useState<Address | null>(null);
 
   const form = useForm<OrderRequest>({
     resolver: zodResolver(orderRequestSchema),
@@ -120,12 +114,13 @@ export function DialogPedidos() {
   const watchedProducts = watch("products");
   const watchedCustomerId = watch("customer_id");
 
+  // Handle customer selection and address changes
   useEffect(() => {
     if (watchedCustomerId) {
       const customer = customers.find((c) => c.id === watchedCustomerId);
       if (customer) {
         setSelectedCustomer(customer);
-        const addresses = [];
+        const addresses: Address[] = [];
         if (customer.billing_address) {
           addresses.push({
             ...customer.billing_address,
@@ -133,13 +128,20 @@ export function DialogPedidos() {
           });
         }
         setCustomerAddresses(addresses);
-        if (customer.billing_address?.id) {
-          setValue("delivery_address_id", customer.billing_address.id);
+        // Reset any custom addresses when changing customers
+        setShowAddressForm(false);
+
+        if (addresses.length > 0 && customer.billing_address?.id) {
+          setValue("delivery_address_id", customer.billing_address.id, {
+            shouldValidate: false,
+          });
         }
       }
     } else {
+      // Only reset if there's a change to prevent loop
       setSelectedCustomer(null);
       setCustomerAddresses([]);
+      setShowAddressForm(false);
     }
   }, [watchedCustomerId, customers, setValue]);
 
@@ -152,79 +154,115 @@ export function DialogPedidos() {
     setValue("products", filtered);
   };
 
-  // Adicionar isto no início da função DialogPedidos, logo após obter os orderStatus
-
-// Modificação 1: Ajustar useEffect para definir o order_status_id quando orderStatus estiver disponível
-useEffect(() => {
-  if (orderStatus && orderStatus.length > 0) {
-    setValue("order_status_id", orderStatus[0].id);
-  }
-}, [orderStatus, setValue]);
-
-// Modificação 2: Ajustar a função handleFormSubmit
-const handleFormSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setFormSubmitted(true);
-
-  // clean out junk entries
-  cleanProducts();
-  
-  // Garantir que order_status_id está definido
-  if (orderStatus && orderStatus.length > 0 && !getValues("order_status_id")) {
-    setValue("order_status_id", orderStatus[0].id);
-  }
-
-  console.log("Validando formulário, valores atuais:", getValues());
-  const formValid = await trigger();
-  console.log("Resultado da validação, erros:", errors);
-
-  if (formValid) {
-    handleSubmit(onSubmit)();
-  } else {
-    toast.error("Por favor, corrija os erros no formulário", {
-      duration: 5000,
-    });
-  }
-};
-
-// Modificação 3: Simplificar o onSubmit, já que order_status_id estará definido
-const onSubmit = async (formData: OrderRequest) => {
-  try {
-    const customer = customers.find((c) => c.id === formData.customer_id);
-    if (!customer) {
-      toast.error("Cliente não encontrado");
-      return;
-    }
-    const delivery_address_id =
-      formData.delivery_address_id || customer.billing_address?.id || null;
-    if (!delivery_address_id) {
-      toast.error("Endereço de entrega não encontrado");
-      return;
-    }
-    
-    // ensure no empty products
-    const payload = {
-      ...formData,
-      products: formData.products.filter((p) => p.product_id),
-      delivery_address_id
-      // order_status_id já está definido corretamente no formData
+  const handleSaveAddress = (addressData: Address) => {
+    // Create a unique temporary ID for the new address
+    const tempId = `new-address-${Date.now()}`;
+    const addressWithId = {
+      ...addressData,
+      id: tempId,
     };
-    
-    console.log("Payload enviado:", payload);
-    await create(payload);
-    mutate();
-    toast.success("Pedido cadastrado com sucesso!");
-    setOpen(false);
-    reset(EMPTY_ORDER);
-    setSelectedCustomer(null);
-    setCustomerAddresses([]);
-  } catch (error: any) {
-    toast.error("Falha ao cadastrar pedido!", {
-      description: orderError || String(error),
-      duration: 3000,
-    });
-  }
-};
+
+    // Save the new address for submission
+    setNewAddress(addressWithId);
+
+    // Add to the list of available addresses
+    setCustomerAddresses((prev) =>
+      Array.isArray(prev) ? [...prev, addressWithId] : [addressWithId]
+    );
+
+    // Select this address
+    setValue("delivery_address_id", tempId, { shouldValidate: true });
+
+    setShowAddressForm(false);
+    toast.success("Endereço adicionado com sucesso!");
+  };
+
+  const handleFormSubmit = async (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+    setFormSubmitted(true);
+
+    // Clean out junk entries
+    cleanProducts();
+
+    // Ensure order_status_id is defined
+    if (
+      orderStatus &&
+      orderStatus.length > 0 &&
+      !getValues("order_status_id")
+    ) {
+      setValue("order_status_id", orderStatus[0].id);
+    }
+
+    console.log("Validando formulário, valores atuais:", getValues());
+    const formValid = await trigger();
+    console.log("Resultado da validação, erros:", errors);
+
+    if (formValid) {
+      handleSubmit(onSubmit)();
+    } else {
+      toast.error("Por favor, corrija os erros no formulário", {
+        duration: 5000,
+      });
+    }
+  };
+
+  const onSubmit = async (formData: OrderRequest) => {
+    try {
+      const customer = customers.find((c) => c.id === formData.customer_id);
+      if (!customer) {
+        toast.error("Cliente não encontrado");
+        return;
+      }
+
+      // Check if we're using a new address
+      const isUsingNewAddress =
+        newAddress && formData.delivery_address_id === newAddress.id;
+
+      // Prepare the payload
+      let payload = {
+        ...formData,
+        products: formData.products.filter((p) => p.product_id),
+      };
+
+      // If using new address, modify the payload structure
+      if (isUsingNewAddress) {
+        // Remove the delivery_address_id field and add new_delivery_address
+        const { delivery_address_id, ...restPayload } = payload;
+
+        // Add the new delivery address data
+        payload = {
+          ...restPayload,
+          delivery_address: {
+            street_name: newAddress.street_name,
+            number: newAddress.number,
+            district: newAddress.district,
+            city: newAddress.city,
+            state: newAddress.state,
+            cep: newAddress.cep,
+            description: newAddress.description,
+            observation: newAddress.observation || "",
+          },
+        };
+
+        console.log("Payload enviado:", payload);
+        await createWithAddress(payload);
+      } else {
+        await create(payload);
+      }
+      mutate();
+      toast.success("Pedido cadastrado com sucesso!");
+      setOpen(false);
+      reset(EMPTY_ORDER);
+      setSelectedCustomer(null);
+      setCustomerAddresses([]);
+      setNewAddress(null);
+    } catch (error) {
+      toast.error("Falha ao cadastrar pedido!", {
+        description: orderError || String(error),
+        duration: 3000,
+      });
+    }
+  };
 
   const calculateTotal = (items: any[]) =>
     items.reduce((total, item) => {
@@ -244,9 +282,11 @@ const onSubmit = async (formData: OrderRequest) => {
       setFormSubmitted(false);
       setSelectedCustomer(null);
       setCustomerAddresses([]);
+      setShowAddressForm(false);
     }
     setOpen(isOpen);
   };
+
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogTrigger asChild>
@@ -311,47 +351,73 @@ const onSubmit = async (formData: OrderRequest) => {
                   )}
                 />
 
-                {/* Address Selection - Only show when customer is selected */}
-                {selectedCustomer && (
-                  <FormField
-                    control={control}
-                    name="delivery_address_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center">
-                          <MapPin className="mr-2 h-4 w-4 text-[#FF8F3F]" />
-                          Endereço de entrega*
-                        </FormLabel>
-                        <FormControl>
-                          <Select
-                            value={field.value ? String(field.value) : ""}
-                            onValueChange={(val) => field.onChange(val)}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Selecione o endereço..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectGroup>
-                                <SelectLabel>
-                                  Endereços disponíveis:
-                                </SelectLabel>
-                                {customerAddresses.map((address) => (
-                                  <SelectItem
-                                    key={address.id}
-                                    value={String(address.id)}
-                                  >
-                                    {address.description} -{" "}
-                                    {formatAddress(address)}
-                                  </SelectItem>
-                                ))}
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                {/* Address Selection and New Address Form */}
+                {selectedCustomer && !showAddressForm && (
+                  <div className="space-y-3">
+                    <FormField
+                      control={control}
+                      name="delivery_address_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center">
+                            <MapPin className="mr-2 h-4 w-4 text-[#FF8F3F]" />
+                            Endereço de entrega*
+                          </FormLabel>
+                          <div className="flex space-x-2">
+                            <FormControl className="flex-grow">
+                              <Select
+                                value={field.value ? String(field.value) : ""}
+                                onValueChange={(val) => field.onChange(val)}
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Selecione o endereço..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectGroup>
+                                    <SelectLabel>
+                                      Endereços disponíveis:
+                                    </SelectLabel>
+                                    {Array.isArray(customerAddresses) &&
+                                    customerAddresses.length > 0
+                                      ? customerAddresses.map((address) => (
+                                          <SelectItem
+                                            key={address.id}
+                                            value={String(address.id)}
+                                          >
+                                            {address.description} —{" "}
+                                            {formatAddress(address)}
+                                          </SelectItem>
+                                        ))
+                                      : null}
+                                  </SelectGroup>
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setShowAddressForm(true)}
+                              className="whitespace-nowrap"
+                            >
+                              <Plus className="mr-1 h-4 w-4" />
+                              Novo Endereço
+                            </Button>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+
+                {/* New Address Form */}
+                {selectedCustomer && showAddressForm && (
+                  <Card className="border rounded-md p-4">
+                    <AddressForm
+                      onSave={handleSaveAddress}
+                      onCancel={() => setShowAddressForm(false)}
+                    />
+                  </Card>
                 )}
 
                 {/* Customer Info Card - Show when customer is selected */}
@@ -516,47 +582,6 @@ const onSubmit = async (formData: OrderRequest) => {
                       </FormItem>
                     )}
                   />
-
-                  {/* Order Status */}
-                  {/* <FormField
-                    control={control}
-                    name="order_status_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center">
-                          <CheckCircle2 className="mr-2 h-4 w-4 text-[#FF8F3F]" />
-                          Status do pedido*
-                        </FormLabel>
-                        <FormControl>
-                          {isOrderStatusLoading ? (
-                            <div className="flex items-center justify-center h-10 border rounded-md">
-                              <Loader2 className="animate-spin h-4 w-4" />
-                            </div>
-                          ) : (
-                            <Select
-                              value={field.value ? String(field.value) : ""}
-                              onValueChange={(val) => field.onChange(val)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione o status..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectGroup>
-                                  <SelectLabel>Status disponíveis:</SelectLabel>
-                                  {orderStatus.map((s) => (
-                                    <SelectItem key={s.id} value={String(s.id)}>
-                                      {formatOrderStatus(s.description)}
-                                    </SelectItem>
-                                  ))}
-                                </SelectGroup>
-                              </SelectContent>
-                            </Select>
-                          )}
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  /> */}
                 </div>
 
                 {/* Error Summary */}

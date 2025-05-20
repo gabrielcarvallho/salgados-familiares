@@ -2,7 +2,6 @@ import { useState } from "react";
 import axiosInstance from "@/lib/axios";
 import { useApiBase } from "./api/useApiBase";
 import {
-  viaCEPSchema,
   type AddressUpdate,
   type CustomerRequest,
   type CustomerResponse,
@@ -25,7 +24,17 @@ export function useCustomerById(id: string) {
 
 export function useViaCEP(cep: string) {
   const { data, error, isLoading } = useApiBase<ViaCEP>(
-    `https://brasilapi.com.br/api/cep/v1/${cep}`
+    `/core/get-cep/?cep=${cep}`
+  );
+  return {
+    address: data ?? "",
+    isLoading,
+    isError: error ? String(error) : null,
+  };
+}
+export function useCNPJ(cnpj: string) {
+  const { data, error, isLoading } = useApiBase<ViaCEP>(
+    `/core/get-cnpj/?cnpj=${cnpj}`
   );
   return {
     address: data ?? "",

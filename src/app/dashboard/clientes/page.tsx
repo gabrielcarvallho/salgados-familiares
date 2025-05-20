@@ -2,11 +2,11 @@
 
 import { DataTable } from "@/components/datatable";
 import { SiteHeader } from "@/components/site-header";
-import { DialogClientes } from "./dialog";
+import { DialogClientes } from "./_components/dialog";
 import { ProductsSkeletonLoading } from "@/components/skeleton";
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
-import { columns, useDrawerConfig } from "./data-config";
+import { columns, useDrawerConfig } from "./_components/data-config";
 import {
   CustomerResponse,
   CustomerUpdateRequest,
@@ -27,7 +27,7 @@ export default function ClientsPage() {
     pageSize: 10,
   });
 
-  const { update, error: updateError } = useCustomer();
+  const { update, error: updateError, del } = useCustomer();
   const { customers, isLoading, isError, totalItems, mutate } = useCustomerList(
     pagination.pageIndex + 1,
     pagination.pageSize
@@ -43,8 +43,6 @@ export default function ClientsPage() {
     });
   }, []);
 
-
-
   const handleUpdateProduct = async (
     original: CustomerResponse,
     updated: CustomerUpdateRequest
@@ -59,6 +57,20 @@ export default function ClientsPage() {
       toast.success("Cliente atualizado com sucesso!");
     } catch (error) {
       toast.error("Falha, tente novamente mais tarde!", {
+        description: updateError || String(error),
+        duration: 3000,
+      });
+      throw error;
+    }
+  };
+
+  const handleDeleteCustomer = async (item: string) => {
+    try {
+      await del(item);
+      toast.success("Cliente exlcuido com sucesso!");
+      mutate();
+    } catch (error) {
+      toast.error("Falha ao excluir cliente", {
         description: updateError || String(error),
         duration: 3000,
       });
@@ -94,6 +106,7 @@ export default function ClientsPage() {
             onUpdate={handleUpdateProduct}
             onPaginationChange={handlePaginationChange}
             mutate={mutate}
+            onDelete={(item) => handleDeleteCustomer(item.id)}
           />
         )}
       </div>

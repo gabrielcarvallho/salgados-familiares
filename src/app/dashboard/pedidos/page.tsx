@@ -1,78 +1,102 @@
-"use client"
+"use client";
 
-import { useState, useCallback } from "react"
-import { useForm } from "react-hook-form"
-import { toast } from "sonner"
-import { DataTable } from "@/components/datatable"
-import { SiteHeader } from "@/components/site-header"
-import { DialogPedidos } from "./dialog"
+import { useState, useCallback } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { DataTable } from "@/components/datatable";
+import { SiteHeader } from "@/components/site-header";
+import { DialogPedidos } from "./_components/dialog";
 import { OrdersSkeletonLoading } from "@/components/ui/base-skeleton";
-import { columns, useDrawerConfig } from "./data-config"
-import { useOrder, useOrderList } from "@/hooks/useOrder"
-import { type OrderResponse, type OrderUpdateRequest, orderUpdateRequestSchema } from "@/types/Order"
-import { DrawerFormProvider } from "@/hooks/contexts/DrawerFormContext"
-import { Button } from "@/components/ui/button"
-import { AlertFinishWork } from "@/components/alerts"
+import { columns, useDrawerConfig } from "./_components/data-config";
+import { useOrder, useOrderList } from "@/hooks/useOrder";
+import {
+  type OrderResponse,
+  type OrderUpdateRequest,
+  orderUpdateRequestSchema,
+} from "@/types/Order";
+import { DrawerFormProvider } from "@/contexts/DrawerFormContext";
+import { Button } from "@/components/ui/button";
+import { AlertFinishWork } from "@/components/alerts";
 
 export default function OrdersPage() {
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
-  const [finishWorkDialog, setfinishWorkDialog] = useState(false)
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [finishWorkDialog, setfinishWorkDialog] = useState(false);
 
-  const { update, error: updateError, finishWork } = useOrder()
-  const { orders, isLoading, isError, totalItems, mutate } = useOrderList(pagination.pageIndex + 1, pagination.pageSize)
+  const { update, error: updateError, finishWork, del } = useOrder();
+  const { orders, isLoading, isError, totalItems, mutate } = useOrderList(
+    pagination.pageIndex + 1,
+    pagination.pageSize
+  );
 
   // form methods for drawer
-  const formMethods = useForm<OrderUpdateRequest>()
-  const drawerConfig = useDrawerConfig()
+  const formMethods = useForm<OrderUpdateRequest>();
+  const drawerConfig = useDrawerConfig();
 
   const handlePaginationChange = useCallback((newPagination: any) => {
     setPagination({
       pageIndex: newPagination.pageIndex,
       pageSize: newPagination.pageSize,
-    })
-  }, [])
+    });
+  }, []);
 
-  const handleUpdateOrder = async (original: OrderResponse, updated: OrderUpdateRequest) => {
+  const handleUpdateOrder = async (
+    original: OrderResponse,
+    updated: OrderUpdateRequest
+  ) => {
     const payload = {
       id: original.id,
       ...updated,
-    }
+    };
     try {
-      await update(payload)
-      toast.success("Pedido atualizado com sucesso!")
-      mutate()
+      await update(payload);
+      toast.success("Pedido atualizado com sucesso!");
+      mutate();
     } catch (error) {
       toast.error("Falha ao atualizar pedido.", {
         description: updateError || String(error),
         duration: 3000,
-      })
-      throw error
+      });
+      throw error;
     }
-  }
+  };
 
   const handleOpenDialog = () => {
-    setfinishWorkDialog(true)
-  }
+    setfinishWorkDialog(true);
+  };
+
+  const handleDeleteOrder = async (item: string) => {
+    try {
+      await del(item);
+      toast.success("Pedido exlcuido com sucesso!");
+      mutate();
+    } catch (error) {
+      toast.error("Falha ao excluir pedido", {
+        description: updateError || String(error),
+        duration: 3000,
+      });
+      throw error;
+    }
+  };
 
   const handleFinishWork = async () => {
     try {
-      await finishWork()
+      await finishWork();
       toast.success("Expediente finalizado com sucesso!", {
         description: "Todos seus pedidos foram enviados para logística",
-      })
-      mutate()
+      });
+      mutate();
     } catch (error) {
       toast.error("Falha ao atualizar pedido.", {
         description: updateError || String(error),
         duration: 3000,
-      })
-      throw error
+      });
+      throw error;
     }
-  }
+  };
 
   // Show skeleton while loading
   if (isLoading) {
-    return <OrdersSkeletonLoading />
+    return <OrdersSkeletonLoading />;
   }
 
   return (
@@ -90,7 +114,9 @@ export default function OrdersPage() {
       />
 
       {isError ? (
-        <div className="p-4 text-center text-red-500">Erro ao carregar pedidos: {String(isError)}</div>
+        <div className="p-4 text-center text-red-500">
+          Erro ao carregar pedidos: {String(isError)}
+        </div>
       ) : (
         <DrawerFormProvider formMethods={formMethods}>
           <DataTable<OrderResponse, OrderUpdateRequest>
@@ -104,11 +130,16 @@ export default function OrdersPage() {
             currentPage={pagination.pageIndex}
             onUpdate={handleUpdateOrder}
             onPaginationChange={handlePaginationChange}
-            mutate={mutate}
+            mutate={mutate} 
+            onDelete={(item) => handleDeleteOrder(item.id)}
           />
         </DrawerFormProvider>
       )}
-      <AlertFinishWork open={finishWorkDialog} onOpenChange={setfinishWorkDialog} onConfirm={handleFinishWork} />
+      <AlertFinishWork
+        open={finishWorkDialog}
+        onOpenChange={setfinishWorkDialog}
+        onConfirm={handleFinishWork}
+      />
     </div>
-  )
+  );
 }

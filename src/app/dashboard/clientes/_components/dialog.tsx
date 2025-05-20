@@ -1,8 +1,8 @@
-"use client"
-import { useState, useEffect } from "react"
-import type React from "react"
+"use client";
+import { useState, useEffect } from "react";
+import type React from "react";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,8 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Loader2,
   Plus,
@@ -29,17 +29,28 @@ import {
   AlertCircle,
   X,
   Hotel,
-} from "lucide-react"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { toast } from "sonner"
-import { type CustomerRequest, CustomerRequestSchema, EMPTY_CUSTOMER } from "@/types/Customer"
-import { useCustomer, useCustomerList, useViaCEP } from "@/hooks/useCustomer"
-import { motion, AnimatePresence } from "framer-motion"
-import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { cn } from "@/lib/utils"
+} from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { toast } from "sonner";
+import {
+  type CustomerRequest,
+  CustomerRequestSchema,
+  EMPTY_CUSTOMER,
+} from "@/types/Customer";
+import { useCustomer, useCustomerList, useViaCEP } from "@/hooks/useCustomer";
+import { motion, AnimatePresence } from "framer-motion";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import {
   cleanCNPJ,
   cleanPhone,
@@ -49,24 +60,38 @@ import {
   formatCNPJ,
   formatDateInput,
   formatPhone,
-} from "@/lib/utils"
+} from "@/lib/utils";
 
 export function DialogClientes() {
-  const { mutate } = useCustomerList()
-  const { create, isLoading, error: err } = useCustomer()
-  const [open, setOpen] = useState(false)
-  const [formSubmitted, setFormSubmitted] = useState(false)
-  const [activeTab, setActiveTab] = useState("cliente")
-  const [cepValue, setCepValue] = useState("")
+  const { mutate } = useCustomerList();
+  const { create, isLoading, error: err } = useCustomer();
+  const [open, setOpen] = useState(false);
+  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [activeTab, setActiveTab] = useState("cliente");
+  const [cepValue, setCepValue] = useState("");
+
+  const shouldFetch = (cep: string): string => {
+    const cepLength = cep.length;
+
+    if (cepLength == 9) return cep;
+
+    return "";
+  };
+
+  const cep = shouldFetch(cepValue);
 
   // Usar o hook useViaCEP para buscar o endereço
-  const { address, isLoading: loadingAddress, isError: errorAddress } = useViaCEP(cleanCEP(cepValue))
+  const {
+    address,
+    isLoading: loadingAddress,
+    isError: errorAddress,
+  } = useViaCEP(cleanCEP(cep));
 
   const form = useForm<CustomerRequest>({
     resolver: zodResolver(CustomerRequestSchema),
     defaultValues: EMPTY_CUSTOMER,
     mode: "onSubmit",
-  })
+  });
 
   const {
     formState: { errors, isSubmitting },
@@ -75,35 +100,45 @@ export function DialogClientes() {
     reset,
     setValue,
     watch,
-  } = form
+  } = form;
 
   // Observar mudanças no CEP para atualizar o estado local
-  const watchedCep = watch("billing_address.cep")
-  
-  useEffect(() => {
-    setCepValue(watchedCep || "")
-  }, [watchedCep])
+  const watchedCep = watch("billing_address.cep");
 
-  // Preencher os campos de endereço quando o address mudar
   useEffect(() => {
-    if (address && typeof address === 'object') {
-      setValue("billing_address.street_name", address.street || "", { shouldValidate: true })
-      setValue("billing_address.district", address.neighborhood || "", { shouldValidate: true })
-      setValue("billing_address.city", address.city || "", { shouldValidate: true })
-      setValue("billing_address.state", address.state || "", { shouldValidate: true })
-      
+    setCepValue(watchedCep || "");
+  }, [watchedCep]);
+
+  useEffect(() => {
+    if (address && typeof address === "object") {
+      setValue("billing_address.street_name", address.logradouro || "", {
+        shouldValidate: true,
+      });
+      setValue("billing_address.district", address.bairro || "", {
+        shouldValidate: true,
+      });
+      setValue("billing_address.city", address.localidade || "", {
+        shouldValidate: true,
+      });
+      setValue("billing_address.state", address.uf || "", {
+        shouldValidate: true,
+      });
+
       // Notificar o usuário
-      if (address.street) {
+      if (address.logradouro) {
         toast.success("Endereço preenchido automaticamente!", {
           duration: 2000,
-        })
+        });
       }
     }
-  }, [address, setValue])
+  }, [address, setValue]);
 
   // Exibir todos os erros no console ao submeter o formulário
   if (formSubmitted && Object.keys(errors).length > 0) {
-    console.log("Todos os erros do formulário:", JSON.stringify(errors, null, 2))
+    console.log(
+      "Todos os erros do formulário:",
+      JSON.stringify(errors, null, 2)
+    );
   }
 
   const onSubmit = async (formData: CustomerRequest) => {
@@ -118,54 +153,54 @@ export function DialogClientes() {
           contact_phone: cleanPhone(formData.contact.contact_phone),
           date_of_birth: convertDateFormat(formData.contact.date_of_birth),
         },
-      }
+      };
 
-      console.log("Dados formatados para envio:", dataToSubmit)
+      console.log("Dados formatados para envio:", dataToSubmit);
 
-      await create(dataToSubmit)
-      mutate()
+      await create(dataToSubmit);
+      mutate();
       toast.success("Cliente cadastrado com sucesso!", {
         duration: 3000,
-      })
-      reset(EMPTY_CUSTOMER)
-      setFormSubmitted(false)
-      setOpen(false)
+      });
+      reset(EMPTY_CUSTOMER);
+      setFormSubmitted(false);
+      setOpen(false);
     } catch (error) {
-      console.error("Erro ao cadastrar cliente:", error)
+      console.error("Erro ao cadastrar cliente:", error);
       toast.error("Falha ao cadastrar cliente!", {
         description: err || String(error),
         duration: 3000,
-      })
+      });
     }
-  }
+  };
 
   // Função de validação e submissão
   const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setFormSubmitted(true)
+    e.preventDefault();
+    setFormSubmitted(true);
 
-    console.log("Tentando validar o formulário...")
-    const formValid = await trigger()
-    console.log("O formulário é válido?", formValid)
+    console.log("Tentando validar o formulário...");
+    const formValid = await trigger();
+    console.log("O formulário é válido?", formValid);
 
     if (formValid) {
-      console.log("Formulário válido. Chamando onSubmit...")
-      handleSubmit(onSubmit)()
+      console.log("Formulário válido. Chamando onSubmit...");
+      handleSubmit(onSubmit)();
     } else {
       toast.error("Por favor, corrija os erros no formulário", {
         duration: 5000,
-      })
+      });
     }
-  }
+  };
 
   const handleClose = () => {
-    setOpen(false)
+    setOpen(false);
     // Pequeno delay para resetar o formulário após a animação de fechamento
     setTimeout(() => {
-      reset(EMPTY_CUSTOMER)
-      setFormSubmitted(false)
-    }, 300)
-  }
+      reset(EMPTY_CUSTOMER);
+      setFormSubmitted(false);
+    }, 300);
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -186,7 +221,10 @@ export function DialogClientes() {
 
       <AnimatePresence>
         {open && (
-          <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden " forceMount>
+          <DialogContent
+            className="sm:max-w-[600px] p-0 overflow-hidden "
+            forceMount
+          >
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -208,17 +246,30 @@ export function DialogClientes() {
               <Form {...form}>
                 <form onSubmit={handleFormSubmit} className="flex flex-col">
                   <div className="px-6">
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <Tabs
+                      value={activeTab}
+                      onValueChange={setActiveTab}
+                      className="w-full"
+                    >
                       <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="cliente" className="flex items-center gap-2">
+                        <TabsTrigger
+                          value="cliente"
+                          className="flex items-center gap-2"
+                        >
                           <Building2 className="h-4 w-4" />
                           Empresa
                         </TabsTrigger>
-                        <TabsTrigger value="contato" className="flex items-center gap-2">
+                        <TabsTrigger
+                          value="contato"
+                          className="flex items-center gap-2"
+                        >
                           <User className="h-4 w-4" />
                           Contato
                         </TabsTrigger>
-                        <TabsTrigger value="endereco" className="flex items-center gap-2">
+                        <TabsTrigger
+                          value="endereco"
+                          className="flex items-center gap-2"
+                        >
                           <MapPin className="h-4 w-4" />
                           Endereço
                         </TabsTrigger>
@@ -284,7 +335,7 @@ export function DialogClientes() {
                                       className="focus-visible:ring-[#FF8F3F]"
                                       value={formatCNPJ(field.value)}
                                       onChange={(e) => {
-                                        field.onChange(e.target.value)
+                                        field.onChange(e.target.value);
                                       }}
                                       onBlur={field.onBlur}
                                     />
@@ -305,11 +356,12 @@ export function DialogClientes() {
                                   </FormLabel>
                                   <FormControl>
                                     <Input
+                                      maxLength={15}
                                       placeholder="(47) 99999-9999"
                                       className="focus-visible:ring-[#FF8F3F]"
                                       value={formatPhone(field.value)}
                                       onChange={(e) => {
-                                        field.onChange(e.target.value)
+                                        field.onChange(e.target.value);
                                       }}
                                       onBlur={field.onBlur}
                                     />
@@ -375,7 +427,11 @@ export function DialogClientes() {
                                     Nome para contato*
                                   </FormLabel>
                                   <FormControl>
-                                    <Input placeholder="Fernando" className="focus-visible:ring-[#FF8F3F]" {...field} />
+                                    <Input
+                                      placeholder="Fernando"
+                                      className="focus-visible:ring-[#FF8F3F]"
+                                      {...field}
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -397,10 +453,10 @@ export function DialogClientes() {
                                       className="focus-visible:ring-[#FF8F3F]"
                                       value={formatDateInput(field.value)}
                                       onChange={(e) => {
-                                        field.onChange(e.target.value)
+                                        field.onChange(e.target.value);
                                       }}
                                       onBlur={() => {
-                                        field.onBlur()
+                                        field.onBlur();
                                       }}
                                     />
                                   </FormControl>
@@ -441,11 +497,12 @@ export function DialogClientes() {
                                   </FormLabel>
                                   <FormControl>
                                     <Input
+                                      maxLength={15}
                                       placeholder="(47) 99999-9999"
                                       className="focus-visible:ring-[#FF8F3F]"
                                       value={formatPhone(field.value)}
                                       onChange={(e) => {
-                                        field.onChange(e.target.value)
+                                        field.onChange(e.target.value);
                                       }}
                                       onBlur={field.onBlur}
                                     />
@@ -457,7 +514,10 @@ export function DialogClientes() {
                           </div>
                         </TabsContent>
 
-                        <TabsContent value="endereco" className="space-y-4 mt-0">
+                        <TabsContent
+                          value="endereco"
+                          className="space-y-4 mt-0"
+                        >
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
@@ -473,12 +533,12 @@ export function DialogClientes() {
                                       <Input
                                         placeholder="89000-000"
                                         className={cn(
-                                          "focus-visible:ring-[#FF8F3F] pr-10", 
+                                          "focus-visible:ring-[#FF8F3F] pr-10",
                                           loadingAddress && "pr-12"
                                         )}
                                         value={formatCEP(field.value)}
                                         onChange={(e) => {
-                                          field.onChange(e.target.value)
+                                          field.onChange(e.target.value);
                                         }}
                                         onBlur={field.onBlur}
                                       />
@@ -488,21 +548,30 @@ export function DialogClientes() {
                                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                                       </div>
                                     )}
-                                    {!loadingAddress && address && !errorAddress && cleanCEP(field.value).length === 8 && (
-                                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                        <CheckCircle className="h-4 w-4 text-green-500" />
-                                      </div>
-                                    )}
-                                    {!loadingAddress && errorAddress && cleanCEP(field.value).length === 8 && (
-                                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                                        <AlertCircle className="h-4 w-4 text-red-500" />
-                                      </div>
-                                    )}
+                                    {!loadingAddress &&
+                                      address &&
+                                      !errorAddress &&
+                                      cleanCEP(field.value).length === 8 && (
+                                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                          <CheckCircle className="h-4 w-4 text-green-500" />
+                                        </div>
+                                      )}
+                                    {!loadingAddress &&
+                                      errorAddress &&
+                                      cleanCEP(field.value).length === 8 && (
+                                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                          <AlertCircle className="h-4 w-4 text-red-500" />
+                                        </div>
+                                      )}
                                   </div>
                                   <FormMessage />
-                                  {!loadingAddress && errorAddress && cleanCEP(field.value).length === 8 && (
-                                    <p className="text-xs text-red-500 mt-1">CEP não encontrado</p>
-                                  )}
+                                  {!loadingAddress &&
+                                    errorAddress &&
+                                    cleanCEP(field.value).length === 8 && (
+                                      <p className="text-xs text-red-500 mt-1">
+                                        CEP não encontrado
+                                      </p>
+                                    )}
                                 </FormItem>
                               )}
                             />
@@ -539,7 +608,11 @@ export function DialogClientes() {
                                     Número*
                                   </FormLabel>
                                   <FormControl>
-                                    <Input placeholder="5130" className="focus-visible:ring-[#FF8F3F]" {...field} />
+                                    <Input
+                                      placeholder="5130"
+                                      className="focus-visible:ring-[#FF8F3F]"
+                                      {...field}
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -674,32 +747,71 @@ export function DialogClientes() {
                           Por favor, corrija os seguintes erros:
                         </p>
                         <ul className="list-disc pl-5 space-y-1">
-                          {errors.company_name && <li>{errors.company_name.message}</li>}
-                          {errors.brand_name && <li>{errors.brand_name.message}</li>}
+                          {errors.company_name && (
+                            <li>{errors.company_name.message}</li>
+                          )}
+                          {errors.brand_name && (
+                            <li>{errors.brand_name.message}</li>
+                          )}
                           {errors.cnpj && <li>{errors.cnpj.message}</li>}
-                          {errors.phone_number && <li>{errors.phone_number.message}</li>}
+                          {errors.phone_number && (
+                            <li>{errors.phone_number.message}</li>
+                          )}
                           {errors.email && <li>{errors.email.message}</li>}
-                          {errors.state_tax_registration && <li>{errors.state_tax_registration.message}</li>}
-                          {errors.contact?.name && <li>Nome para contato: {errors.contact.name.message}</li>}
+                          {errors.state_tax_registration && (
+                            <li>{errors.state_tax_registration.message}</li>
+                          )}
+                          {errors.contact?.name && (
+                            <li>
+                              Nome para contato: {errors.contact.name.message}
+                            </li>
+                          )}
                           {errors.contact?.date_of_birth && (
-                            <li>Data de nascimento: {errors.contact.date_of_birth.message}</li>
+                            <li>
+                              Data de nascimento:{" "}
+                              {errors.contact.date_of_birth.message}
+                            </li>
                           )}
                           {errors.contact?.contact_email && (
-                            <li>Email de contato: {errors.contact.contact_email.message}</li>
+                            <li>
+                              Email de contato:{" "}
+                              {errors.contact.contact_email.message}
+                            </li>
                           )}
                           {errors.contact?.contact_phone && (
-                            <li>Telefone de contato: {errors.contact.contact_phone.message}</li>
+                            <li>
+                              Telefone de contato:{" "}
+                              {errors.contact.contact_phone.message}
+                            </li>
                           )}
-                          {errors.billing_address?.cep && <li>CEP: {errors.billing_address.cep.message}</li>}
+                          {errors.billing_address?.cep && (
+                            <li>CEP: {errors.billing_address.cep.message}</li>
+                          )}
                           {errors.billing_address?.street_name && (
-                            <li>Rua: {errors.billing_address.street_name.message}</li>
+                            <li>
+                              Rua: {errors.billing_address.street_name.message}
+                            </li>
                           )}
-                          {errors.billing_address?.number && <li>Número: {errors.billing_address.number.message}</li>}
+                          {errors.billing_address?.number && (
+                            <li>
+                              Número: {errors.billing_address.number.message}
+                            </li>
+                          )}
                           {errors.billing_address?.district && (
-                            <li>Bairro: {errors.billing_address.district.message}</li>
+                            <li>
+                              Bairro: {errors.billing_address.district.message}
+                            </li>
                           )}
-                          {errors.billing_address?.city && <li>Cidade: {errors.billing_address.city.message}</li>}
-                          {errors.billing_address?.state && <li>Estado: {errors.billing_address.state.message}</li>}
+                          {errors.billing_address?.city && (
+                            <li>
+                              Cidade: {errors.billing_address.city.message}
+                            </li>
+                          )}
+                          {errors.billing_address?.state && (
+                            <li>
+                              Estado: {errors.billing_address.state.message}
+                            </li>
+                          )}
                         </ul>
                       </div>
                     </motion.div>
@@ -722,7 +834,8 @@ export function DialogClientes() {
                           variant="outline"
                           className={cn(
                             "bg-[#FF8F3F] text-white",
-                            (isSubmitting || isLoading) && "opacity-80 pointer-events-none",
+                            (isSubmitting || isLoading) &&
+                              "opacity-80 pointer-events-none"
                           )}
                           disabled={isSubmitting || isLoading}
                         >
@@ -732,9 +845,7 @@ export function DialogClientes() {
                               Cadastrando...
                             </>
                           ) : (
-                            <>
-                              Cadastrar cliente
-                            </>
+                            <>Cadastrar cliente</>
                           )}
                         </Button>
                       </div>
@@ -747,5 +858,5 @@ export function DialogClientes() {
         )}
       </AnimatePresence>
     </Dialog>
-  )
+  );
 }

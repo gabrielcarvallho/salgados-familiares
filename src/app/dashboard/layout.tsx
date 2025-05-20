@@ -4,7 +4,7 @@ import "../globals.css";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { PermissionsProvider } from "@/hooks/contexts/PermissionContext";
+import { PermissionsProvider } from "@/contexts/PermissionContext";
 
 const fontGeits = Geist({
   variable: "--font-geist-sans",
@@ -16,7 +16,7 @@ const fontGeitsMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-console.log(fontGeits, fontGeitsMono)
+console.log(fontGeits, fontGeitsMono);
 export const metadata: Metadata = {
   title: "Salgados Gestão",
   description: "Sistema de gestão",

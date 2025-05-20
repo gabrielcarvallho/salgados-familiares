@@ -43,10 +43,7 @@ const hasPermission = (
   isAdmin: boolean,
   path: string
 ): boolean => {
-  // Admin tem acesso a tudo
   if (isAdmin) return true;
-
-  // Verificar permissões baseadas no grupo
   for (const group of userGroups) {
     if (
       group === "sales_person" &&
@@ -61,18 +58,17 @@ const hasPermission = (
       return true;
     }
   }
-
   return false;
 };
 
-
 // Determina a página inicial do usuário com base em seus grupos
-export const getUserHomePage = (userGroups: string[], isAdmin: boolean): string => {
+export const getUserHomePage = (
+  userGroups: string[],
+  isAdmin: boolean
+): string => {
   if (isAdmin) return homeRoutes.admin;
-  
   if (userGroups.includes("sales_person")) return homeRoutes.sales_person;
   if (userGroups.includes("delivery_person")) return homeRoutes.delivery_person;
-  
   return "/dashboard";
 };
 
@@ -100,37 +96,33 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
     : [];
   const isAdmin = user?.is_admin || false;
 
-  // Verificar se o usuário pode acessar a rota atual
+  // Verifica se o usuário pode acessar a rota atual
   const canAccess = (path: string) => {
-    // Se não estiver autenticado, não pode acessar
     if (!user) return false;
     return hasPermission(userGroups, isAdmin, path);
   };
 
   useEffect(() => {
-    // Evita loops de redirecionamento
     if (isRedirecting) return;
 
-    // Verifica se o usuário está autenticado
+    // Redireciona não autenticados para login
     if (!isLoading && !user && !pathname.includes("/login")) {
       setIsRedirecting(true);
       router.push("/login");
       return;
     }
 
-    // Verifica permissões para a rota atual, se o usuário estiver logado
+    // Verifica permissões para rota dashboard
     if (!isLoading && user) {
-      // Se tentar acessar o dashboard principal ou estiver em uma rota não autorizada
-      if (pathname === "/dashboard" || (pathname.startsWith("/dashboard") && !canAccess(pathname))) {
+      if (pathname.startsWith("/dashboard") && !canAccess(pathname)) {
         const homePage = getUserHomePage(userGroups, isAdmin);
         setIsRedirecting(true);
         router.push(homePage);
-        return;
       }
     }
-  }, [user, isLoading, pathname, router, canAccess, isRedirecting, userGroups, isAdmin]);
+  }, [user, isLoading, pathname, router, isRedirecting, userGroups, isAdmin]);
 
-  // Enquanto estiver carregando, mostra um spinner ou tela de carregamento
+  // Enquanto estiver carregando, mostra um spinner
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -152,4 +144,3 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
     </PermissionsContext.Provider>
   );
 }
-

@@ -11,7 +11,7 @@ import { Users, DollarSign, Landmark } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { useCallback, useState } from "react";
-import { DialogUsuario } from "./dialog";
+import { DialogUsuario } from "./_components/dialog";
 import { useReports } from "@/hooks/useStatistics";
 import { usePendingInvitations, useUser, useUserList } from "@/hooks/useUser";
 import {
@@ -25,10 +25,10 @@ import { DataTable } from "@/components/datatable";
 import {
   columns as columnsPending,
   drawerConfig as drawerConfigPending,
-} from "./data-config";
-import { columns as columnsAll, useDrawerConfigAll } from "./data-config2";
+} from "./_components/data-config";
+import { columns as columnsAll, useDrawerConfigAll } from "./_components/data-config2";
 import { TabsContent } from "@radix-ui/react-tabs";
-import { DashboardSkeleton } from "./skeleton";
+import { DashboardSkeleton } from "./_components/skeleton";
 
 
 export default function Page() {

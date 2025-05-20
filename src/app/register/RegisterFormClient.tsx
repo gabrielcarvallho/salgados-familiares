@@ -180,6 +180,7 @@ export default function RegisterFormClient({ token }: RegisterFormProps) {
                 type="submit"
                 variant="outline"
                 className="w-full text-white bg-[#FF8F3F]"
+                disabled={isLoading}
               >
                 {isLoading ? (
                   <>

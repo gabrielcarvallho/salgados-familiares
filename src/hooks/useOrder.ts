@@ -24,8 +24,6 @@ export function useOrderById(id: string) {
   };
 }
 
-
-
 // Hook para listar todas as ordenqs (usando SWR)
 export function useOrderList(page = 1, page_size = 10) {
   const { data, error, isLoading, mutate } = useApiBase<{
@@ -102,14 +100,14 @@ export function useOrder() {
     }
   };
 
-  const createWithAddress = async (order: OrderWithAddress) => {
+  const createWithAddress = async (order: OrderRequest) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await axiosInstance.post(`/orders/`, {
+      const response = await axiosInstance.post(`/orders/`, 
         order,
-      });
+      );
       return response;
     } catch (error) {
       const formattedError = handleApiError(error);

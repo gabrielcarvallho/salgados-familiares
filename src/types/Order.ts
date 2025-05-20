@@ -16,7 +16,8 @@ export const orderStatusSchema = z.object({
 
 // --- Request de Pedido ---
 export const orderRequestSchema = z.object({
-  
+  id: z.string().uuid().optional(),
+
   customer_id: z.string().uuid({ message: "ID de cliente inválido" }),
   order_status_id: z.string().uuid({ message: "ID de status inválido" }),
   payment_method_id: z
@@ -24,6 +25,7 @@ export const orderRequestSchema = z.object({
     .uuid({ message: "ID de método de pagamento inválido" }),
   delivery_date: z.string().min(1),
   delivery_address_id: z.string().optional().nullable(),
+  delivery_address: addressSchema.optional().nullable(),
   products: z.array(
     z.object({
       product_id: z.string().uuid({ message: "ID de produto inválido" }),
@@ -59,9 +61,12 @@ export const orderResponseSchema = z.object({
 });
 
 // --- Pedido com Endereço de Entrega ---
-export const orderWithAddressSchema = orderResponseSchema.extend({
-  delivery_address: addressSchema,
-});
+export const orderWithAddressSchema = orderRequestSchema.merge(
+  z.object({
+    delivery_address: addressSchema,
+  })
+);
+
 
 // --- Lista de Pedidos ---
 export const ordersResponseSchema = z.object({

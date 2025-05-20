@@ -43,7 +43,7 @@ export function DialogProdutos() {
       weight: "",
       batch_packages: 0,
       daily_batch_capacity: 0,
-      batch_production_days: 0,
+      batch_production_days: 1,
     },
   });
 
@@ -287,7 +287,7 @@ export function DialogProdutos() {
                             type="submit"
                             variant="outline"
                             className={cn(
-                              "bg-[#FF8F3F] text-primary-foreground hover:bg-[#E67D2E] flex-1 sm:flex-initial",
+                              "bg-[#FF8F3F] text-white",
                               isLoading && "opacity-80 pointer-events-none"
                             )}
                             disabled={isLoading}

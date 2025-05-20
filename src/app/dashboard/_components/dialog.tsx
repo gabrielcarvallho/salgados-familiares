@@ -89,8 +89,13 @@ export function DialogUsuario() {
 const selectedGroup = groups.find((g) => Number(g.id) === groupId);
 
   const onSubmit = async (data: InviteRequest) => {
+
+    const payload = data.is_admin
+    ? { email: data.email, is_admin: data.is_admin }
+    : { email: data.email, group_id: data.group_id, is_admin: data.is_admin };
+
     try {
-      await invite(data);
+      await invite(payload);
       toast.success("Usuário convidado com sucesso!", { duration: 3000 });
       form.reset(EMPTY_USER);
       setOpen(false);

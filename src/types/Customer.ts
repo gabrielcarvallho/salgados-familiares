@@ -8,7 +8,7 @@ import { z } from "zod";
 
 // --- Contato ---
 export const contactSchema = z.object({
-  id: z.string().uuid().optional().nullable(),
+  id: z.string().uuid().optional(),
   name: z.string().min(1, "Nome é obrigatório"),
   date_of_birth: z.string().transform(convertDateFormat),
   contact_phone: z.string().transform(cleanPhone),
@@ -17,7 +17,7 @@ export const contactSchema = z.object({
 
 // --- Endereço ---
 export const addressSchema = z.object({
-  id: z.string().uuid().optional().nullable(),
+  id: z.string().uuid().optional(),
   cep: z.string().transform(cleanCEP),
   street_name: z.string().min(1, "Rua é obrigatória"),
   district: z.string().min(1, "Bairro é obrigatório"),
@@ -25,16 +25,16 @@ export const addressSchema = z.object({
   city: z.string().min(1, "Cidade é obrigatória"),
   state: z.string().min(1, "Estado é obrigatório"),
   observation: z.string().optional(),
-  description: z.string().optional()
+  description: z.string().optional(),
 });
 
 export const viaCEPSchema = z.object({
   cep: z.string().transform(cleanCEP),
-  street: z.string().min(1, "Rua é obrigatória"),
-  neighborhood: z.string().min(1, "Bairro é obrigatório"),
-  city: z.string().min(1, "Cidade é obrigatória"),
-  state: z.string().min(2, "UF é obrigatório").max(2),
-})
+  logradouro: z.string().min(1, "Rua é obrigatória"),
+  bairro: z.string().min(1, "Bairro é obrigatório"),
+  localidade: z.string().min(1, "Cidade é obrigatória"),
+  uf: z.string().min(2, "UF é obrigatório").max(2),
+});
 
 // --- Atualização de Endereço (opcional) ---
 export const addressUpdateSchema = addressSchema.partial();
@@ -47,13 +47,7 @@ export const CustomerRequestSchema = z.object({
     .string()
     .min(14, "CNPJ inválido. Deve conter 14 dígitos numéricos.")
     .transform(cleanCNPJ),
-  phone_number: z
-    .string()
-    .regex(
-      /^[0-9]{10,11}$/,
-      "Número de telefone inválido. Deve conter 10 ou 11 dígitos numéricos."
-    )
-    .transform(cleanPhone),
+  phone_number: z.string().max(16).transform(cleanPhone),
   email: z.string().email("Digite um endereço de e-mail válido."),
   state_tax_registration: z.string().optional(),
   billing_address: addressSchema.omit({ id: true }),

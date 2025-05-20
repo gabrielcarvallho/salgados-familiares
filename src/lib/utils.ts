@@ -1,9 +1,12 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { Group } from "@/types/User";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+
 // Formata a entrada do usuário para DD/MM/YYYY enquanto digita
 export const formatDateInput = (value: string) => {
   // Remove caracteres não numéricos

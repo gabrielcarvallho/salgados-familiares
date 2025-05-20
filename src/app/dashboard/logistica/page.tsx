@@ -5,16 +5,17 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { DataTable } from "@/components/datatable";
 import { SiteHeader } from "@/components/site-header";
-import { SalgadosSkeletonLoading } from "./skeleton";
+import { SalgadosSkeletonLoading } from "./_components/skeleton";
 import { ProductsSkeletonLoading } from "@/components/ui/products-skeleton";
-import { columns, useDrawerConfig } from "./data-config";
+import { columns, useDrawerConfig } from "./_components/data-config";
 import { useOrder, useOrderList, useOrderStatus } from "@/hooks/useOrder";
 import {
+  OrderRequest,
   type OrderResponse,
   type OrderUpdateRequest,
   orderUpdateRequestSchema,
 } from "@/types/Order";
-import { DrawerFormProvider } from "@/hooks/contexts/DrawerFormContext";
+import { DrawerFormProvider } from "@/contexts/DrawerFormContext";
 import {
   Select,
   SelectContent,
@@ -25,7 +26,7 @@ import {
 import { useProductionSchedule } from "@/hooks/useStatistics";
 import { formatOrderStatus } from "@/lib/utils";
 import { SelectPortal } from "@radix-ui/react-select";
-import { SalgadosList } from "./SalgadosList";
+import { SalgadosList } from "./_components/SalgadosList";
 
 export default function OrdersPage() {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -36,7 +37,7 @@ export default function OrdersPage() {
     useProductionSchedule();
   const { orderStatus: orderStatuses = [] } = useOrderStatus();
 
-  const { update, error: updateError } = useOrder();
+  const { update, error: updateError, del } = useOrder();
   const {
     orders,
     isLoading: isLoadingOrders,
@@ -77,11 +78,32 @@ export default function OrdersPage() {
     }
   };
 
+  const handleDeleteOrder = async (item: string) => {
+    try {
+      await del(item);
+      toast.success("Pedido exlcuido com sucesso!");
+      mutate();
+    } catch (error) {
+      toast.error("Falha ao excluir pedido", {
+        description: updateError || String(error),
+        duration: 3000,
+      });
+      throw error;
+    }
+  };
+
   // Filtra os pedidos antes de passar ao DataTable
-  const filteredOrders =
-    statusFilter === "all"
-      ? orders
-      : orders?.filter((o) => String(o.order_status.id) === statusFilter);
+  const filteredOrders = (orders || []).filter(
+    (o: { order_status: { identifier: number; id: any } }) => {
+      // exclui identifier 0
+      if (o.order_status.identifier === 0) return false;
+
+      // aplica o filtro de dropdown (se for "all", não filtra por id)
+      return (
+        statusFilter === "all" || String(o.order_status.id) === statusFilter
+      );
+    }
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -100,11 +122,13 @@ export default function OrdersPage() {
             <SelectPortal>
               <SelectContent position="popper">
                 <SelectItem value="all">Todos</SelectItem>
-                {orderStatuses.map((st) => (
-                  <SelectItem key={st.id} value={String(st.id)}>
-                    {formatOrderStatus(st.description)}
-                  </SelectItem>
-                ))}
+                {orderStatuses
+                  .filter((st) => st.identifier !== 0) // remove identifier 0
+                  .map((st) => (
+                    <SelectItem key={st.id} value={String(st.id)}>
+                      {formatOrderStatus(st.description)}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </SelectPortal>
           </Select>
@@ -137,6 +161,7 @@ export default function OrdersPage() {
             mutate={mutate}
             drawerConfig={drawerConfig}
             updateSchema={orderUpdateRequestSchema}
+            onDelete={(item) => handleDeleteOrder(item.id)}
           />
         </DrawerFormProvider>
       )}

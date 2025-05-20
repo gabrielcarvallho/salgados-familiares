@@ -11,7 +11,7 @@ export function DashboardSkeleton() {
   const getDelay = (index: number, baseDelay = 100) => index * baseDelay
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">|
       <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 lg:px-6 gap-3">
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <Skeleton className="h-10 w-32" delay={getDelay(0)} />
