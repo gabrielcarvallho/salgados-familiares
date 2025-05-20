@@ -58,11 +58,22 @@ export default function LoginForm() {
 
   const handleLogin = async (data: AuthSchema) => {
     try {
-      await login(data);
-      toast.success("Sucesso ao iniciar sessão!", {
-        description: "Estamos te conectando...",
+      const loginSuccess = await login(data); // Verifica o retorno da função
+      
+      if (loginSuccess) {
+        // Só mostra o toast de sucesso se o login realmente foi bem-sucedido
+        toast.success("Sucesso ao iniciar sessão!", {
+          description: "Estamos te conectando...",
+          duration: 3000,
+        });
+      }
+      toast.error("Falha ao iniciar sessão.", {
+        description: "Erro de conexão. Tente novamente mais tarde",
         duration: 3000,
+      
       });
+      // Se loginSuccess for false, o bloco catch dentro da função login já tratou o erro
+      // e definiu o erro no state, então não precisamos fazer nada aqui
     } catch (error) {
       toast.error("Falha ao iniciar sessão.", {
         description: errorLogin || String(error),

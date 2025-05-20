@@ -27,13 +27,13 @@ export function useAuth() {
   const login = async (loginData: Login) => {
     setIsLoading(true);
     setError(null);
-
+  
     try {
       // 1) Faz o login
       const response = await axiosInstance.post("/accounts/token/", loginData);
-
+  
       const {user} = response.data
-
+  
       const getHomePage = (groupId: number | null | undefined) => {
         switch (groupId) {
           case 5:
@@ -45,13 +45,12 @@ export function useAuth() {
         }
       };
       
-
       const homePage = getHomePage(user.group_id)
-
+  
       console.log(homePage)
-
+  
       router.push(homePage);
-
+  
       return true;
     } catch (err) {
       const formattedError = handleApiError(err);
