@@ -60,6 +60,11 @@ export default function OrdersPage() {
       return <OrdersSkeletonLoading />
     }
 
+    const filteredOrders = (orders || []).filter(
+      (o: { order_status: { identifier: number } }) => o.order_status.identifier === 2
+    );
+    
+
   return (
     <div className="flex flex-col gap-4">
       <SiteHeader title="Entregas" />
@@ -76,7 +81,7 @@ export default function OrdersPage() {
             drawerConfig={drawerConfig}
             title="Pedidos esperando por entrega"
             columns={columns}
-            data={orders || []}
+            data={filteredOrders || []}
             totalCount={totalItems || 0}
             pageSize={pagination.pageSize}
             currentPage={pagination.pageIndex}
