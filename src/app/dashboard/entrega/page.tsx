@@ -42,6 +42,7 @@ export default function OrdersPage() {
     const payload = {
       id: original.id,
       is_delivered: true,
+      order_status_id: "9a9fc47a-4fb0-429a-b39f-d2b815015eaf"
     };
     try {
       await update(payload);
