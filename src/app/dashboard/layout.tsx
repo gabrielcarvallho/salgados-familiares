@@ -16,7 +16,6 @@ const fontGeitsMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-fontGeits, fontGeitsMono;
 export const metadata: Metadata = {
   title: "Salgados Gestão",
   description: "Sistema de gestão",
