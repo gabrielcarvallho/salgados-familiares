@@ -13,8 +13,14 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const status = error.response?.status;
+    const isLoginCall = originalRequest.url?.endsWith("/accounts/token/")  // ajuste conforme seu path
+      || originalRequest.url?.endsWith("/accounts/token/refresh/");
 
-    if (error.response?.status === 400 && !originalRequest._retry) {
+    if (status === 400
+      && !originalRequest._retry
+      && !isLoginCall      // ⬅️ aqui você ignora login e refresh
+    ) {
       originalRequest._retry = true;
       try {
         await api.post("/accounts/token/refresh/");
@@ -27,9 +33,9 @@ api.interceptors.response.use(
       }
     }
 
-    // Transforma todos os erros em instâncias Error
     return Promise.reject(handleApiError(error));
   }
 );
+
 
 export default api;
