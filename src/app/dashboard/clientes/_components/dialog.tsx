@@ -183,12 +183,10 @@ export function DialogClientes() {
     e.preventDefault();
     setFormSubmitted(true);
 
-    ("Tentando validar o formulário...");
     const formValid = await trigger();
 
 
     if (formValid) {
-      ("Formulário válido. Chamando onSubmit...");
       handleSubmit(onSubmit)();
     } else {
       toast.error("Por favor, corrija os erros no formulário", {

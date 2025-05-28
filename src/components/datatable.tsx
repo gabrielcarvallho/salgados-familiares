@@ -219,7 +219,6 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
       // Validate with schema
       const validated: TUpdate = drawerConfig.updateSchema.parse(raw);
 
-      validated;
 
       // Call update handler
       await onUpdate(item, validated);
