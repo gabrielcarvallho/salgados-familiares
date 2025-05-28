@@ -67,10 +67,6 @@ export default function OrdersPage() {
     if (isLoading) {
       return <OrdersSkeletonLoading />
     }
-
-    const filteredOrders = (orders || []).filter(
-      (o: { order_status: { identifier: number } }) => o.order_status.identifier === 2
-    );
     
 
   return (
