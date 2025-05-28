@@ -32,6 +32,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { getErrorMessage } from "@/hooks/api/apiErrorHandler";
 
 export default function LoginForm() {
   const { login, isLoading, error: errorLogin } = useAuth();
@@ -58,29 +59,22 @@ export default function LoginForm() {
 
   const handleLogin = async (data: AuthSchema) => {
     try {
-      const loginSuccess = await login(data); // Verifica o retorno da função
-
-      if (loginSuccess) {
-        // Só mostra o toast de sucesso se o login realmente foi bem-sucedido
-        toast.success("Sucesso ao iniciar sessão!", {
-          description: "Estamos te conectando...",
-          duration: 3000,
-        });
-      } else {
-        toast.error("Falha ao iniciar sessão.", {
-          description: "Erro de conexão. Tente novamente mais tarde",
-          duration: 3000,
-        });
-      }
-      // Se loginSuccess for false, o bloco catch dentro da função login já tratou o erro
-      // e definiu o erro no state, então não precisamos fazer nada aqui
-    } catch (error) {
+      // se login der throw, vamos parar aqui
+      await login(data);
+      toast.success("Sucesso ao iniciar sessão!", {
+        description: "Estamos te conectando...",
+        duration: 3000,
+      });
+    } catch (error: any) {
+      // aqui capturamos o erro lançado em login()
       toast.error("Falha ao iniciar sessão.", {
-        description: errorLogin || String(error),
+        description: error.message || "Verifique suas credenciais e tente novamente.",
         duration: 3000,
       });
     }
   };
+  
+  
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);

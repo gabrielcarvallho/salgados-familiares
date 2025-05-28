@@ -6,7 +6,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-
 // Formata a entrada do usuário para DD/MM/YYYY enquanto digita
 export const formatDateInput = (value: string) => {
   // Remove caracteres não numéricos
@@ -288,18 +287,18 @@ export function getTomorrowDayMonth(): { day: number; month: number } {
   tomorrow.setDate(today.getDate() + 1);
 
   return {
-    day: tomorrow.getDate(),       // 1–31
-    month: tomorrow.getMonth() + 1 // 1–12 (getMonth() é 0-based)
+    day: tomorrow.getDate(), // 1–31
+    month: tomorrow.getMonth() + 1, // 1–12 (getMonth() é 0-based)
   };
 }
 
 export const formatBoolean = (bool: string) => {
   if (bool === "false") {
-    return "Não"
+    return "Não";
   } else {
-    return "Sim"
+    return "Sim";
   }
-} 
+};
 
 /**
  * Formata uma data ISO (ou Date) para "DD/MM/YYYY".
@@ -307,9 +306,7 @@ export const formatBoolean = (bool: string) => {
  * @returns string formatada como "DD/MM/YYYY"
  */
 export function formatDateToDDMMYYYY(isoString: string | Date): string {
-  const date = typeof isoString === "string"
-    ? new Date(isoString)
-    : isoString;
+  const date = typeof isoString === "string" ? new Date(isoString) : isoString;
 
   const day = String(date.getDate()).padStart(2, "0");
   // getMonth() é 0-based, então soma 1
@@ -321,4 +318,4 @@ export function formatDateToDDMMYYYY(isoString: string | Date): string {
 
 // Exemplo de uso:
 const raw = "2025-05-06T10:25:54.865049-03:00";
-console.log(formatDateToDDMMYYYY(raw));  // "06/05/2025"
+formatDateToDDMMYYYY(raw); // "06/05/2025"

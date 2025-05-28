@@ -165,7 +165,7 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
   useEffect(() => {
     if (!drawerConfig || !isDrawerOpen) return;
 
-    console.log("Initializing form data for item:", item);
+    "Initializing form data for item:", item;
     const initial: any = {};
 
     drawerConfig.fields.forEach((f) => {
@@ -177,18 +177,18 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
       // Apply parseValue if provided
       const parsedValue = f.parseValue ? f.parseValue(raw) : raw;
 
-      console.log(`Field ${f.name}:`, { raw, parsed: parsedValue });
+      `Field ${f.name}:`, { raw, parsed: parsedValue };
 
       // Set the value in our form data object
       setNested(initial, f.name, parsedValue);
     });
 
-    console.log("Initial form data:", initial);
+    "Initial form data:", initial;
     setFormData(initial);
   }, [item, drawerConfig, isDrawerOpen]);
 
   const handleChange = (name: string, val: any) => {
-    console.log(`Changing ${name} to:`, val);
+    `Changing ${name} to:`, val;
     const updated = { ...formData };
     setNested(updated, name, val);
     setFormData(updated);
@@ -217,12 +217,12 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
         setNested(raw, f.name, formattedValue);
       });
 
-      console.log("Saving with data:", raw);
+      "Saving with data:", raw;
 
       // Validate with schema
       const validated: TUpdate = drawerConfig.updateSchema.parse(raw);
 
-      console.log(validated);
+      validated;
 
       // Call update handler
       await onUpdate(item, validated);
@@ -316,7 +316,7 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
                   getNested(formData, f.name) ??
                   (f.type === "number" ? 0 : f.type === "select" ? "" : "");
 
-                console.log(`Rendering field ${f.name} with value:`, curr);
+                `Rendering field ${f.name} with value:`, curr;
 
                 return (
                   <div
@@ -445,14 +445,9 @@ export function DataTable<
       let result;
 
       if (fetchData) {
-        console.log(
-          "Calling fetchData with page:",
-          page,
-          "pageSize:",
-          pageSize
-        );
+        "Calling fetchData with page:", page, "pageSize:", pageSize;
         result = await fetchData(page, pageSize); // Mantenha 0-based index se já for usado no fetchData
-        console.log("Data received from fetchData:", result);
+        "Data received from fetchData:", result;
       } else if (apiEndpoint) {
         const url = new URL(`${API_URL}${apiEndpoint}`);
         url.searchParams.append("page", String(page + 1)); // 1-based para backend
@@ -464,7 +459,7 @@ export function DataTable<
 
         const response = await fetch(url.toString());
         const responseData = await response.json();
-        console.log("API response:", responseData);
+        "API response:", responseData;
 
         result = {
           data: responseData.results || responseData.data || [],
@@ -473,8 +468,8 @@ export function DataTable<
       }
 
       if (result) {
-        console.log("Setting data:", result.data);
-        console.log("Setting totalCount:", result.totalCount);
+        "Setting data:", result.data;
+        "Setting totalCount:", result.totalCount;
         setData(result.data);
         setTotalCount(result.totalCount);
         // Atualiza o pageCount da tabela
@@ -518,8 +513,8 @@ export function DataTable<
       table.setPageCount(pageCount);
     }
 
-    console.log("Initial data updated:", initialData);
-    console.log("Initial totalCount updated:", initialTotalCount);
+    "Initial data updated:", initialData;
+    "Initial totalCount updated:", initialTotalCount;
   }, [initialData, initialTotalCount]);
 
   // Atualize a configuração da tabela
@@ -543,7 +538,7 @@ export function DataTable<
       const newPagination =
         typeof updater === "function" ? updater(pagination) : updater;
 
-      console.log("Pagination updated to:", newPagination);
+      "Pagination updated to:", newPagination;
       setPagination(newPagination);
 
       // Only call this ONCE when the user explicitly changes pagination

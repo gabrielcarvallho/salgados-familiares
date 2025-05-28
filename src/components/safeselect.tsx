@@ -1,5 +1,5 @@
 // This is a wrapper component that helps with select defaults
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -27,36 +27,34 @@ export function SafeSelect({
 }: SafeSelectProps) {
   // Convert value to string and handle undefined/null cases
   const [safeValue, setSafeValue] = useState<string>("");
-  
+
   // Set the safe value whenever the original value changes
   useEffect(() => {
     // Ensure we always have a string, even if value is null/undefined
-    const stringValue = value === null || value === undefined ? "" : String(value);
+    const stringValue =
+      value === null || value === undefined ? "" : String(value);
     setSafeValue(stringValue);
   }, [value]);
-  
+
   // Ensure options are always available
   const safeOptions = options || [];
-  
+
   // Check if the current value is valid (exists in options)
-  const isValidValue = safeValue && safeOptions.some(opt => String(opt.value) === safeValue);
-  
+  const isValidValue =
+    safeValue && safeOptions.some((opt) => String(opt.value) === safeValue);
+
   // If value isn't valid and we have options, set to first option as default
   useEffect(() => {
     if (!isValidValue && safeOptions.length > 0 && !safeValue && value !== "") {
       const defaultValue = String(safeOptions[0].value);
-      console.log("Setting default value:", defaultValue);
+      "Setting default value:", defaultValue;
       setSafeValue(defaultValue);
       onValueChange(defaultValue);
     }
   }, [safeValue, safeOptions, isValidValue, onValueChange, value]);
 
   return (
-    <Select
-      value={safeValue}
-      onValueChange={onValueChange}
-      disabled={disabled}
-    >
+    <Select value={safeValue} onValueChange={onValueChange} disabled={disabled}>
       <SelectTrigger className={className}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>

@@ -85,9 +85,7 @@ export const columns: ColumnDef<OrderResponse, any>[] = [
     accessorKey: "payment_method.name",
     header: "Método de Pagamento",
     cell: ({ row }) => (
-      <Badge variant="outline">
-        {row.original.payment_method.name}
-      </Badge>
+      <Badge variant="outline">{row.original.payment_method.name}</Badge>
     ),
   },
   {
@@ -149,9 +147,7 @@ export function useDrawerConfig() {
           </span>
         </div>
         {o.order_status && (
-          <Badge
-            variant={badgesVariant(o.order_status.identifier).badge}
-          >
+          <Badge variant={badgesVariant(o.order_status.identifier).badge}>
             {badgesVariant(o.order_status.identifier).stats}
           </Badge>
         )}
@@ -171,7 +167,7 @@ export function useDrawerConfig() {
               <ShoppingCart className="h-5 w-5 text-[#FF8F3F]" />
               <h3 className="text-base font-medium">Informações do Pedido</h3>
             </div>
-            <Separator/>
+            <Separator />
           </div>
         ),
       },
@@ -183,8 +179,8 @@ export function useDrawerConfig() {
         colSpan: 2,
 
         defaultValue: (o) => {
-          console.log("Order Status ID defaultValue:", o.order_status.id);
-          console.log("Order Status Identifier:", o.order_status.identifier);
+          "Order Status ID defaultValue:", o.order_status.id;
+          "Order Status Identifier:", o.order_status.identifier;
           // Store both the ID and whether it's editable
           return {
             value: String(o.order_status.id),
@@ -201,7 +197,7 @@ export function useDrawerConfig() {
               : { value: String(valueObj), isEditable: false };
 
           const safeValue = value || "";
-          console.log("Status editable:", isEditable);
+          "Status editable:", isEditable;
 
           return (
             <div className="space-y-2">
@@ -250,7 +246,7 @@ export function useDrawerConfig() {
               : { value: String(valueObj), isEditable: false };
 
           const safeValue = value || "";
-          console.log("Payment method editable:", isEditable);
+          "Payment method editable:", isEditable;
 
           return (
             <div className="space-y-2">
@@ -298,7 +294,7 @@ export function useDrawerConfig() {
               ? valueObj
               : { value: valueObj, isEditable: false };
 
-          console.log("Delivery date editable:", isEditable);
+          "Delivery date editable:", isEditable;
 
           return (
             <div className="space-y-2">
@@ -335,7 +331,7 @@ export function useDrawerConfig() {
               ? valueObj
               : { value: valueObj, isEditable: false };
 
-          console.log("Due date editable:", isEditable);
+          "Due date editable:", isEditable;
 
           return (
             <div className="space-y-2">
@@ -373,26 +369,30 @@ export function useDrawerConfig() {
         name: "products",
         type: "custom",
         colSpan: 2,
-      
+
         // 1) estado interno do form: { items: [], isEditable: boolean }
         defaultValue: (o) => ({
           items: Array.isArray(o.products)
-            ? o.products.map((p: { product: { id: any; }; quantity: any; }) => ({
+            ? o.products.map((p: { product: { id: any }; quantity: any }) => ({
                 product_id: String(p.product.id),
                 quantity: p.quantity,
               }))
             : [],
           isEditable: Number(o.order_status.identifier) === 0,
         }),
-      
+
         // 2) antes de validar, extraímos só o array
         formatValue: (valueObj) => {
-          if (valueObj && typeof valueObj === "object" && Array.isArray(valueObj.items)) {
+          if (
+            valueObj &&
+            typeof valueObj === "object" &&
+            Array.isArray(valueObj.items)
+          ) {
             return valueObj.items;
           }
           return [];
         },
-      
+
         // 3) UI: continua recebendo { items, isEditable }
         customRender: (valueObj, onChange) => {
           const { items = [], isEditable } =
@@ -400,7 +400,7 @@ export function useDrawerConfig() {
               ? valueObj
               : { items: [], isEditable: false };
 
-          console.log("Products editable:", isEditable);
+          "Products editable:", isEditable;
 
           // Função para atualizar os itens quando o ProductSelector mudar
           const handleProductChange = (newItems: any) => {
@@ -662,7 +662,7 @@ export function useDrawerConfig() {
               <User className="h-5 w-5 text-[#FF8F3F]" />
               <h3 className="text-base font-medium">Informações de Contato</h3>
             </div>
-            <Separator  />
+            <Separator />
           </div>
         ),
       },

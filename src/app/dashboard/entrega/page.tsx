@@ -8,7 +8,7 @@ import { SiteHeader } from "@/components/site-header";
 import { ProductsSkeletonLoading } from "@/components/skeleton";
 import { columns, useDrawerConfig } from "./data-config";
 
-import { useOrder, useOrderList } from "@/hooks/useOrder";
+import { useOrder, useOrderList, useOrderStatus } from "@/hooks/useOrder";
 import {
   OrderResponse,
   OrderUpdateRequest,
@@ -20,6 +20,7 @@ export default function OrdersPage() {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
   const { update, error: updateError } = useOrder();
+  const { orderStatus } = useOrderStatus()
   const { orders, isLoading, isError, totalItems, mutate } = useOrderList(
     pagination.pageIndex + 1,
     pagination.pageSize
@@ -35,6 +36,10 @@ export default function OrdersPage() {
     });
   }, []);
 
+  const entregue = orderStatus.find((o) =>  o.identifier == 3)?.id 
+
+  const filteredOrders = orders.filter((o) => o.order_status.identifier == 2)
+
   const handleUpdateOrder = async (
     original: OrderResponse,
     updated: OrderUpdateRequest
@@ -42,10 +47,12 @@ export default function OrdersPage() {
     const payload = {
       id: original.id,
       is_delivered: true,
-      order_status_id: "9a9fc47a-4fb0-429a-b39f-d2b815015eaf"
+      order_status_id: entregue
     };
+
     try {
       await update(payload);
+      console.log(entregue)
       toast.success("Pedido entregue com sucesso!");
       mutate();
     } catch (error) {

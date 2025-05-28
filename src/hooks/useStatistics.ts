@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axiosInstance from "@/lib/axios";
+
 import { useApiBase } from "./api/useApiBase";
 import {
   CreateUserRequest,
@@ -10,12 +10,13 @@ import {
 } from "@/types/User";
 import { ProductionScheduleResponse } from "@/types/Logistics";
 import { ReportResponse } from "@/types/Reports";
+import api from "@/lib/axios";
 
 // Hook para obter o usuário atual (usando SWR)
 export function useProductionSchedule() {
-  const { data, error, isLoading } = useApiBase<{ production_schedule: ProductionScheduleResponse[] }>(
-    `/logistic`
-  );
+  const { data, error, isLoading } = useApiBase<{
+    production_schedule: ProductionScheduleResponse[];
+  }>(`/logistic`);
   return {
     productionSchedule: data?.production_schedule ?? [],
     isLoading,
@@ -48,9 +49,8 @@ export function useUserList() {
 }
 
 export function useGroupList() {
-  const { data, error, isLoading } = useApiBase<GroupsResponse>(
-    `/accounts/groups/`
-  );
+  const { data, error, isLoading } =
+    useApiBase<GroupsResponse>(`/accounts/groups/`);
   return {
     groups: data?.groups ?? [], // garante um array mesmo se der erro
     isLoading,
@@ -67,7 +67,7 @@ export function useUser() {
     setError(null);
 
     try {
-      const response = await axiosInstance.post(
+      const response = await api.post(
         `/accounts/users/invitation/accepted/?token=${token}`,
 
         user
@@ -88,9 +88,7 @@ export function useUser() {
     setError(null);
 
     try {
-      const response = await axiosInstance.post(`/accounts/users/invitation/`, 
-        user,
-      );
+      const response = await api.post(`/accounts/users/invitation/`, user);
       return response;
     } catch (error: any) {
       setError(
@@ -107,10 +105,7 @@ export function useUser() {
     setError(null);
 
     try {
-      const response = await axiosInstance.delete(
-        `/accounts/users/?id=${id}`,
-        {}
-      );
+      const response = await api.delete(`/accounts/users/?id=${id}`, {});
       return response;
     } catch (error: any) {
       setError(

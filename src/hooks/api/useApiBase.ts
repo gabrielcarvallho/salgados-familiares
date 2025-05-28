@@ -1,8 +1,8 @@
 import useSWR, { SWRConfiguration } from "swr";
 import { useRouter } from "next/navigation";
 import { ApiError } from "@/types/ApiBase";
-import api from "./api";
 import { AxiosError } from "axios";
+import api from "@/lib/axios";
 
 export function useApiBase<T>(
   endpoint: string | null,

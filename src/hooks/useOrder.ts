@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axiosInstance from "@/lib/axios";
+
 import { useApiBase } from "./api/useApiBase";
 import type {
   OrderRequest,
@@ -11,6 +11,7 @@ import type {
 import { PaymentMethodsResponse } from "@/types/PaymentMethod";
 import { CustomerResponse } from "@/types/Customer";
 import { handleApiError } from "./api/apiErrorHandler";
+import api from "@/lib/axios";
 
 // Hook para obter uma ordem por ID (usando SWR)
 export function useOrderById(id: string) {
@@ -71,7 +72,7 @@ export function useOrder() {
     setError(null);
 
     try {
-      const response = await axiosInstance.post(`/orders/`, order);
+      const response = await api.post(`/orders/`, order);
       return response;
     } catch (error) {
       const formattedError = handleApiError(error);
@@ -87,9 +88,7 @@ export function useOrder() {
     setError(null);
 
     try {
-      const response = await axiosInstance.patch(`/orders/`, 
-        order,
-      );
+      const response = await api.patch(`/orders/`, order);
       return response;
     } catch (error) {
       const formattedError = handleApiError(error);
@@ -105,9 +104,7 @@ export function useOrder() {
     setError(null);
 
     try {
-      const response = await axiosInstance.post(`/orders/`, 
-        order,
-      );
+      const response = await api.post(`/orders/`, order);
       return response;
     } catch (error) {
       const formattedError = handleApiError(error);
@@ -123,7 +120,7 @@ export function useOrder() {
     setError(null);
 
     try {
-      await axiosInstance.patch(`/orders/finish-work/`);
+      await api.patch(`/orders/finish-work/`);
     } catch (error) {
       const formattedError = handleApiError(error);
       setError(formattedError.message);
@@ -138,7 +135,7 @@ export function useOrder() {
     setError(null);
 
     try {
-      const response = await axiosInstance.delete(`/orders/?id=${id}`, {});
+      const response = await api.delete(`/orders/?id=${id}`, {});
       return response;
     } catch (error) {
       const formattedError = handleApiError(error);
@@ -156,6 +153,6 @@ export function useOrder() {
     create,
     createWithAddress,
     del,
-    finishWork
+    finishWork,
   };
 }
