@@ -31,6 +31,7 @@ import {
   Hotel,
 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
+
 import { useForm } from "react-hook-form";
 import {
   Form,
@@ -61,6 +62,7 @@ import {
   formatDateInput,
   formatPhone,
 } from "@/lib/utils";
+import { getErrorMessage } from "@/hooks/api/apiErrorHandler";
 
 export function DialogClientes() {
   const { mutate } = useCustomerList();
@@ -135,11 +137,10 @@ export function DialogClientes() {
 
   // Exibir todos os erros no console ao submeter o formulário
   if (formSubmitted && Object.keys(errors).length > 0) {
-    console.log(
-      "Todos os erros do formulário:",
-      JSON.stringify(errors, null, 2)
-    );
+    "Todos os erros do formulário:", JSON.stringify(errors, null, 2);
   }
+
+  // Importe o apiErrorHandler
 
   const onSubmit = async (formData: CustomerRequest) => {
     try {
@@ -155,7 +156,7 @@ export function DialogClientes() {
         },
       };
 
-      console.log("Dados formatados para envio:", dataToSubmit);
+      "Dados formatados para envio:", dataToSubmit;
 
       await create(dataToSubmit);
       mutate();
@@ -167,8 +168,12 @@ export function DialogClientes() {
       setOpen(false);
     } catch (error) {
       console.error("Erro ao cadastrar cliente:", error);
+
+      // O getErrorMessage agora vai capturar corretamente "Invalid CNPJ." do seu exemplo
+      const errorMessage = getErrorMessage(error);
+
       toast.error("Falha ao cadastrar cliente!", {
-        description: err || String(error),
+        description: errorMessage,
         duration: 3000,
       });
     }
@@ -179,12 +184,12 @@ export function DialogClientes() {
     e.preventDefault();
     setFormSubmitted(true);
 
-    console.log("Tentando validar o formulário...");
+    ("Tentando validar o formulário...");
     const formValid = await trigger();
-    console.log("O formulário é válido?", formValid);
+    "O formulário é válido?", formValid;
 
     if (formValid) {
-      console.log("Formulário válido. Chamando onSubmit...");
+      ("Formulário válido. Chamando onSubmit...");
       handleSubmit(onSubmit)();
     } else {
       toast.error("Por favor, corrija os erros no formulário", {

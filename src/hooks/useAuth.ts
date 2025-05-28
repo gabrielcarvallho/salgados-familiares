@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import axiosInstance from "@/lib/axios";
+
 import { useApiBase } from "./api/useApiBase";
 import { Login, User } from "@/types/Auth";
 import { handleApiError } from "./api/apiErrorHandler";
 import { Group } from "@/types/User";
+// import api from "@/lib/axios";
+import api from "@/lib/axios";
 
 // Hook para obter grupos de autorização (usando SWR)
 export function useAuthGroups() {
@@ -30,9 +32,9 @@ export function useAuth() {
 
     try {
       // 1) Faz o login
-      const response = await axiosInstance.post("/accounts/token/", loginData);
+      const response = await api.post("/accounts/token/", loginData);
 
-      const {user} = response.data
+      const { user } = response.data;
 
       const getHomePage = (groupId: number | null | undefined) => {
         switch (groupId) {
@@ -44,21 +46,17 @@ export function useAuth() {
             return "/dashboard/";
         }
       };
-      
 
-      const homePage = getHomePage(user.group_id)
-
-      console.log(homePage)
+      const homePage = getHomePage(user.group_id);
 
       router.push(homePage);
-
       return true;
     } catch (err) {
       const formattedError = handleApiError(err);
       setError(
         formattedError.message || "Falha no login. Verifique suas credenciais."
       );
-      return false;
+      throw new Error(formattedError.message);
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +67,7 @@ export function useAuth() {
     setError(null);
 
     try {
-      await axiosInstance.post("/accounts/token/logout/");
+      await api.post("/accounts/token/logout/");
       router.push("/login");
       return true;
     } catch (error) {

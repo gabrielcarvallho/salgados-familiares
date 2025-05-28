@@ -193,9 +193,7 @@ export function DialogPedidos() {
       setValue("order_status_id", orderStatus[0].id);
     }
 
-    console.log("Validando formulário, valores atuais:", getValues());
     const formValid = await trigger();
-    console.log("Resultado da validação, erros:", errors);
 
     if (formValid) {
       handleSubmit(onSubmit)();
@@ -244,7 +242,6 @@ export function DialogPedidos() {
           },
         };
 
-        console.log("Payload enviado:", payload);
         await createWithAddress(payload);
       } else {
         await create(payload);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axiosInstance from "@/lib/axios";
+
 import { useApiBase } from "./api/useApiBase";
 import {
   type AddressUpdate,
@@ -9,6 +9,7 @@ import {
   type ViaCEP,
 } from "@/types/Customer";
 import { handleApiError } from "./api/apiErrorHandler";
+import api from "@/lib/axios";
 
 // Hook para obter um cliente por ID (usando SWR)
 export function useCustomerById(id: string) {
@@ -43,7 +44,6 @@ export function useCNPJ(cnpj: string) {
   };
 }
 
-
 export function useCustomerList(page = 1, page_size = 10) {
   const { data, error, isLoading, mutate } = useApiBase<{
     count: number;
@@ -69,7 +69,7 @@ export function useCustomer() {
     setError(null);
 
     try {
-      const response = await axiosInstance.post(`/customers/`, Customer);
+      const response = await api.post(`/customers/`, Customer);
       return response;
     } catch (error) {
       const formattedError = handleApiError(error);
@@ -85,7 +85,7 @@ export function useCustomer() {
     setError(null);
 
     try {
-      const response = await axiosInstance.patch(`/customers/`, Customer);
+      const response = await api.patch(`/customers/`, Customer);
       return response;
     } catch (error) {
       const formattedError = handleApiError(error);
@@ -101,7 +101,7 @@ export function useCustomer() {
     setError(null);
 
     try {
-      const response = await axiosInstance.patch(`/customers/address/`, {
+      const response = await api.patch(`/customers/address/`, {
         address,
       });
       return response;
@@ -119,7 +119,7 @@ export function useCustomer() {
     setError(null);
 
     try {
-      const response = await axiosInstance.delete(`/customers/?id=${id}`, {});
+      const response = await api.delete(`/customers/?id=${id}`, {});
       return response;
     } catch (error) {
       const formattedError = handleApiError(error);
@@ -135,10 +135,7 @@ export function useCustomer() {
     setError(null);
 
     try {
-      const response = await axiosInstance.delete(
-        `/customers/address/?id=${id}`,
-        {}
-      );
+      const response = await api.delete(`/customers/address/?id=${id}`, {});
       return response;
     } catch (error) {
       const formattedError = handleApiError(error);

@@ -74,7 +74,7 @@ export const columns: ColumnDef<OrderResponse, any>[] = [
     header: "Método de Pagamento",
     cell: ({ row }) => (
       <Badge variant="outline">
-        {formatPaymentMethod(row.original.payment_method.name)}
+        {(row.original.payment_method.name)}
       </Badge>
     ),
   },
@@ -137,9 +137,7 @@ export function useDrawerConfig() {
           </span>
         </div>
         {o.order_status && (
-          <Badge
-            variant={badgesVariant(o.order_status.identifier).badge}
-          >
+          <Badge variant={badgesVariant(o.order_status.identifier).badge}>
             {badgesVariant(o.order_status.identifier).stats}
           </Badge>
         )}
@@ -159,7 +157,7 @@ export function useDrawerConfig() {
               <ShoppingCart className="h-5 w-5 text-[#FF8F3F]" />
               <h3 className="text-base font-medium">Informações do Pedido</h3>
             </div>
-            <Separator  />
+            <Separator />
           </div>
         ),
       },
@@ -171,9 +169,6 @@ export function useDrawerConfig() {
         colSpan: 2,
 
         defaultValue: (o) => {
-          console.log("Order Status ID defaultValue:", o.order_status.id);
-          console.log("Order Status Identifier:", o.order_status.identifier);
-          // Store both the ID and whether it's editable
           return {
             value: String(o.order_status.id),
             isEditable: Number(o.order_status.identifier) === 0,
@@ -189,7 +184,6 @@ export function useDrawerConfig() {
               : { value: String(valueObj), isEditable: false };
 
           const safeValue = value || "";
-          console.log("Status editable:", isEditable);
 
           return (
             <div className="space-y-2">
@@ -237,7 +231,6 @@ export function useDrawerConfig() {
               : { value: String(valueObj), isEditable: false };
 
           const safeValue = value || "";
-          console.log("Payment method editable:", isEditable);
 
           return (
             <div className="space-y-2">
@@ -257,7 +250,7 @@ export function useDrawerConfig() {
                 <SelectContent>
                   {paymentMethods.map((pm) => (
                     <SelectItem key={pm.id} value={String(pm.id)}>
-                      {formatPaymentMethod(pm.name)}
+                      {(pm.name)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -284,7 +277,6 @@ export function useDrawerConfig() {
               ? valueObj
               : { value: valueObj, isEditable: false };
 
-          console.log("Delivery date editable:", isEditable);
 
           return (
             <div className="space-y-2">
@@ -320,7 +312,6 @@ export function useDrawerConfig() {
               ? valueObj
               : { value: valueObj, isEditable: false };
 
-
           return (
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
@@ -328,7 +319,7 @@ export function useDrawerConfig() {
                 <span>Data de vencimento</span>
               </Label>
               <DatePicker
-              disabled
+                disabled
                 value={value}
                 onChange={(newValue) =>
                   onChange({ value: newValue, isEditable })
@@ -357,32 +348,35 @@ export function useDrawerConfig() {
         name: "products",
         type: "custom",
         colSpan: 2,
-      
+
         // 1) estado interno do form: { items: [], isEditable: boolean }
         defaultValue: (o) => ({
           items: Array.isArray(o.products)
-            ? o.products.map((p: { product: { id: any; }; quantity: any; }) => ({
+            ? o.products.map((p: { product: { id: any }; quantity: any }) => ({
                 product_id: String(p.product.id),
                 quantity: p.quantity,
               }))
             : [],
         }),
-      
+
         // 2) antes de validar, extraímos só o array
         formatValue: (valueObj) => {
-          if (valueObj && typeof valueObj === "object" && Array.isArray(valueObj.items)) {
+          if (
+            valueObj &&
+            typeof valueObj === "object" &&
+            Array.isArray(valueObj.items)
+          ) {
             return valueObj.items;
           }
           return [];
         },
-      
+
         // 3) UI: continua recebendo { items, isEditable }
         customRender: (valueObj, onChange) => {
           const { items = [], isEditable } =
             typeof valueObj === "object" && valueObj !== null
               ? valueObj
               : { items: [], isEditable: false };
-
 
           // Função para atualizar os itens quando o ProductSelector mudar
           const handleProductChange = (newItems: any) => {
@@ -422,38 +416,35 @@ export function useDrawerConfig() {
           };
 
           // Se for editável, mostrar o ProductSelector
-            return (
-              <div className="space-y-4">
-                <div className="">
-                  <ProductSelector
-                    products={formattedProducts}
-                    value={items}
-                    onChange={handleProductChange}
-                  />
-                </div>
-
-                {items.length > 0 && (
-                  <Card className="bg-muted/40 border-muted">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Calculator className="h-4 w-4 text-[#FF8F3F]" />
-                        <h3 className="text-sm font-medium">
-                          Resumo do Pedido
-                        </h3>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total:</span>
-                        <span className="font-medium text-lg text-[#FF8F3F]">
-                          R$ {calculateTotal().toFixed(2)}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+          return (
+            <div className="space-y-4">
+              <div className="">
+                <ProductSelector
+                  products={formattedProducts}
+                  value={items}
+                  onChange={handleProductChange}
+                />
               </div>
-            );
-          
+
+              {items.length > 0 && (
+                <Card className="bg-muted/40 border-muted">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Calculator className="h-4 w-4 text-[#FF8F3F]" />
+                      <h3 className="text-sm font-medium">Resumo do Pedido</h3>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Total:</span>
+                      <span className="font-medium text-lg text-[#FF8F3F]">
+                        R$ {calculateTotal().toFixed(2)}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          );
         },
       },
       // {
@@ -473,10 +464,10 @@ export function useDrawerConfig() {
 
       // // CEP: exibe formatado, envia limpo
       // {
-      //   name: "billing_address.cep",
+      //   name: "delivery_address.cep",
       //   type: "custom",
       //   colSpan: 2,
-      //   defaultValue: (o) => formatCEP(o.billing_address.cep),
+      //   defaultValue: (o) => formatCEP(o.delivery_address.cep),
       //   formatValue: (v) => formatCEP(v),
       //   parseValue: (v) => cleanCEP(v),
       //   customRender: (value: string, onChange: (v: string) => void) => (
@@ -498,7 +489,7 @@ export function useDrawerConfig() {
 
       // // Endereço completo em campos separados
       // {
-      //   name: "billing_address.street_name",
+      //   name: "delivery_address.street_name",
       //   type: "custom",
       //   colSpan: 1,
       //   customRender: (value: string, onChange: (v: string) => void) => (
@@ -519,7 +510,7 @@ export function useDrawerConfig() {
 
       // // Número e Bairro na mesma linha
       // {
-      //   name: "billing_address.number",
+      //   name: "delivery_address.number",
       //   type: "custom",
       //   colSpan: 1,
       //   customRender: (value: string, onChange: (v: string) => void) => (
@@ -538,7 +529,7 @@ export function useDrawerConfig() {
       //   ),
       // },
       // {
-      //   name: "billing_address.district",
+      //   name: "delivery_address.district",
       //   type: "custom",
       //   colSpan: 1,
       //   customRender: (value: string, onChange: (v: string) => void) => (
@@ -559,7 +550,7 @@ export function useDrawerConfig() {
 
       // // Cidade e Estado na mesma linha
       // {
-      //   name: "billing_address.city",
+      //   name: "delivery_address.city",
       //   type: "custom",
       //   colSpan: 1,
       //   customRender: (value: string, onChange: (v: string) => void) => (
@@ -578,7 +569,7 @@ export function useDrawerConfig() {
       //   ),
       // },
       // {
-      //   name: "billing_address.state",
+      //   name: "delivery_address.state",
       //   type: "custom",
       //   colSpan: 1,
       //   customRender: (value: string, onChange: (v: string) => void) => (
@@ -598,7 +589,7 @@ export function useDrawerConfig() {
       //   ),
       // },
       // {
-      //   name: "billing_address.description",
+      //   name: "delivery_address.description",
       //   type: "custom",
       //   colSpan: 1,
       //   customRender: (value: string, onChange: (v: string) => void) => (
@@ -608,7 +599,7 @@ export function useDrawerConfig() {
       //         <span className="text-destructive"></span>
       //       </Label>
       //       <Input
-      //         value={value}
+      //         value={value ?? ""}
       //         onChange={(e) => onChange(e.target.value)}
       //         placeholder="Trabalho"
       //         className="transition-all focus-visible:ring-[#FF8F3F]"
@@ -619,7 +610,7 @@ export function useDrawerConfig() {
 
       // // Observação
       // {
-      //   name: "billing_address.observation",
+      //   name: "delivery_address.observation",
       //   type: "custom",
       //   colSpan: 2,
       //   customRender: (value: string, onChange: (v: string) => void) => (
@@ -628,7 +619,7 @@ export function useDrawerConfig() {
       //         <span>Observação</span>
       //       </Label>
       //       <Textarea
-      //         value={value}
+      //         value={value ?? ""}
       //         onChange={(e) => onChange(e.target.value)}
       //         placeholder="Observações sobre o endereço"
       //         className="min-h-[80px] transition-all focus-visible:ring-[#FF8F3F]"

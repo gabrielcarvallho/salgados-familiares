@@ -60,6 +60,7 @@ import {
   EMPTY_USER,
 } from "@/types/User";
 import { formatGroup } from "@/lib/utils";
+import { getErrorMessage } from "@/hooks/api/apiErrorHandler";
 
 export function DialogUsuario() {
   const {
@@ -100,8 +101,11 @@ const selectedGroup = groups.find((g) => Number(g.id) === groupId);
       form.reset(EMPTY_USER);
       setOpen(false);
     } catch (err: any) {
+
+      const errorMessage = getErrorMessage(err);
+
       toast.error("Falha ao convidar usuário!", {
-        description: inviteError || String(err),
+        description: errorMessage || String(err),
         duration: 3000,
       });
     }
