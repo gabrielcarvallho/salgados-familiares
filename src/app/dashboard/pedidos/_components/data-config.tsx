@@ -179,9 +179,6 @@ export function useDrawerConfig() {
         colSpan: 2,
 
         defaultValue: (o) => {
-          "Order Status ID defaultValue:", o.order_status.id;
-          "Order Status Identifier:", o.order_status.identifier;
-          // Store both the ID and whether it's editable
           return {
             value: String(o.order_status.id),
             isEditable: Number(o.order_status.identifier) === 0,
@@ -197,7 +194,6 @@ export function useDrawerConfig() {
               : { value: String(valueObj), isEditable: false };
 
           const safeValue = value || "";
-          "Status editable:", isEditable;
 
           return (
             <div className="space-y-2">
@@ -246,7 +242,6 @@ export function useDrawerConfig() {
               : { value: String(valueObj), isEditable: false };
 
           const safeValue = value || "";
-          "Payment method editable:", isEditable;
 
           return (
             <div className="space-y-2">
@@ -294,7 +289,6 @@ export function useDrawerConfig() {
               ? valueObj
               : { value: valueObj, isEditable: false };
 
-          "Delivery date editable:", isEditable;
 
           return (
             <div className="space-y-2">
@@ -331,7 +325,7 @@ export function useDrawerConfig() {
               ? valueObj
               : { value: valueObj, isEditable: false };
 
-          "Due date editable:", isEditable;
+
 
           return (
             <div className="space-y-2">
@@ -400,7 +394,7 @@ export function useDrawerConfig() {
               ? valueObj
               : { items: [], isEditable: false };
 
-          "Products editable:", isEditable;
+
 
           // Função para atualizar os itens quando o ProductSelector mudar
           const handleProductChange = (newItems: any) => {

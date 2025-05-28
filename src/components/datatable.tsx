@@ -165,7 +165,6 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
   useEffect(() => {
     if (!drawerConfig || !isDrawerOpen) return;
 
-    "Initializing form data for item:", item;
     const initial: any = {};
 
     drawerConfig.fields.forEach((f) => {
@@ -177,18 +176,17 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
       // Apply parseValue if provided
       const parsedValue = f.parseValue ? f.parseValue(raw) : raw;
 
-      `Field ${f.name}:`, { raw, parsed: parsedValue };
 
       // Set the value in our form data object
       setNested(initial, f.name, parsedValue);
     });
 
-    "Initial form data:", initial;
+
     setFormData(initial);
   }, [item, drawerConfig, isDrawerOpen]);
 
   const handleChange = (name: string, val: any) => {
-    `Changing ${name} to:`, val;
+
     const updated = { ...formData };
     setNested(updated, name, val);
     setFormData(updated);
@@ -217,7 +215,6 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
         setNested(raw, f.name, formattedValue);
       });
 
-      "Saving with data:", raw;
 
       // Validate with schema
       const validated: TUpdate = drawerConfig.updateSchema.parse(raw);
@@ -316,7 +313,6 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
                   getNested(formData, f.name) ??
                   (f.type === "number" ? 0 : f.type === "select" ? "" : "");
 
-                `Rendering field ${f.name} with value:`, curr;
 
                 return (
                   <div
@@ -445,9 +441,10 @@ export function DataTable<
       let result;
 
       if (fetchData) {
-        "Calling fetchData with page:", page, "pageSize:", pageSize;
+
         result = await fetchData(page, pageSize); // Mantenha 0-based index se já for usado no fetchData
-        "Data received from fetchData:", result;
+      
+      
       } else if (apiEndpoint) {
         const url = new URL(`${API_URL}${apiEndpoint}`);
         url.searchParams.append("page", String(page + 1)); // 1-based para backend
@@ -459,7 +456,6 @@ export function DataTable<
 
         const response = await fetch(url.toString());
         const responseData = await response.json();
-        "API response:", responseData;
 
         result = {
           data: responseData.results || responseData.data || [],
@@ -468,8 +464,7 @@ export function DataTable<
       }
 
       if (result) {
-        "Setting data:", result.data;
-        "Setting totalCount:", result.totalCount;
+        
         setData(result.data);
         setTotalCount(result.totalCount);
         // Atualiza o pageCount da tabela
@@ -513,8 +508,7 @@ export function DataTable<
       table.setPageCount(pageCount);
     }
 
-    "Initial data updated:", initialData;
-    "Initial totalCount updated:", initialTotalCount;
+
   }, [initialData, initialTotalCount]);
 
   // Atualize a configuração da tabela
@@ -537,8 +531,6 @@ export function DataTable<
       // This function is called when pagination is changed by the table
       const newPagination =
         typeof updater === "function" ? updater(pagination) : updater;
-
-      "Pagination updated to:", newPagination;
       setPagination(newPagination);
 
       // Only call this ONCE when the user explicitly changes pagination
