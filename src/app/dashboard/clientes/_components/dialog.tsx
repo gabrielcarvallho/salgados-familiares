@@ -137,7 +137,6 @@ export function DialogClientes() {
 
   // Exibir todos os erros no console ao submeter o formulário
   if (formSubmitted && Object.keys(errors).length > 0) {
-    "Todos os erros do formulário:", JSON.stringify(errors, null, 2);
   }
 
   // Importe o apiErrorHandler
@@ -156,7 +155,7 @@ export function DialogClientes() {
         },
       };
 
-      "Dados formatados para envio:", dataToSubmit;
+
 
       await create(dataToSubmit);
       mutate();
@@ -186,7 +185,7 @@ export function DialogClientes() {
 
     ("Tentando validar o formulário...");
     const formValid = await trigger();
-    "O formulário é válido?", formValid;
+
 
     if (formValid) {
       ("Formulário válido. Chamando onSubmit...");

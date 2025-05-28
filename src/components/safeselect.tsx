@@ -47,7 +47,6 @@ export function SafeSelect({
   useEffect(() => {
     if (!isValidValue && safeOptions.length > 0 && !safeValue && value !== "") {
       const defaultValue = String(safeOptions[0].value);
-      "Setting default value:", defaultValue;
       setSafeValue(defaultValue);
       onValueChange(defaultValue);
     }
