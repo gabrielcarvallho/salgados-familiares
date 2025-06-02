@@ -20,7 +20,7 @@ export default function OrdersPage() {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
   const { update, error: updateError } = useOrder();
-  const { orderStatus } = useOrderStatus()
+  const { orderStatus } = useOrderStatus();
   const { orders, isLoading, isError, totalItems, mutate } = useOrderList(
     pagination.pageIndex + 1,
     pagination.pageSize
@@ -36,9 +36,9 @@ export default function OrdersPage() {
     });
   }, []);
 
-  const entregue = orderStatus.find((o) =>  o.identifier == 3)?.id 
+  const entregue = orderStatus.find((o) => o.identifier == 3)?.id;
 
-  const filteredOrders = orders.filter((o) => o.order_status.identifier == 2)
+  const filteredOrders = orders.filter((o) => o.order_status.identifier == 2);
 
   const handleUpdateOrder = async (
     original: OrderResponse,
@@ -47,12 +47,12 @@ export default function OrdersPage() {
     const payload = {
       id: original.id,
       is_delivered: true,
-      order_status_id: entregue
+      order_status_id: entregue,
     };
 
     try {
       await update(payload);
-      console.log(entregue)
+      console.log(entregue);
       toast.success("Pedido entregue com sucesso!");
       mutate();
     } catch (error) {
@@ -64,9 +64,11 @@ export default function OrdersPage() {
     }
   };
 
-    if (isLoading) {
-      return <OrdersSkeletonLoading />
-    }
+  const handleSaveOrder = () => {};
+
+  if (isLoading) {
+    return <OrdersSkeletonLoading />;
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -79,21 +81,30 @@ export default function OrdersPage() {
           Erro ao carregar pedidos: {String(isError)}
         </div>
       ) : (
-          <DataTable<OrderResponse, OrderUpdateRequest>
-            updateSchema={orderUpdateRequestSchema}
-            drawerConfig={drawerConfig}
-            title="Pedidos esperando por entrega"
-            columns={columns}
-            data={filteredOrders || []}
-            totalCount={totalItems || 0}
-            pageSize={pagination.pageSize}
-            currentPage={pagination.pageIndex}
-            onUpdate={handleUpdateOrder}
-            onPaginationChange={handlePaginationChange}
-            mutate={mutate}
-            saveButtonText="Finalizar entrega"
-            savingButtonText="Finalizando..."
-          />
+        <DataTable<OrderResponse, OrderUpdateRequest>
+          updateSchema={orderUpdateRequestSchema}
+          drawerConfig={drawerConfig}
+          title="Pedidos esperando por entrega"
+          columns={columns}
+          data={filteredOrders || []}
+          totalCount={totalItems || 0}
+          pageSize={pagination.pageSize}
+          currentPage={pagination.pageIndex}
+          onUpdate={handleUpdateOrder}
+          onSaveOrder={async (newOrder) => {
+            if (!newOrder) {
+              // nada para salvar
+              return;
+            }
+            await update(newOrder)
+          }}
+          onPaginationChange={handlePaginationChange}
+          mutate={mutate}
+          saveButtonText="Finalizar entrega"
+          savingButtonText="Finalizando..."
+          enableDragAndDrop={true}
+          dragHandle={true}
+        />
       )}
     </div>
   );

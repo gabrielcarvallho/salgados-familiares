@@ -207,7 +207,7 @@ export function useDrawerConfig() {
             <Input
               disabled
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) => onChange(e.target.value)}
               placeholder="dd/mm/yyyy"
               className="focus-visible:ring-[#FF8F3F]"
             />
@@ -230,7 +230,7 @@ export function useDrawerConfig() {
             <Input
               disabled
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) => onChange(e.target.value)}
               placeholder="dd/mm/yyyy"
               className="focus-visible:ring-[#FF8F3F]"
             />
@@ -270,7 +270,7 @@ export function useDrawerConfig() {
             <Input
               disabled
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) => onChange(e.target.value)}
               placeholder="00000-000"
               className="focus-visible:ring-[#FF8F3F]"
             />
@@ -294,7 +294,7 @@ export function useDrawerConfig() {
             <Input
               disabled
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) => onChange(e.target.value)}
               className="focus-visible:ring-[#FF8F3F]"
             />
           </div>

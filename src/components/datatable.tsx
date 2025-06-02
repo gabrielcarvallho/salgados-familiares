@@ -8,6 +8,7 @@ import {
   IconChevronsLeft,
   IconChevronsRight,
   IconLayoutColumns,
+  IconGripVertical,
 } from "@tabler/icons-react";
 import {
   ColumnDef,
@@ -25,6 +26,25 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useState, useEffect } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  TouchSensor,
+  MouseSensor,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 import { useIsMobile } from "@/lib/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -63,7 +83,7 @@ import {
 } from "@/components/ui/table";
 import { ZodType } from "zod";
 import { AlertDelete } from "./alerts";
-import { Loader2, Search, Trash2, XIcon } from "lucide-react";
+import { Loader2, Search, Trash2, XIcon, Save, RotateCcw } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -94,6 +114,7 @@ export type DrawerConfig<TData, TUpdate extends Record<string, any>> = {
   updateSchema?: ZodType<TUpdate>;
   mutate?: any;
 };
+
 // Props para o componente DataTable
 export type DataTableProps<
   TData extends Record<string, any>,
@@ -108,6 +129,7 @@ export type DataTableProps<
   onUpdate?: (original: TData, updated: TUpdate) => Promise<void> | void;
   onCreate?: (newItem: TData) => Promise<void> | void;
   onDelete?: (item: TData) => Promise<void> | void;
+  onSaveOrder?: (tableOrder?: TData[]) => Promise<void> | void; // Nova prop para salvar ordem
   pageSize?: number;
   totalCount?: number;
   fetchData?: (
@@ -120,7 +142,62 @@ export type DataTableProps<
   saveButtonText?: React.ReactNode;
   savingButtonText?: React.ReactNode;
   mutate?: () => void;
+  enableDragAndDrop?: boolean; // Flag para habilitar DnD
+  dragHandle?: boolean; // Se deve mostrar handle de drag
 };
+
+// Componente SortableRow para drag and drop
+function SortableTableRow<TData, TUpdate extends Record<string, any>>({
+  row,
+  drawerConfig,
+  onUpdate,
+  onDelete,
+  saveButtonText = "Salvar",
+  savingButtonText = "Salvando...",
+  mutate,
+  dragHandle = true,
+}: {
+  row: Row<TData>;
+  drawerConfig?: DrawerConfig<TData, TUpdate>;
+  onUpdate?: (original: TData, updated: TUpdate) => Promise<void> | void;
+  onDelete?: (item: TData) => Promise<void> | void;
+  saveButtonText?: React.ReactNode;
+  savingButtonText?: React.ReactNode;
+  mutate?: () => void;
+  dragHandle?: boolean;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: row.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableRowWithDrawer
+      ref={setNodeRef}
+      style={style}
+      row={row}
+      drawerConfig={drawerConfig}
+      onUpdate={onUpdate}
+      onDelete={onDelete}
+      saveButtonText={saveButtonText}
+      savingButtonText={savingButtonText}
+      mutate={mutate}
+      dragHandle={dragHandle}
+      dragAttributes={attributes}
+      dragListeners={listeners}
+    />
+  );
+}
 
 function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
   row,
@@ -130,6 +207,11 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
   saveButtonText = "Salvar",
   savingButtonText = "Salvando...",
   mutate,
+  dragHandle = false,
+  dragAttributes,
+  dragListeners,
+  style,
+  ...props
 }: {
   row: Row<TData>;
   drawerConfig?: DrawerConfig<TData, TUpdate>;
@@ -138,7 +220,11 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
   saveButtonText?: React.ReactNode;
   savingButtonText?: React.ReactNode;
   mutate?: () => void;
-}) {
+  dragHandle?: boolean;
+  dragAttributes?: any;
+  dragListeners?: any;
+  style?: React.CSSProperties;
+} & React.ComponentProps<typeof TableRow>) {
   const isMobile = useIsMobile();
   const item = row.original;
   const [formData, setFormData] = useState<any>({});
@@ -176,17 +262,14 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
       // Apply parseValue if provided
       const parsedValue = f.parseValue ? f.parseValue(raw) : raw;
 
-
       // Set the value in our form data object
       setNested(initial, f.name, parsedValue);
     });
-
 
     setFormData(initial);
   }, [item, drawerConfig, isDrawerOpen]);
 
   const handleChange = (name: string, val: any) => {
-
     const updated = { ...formData };
     setNested(updated, name, val);
     setFormData(updated);
@@ -215,10 +298,8 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
         setNested(raw, f.name, formattedValue);
       });
 
-
       // Validate with schema
       const validated: TUpdate = drawerConfig.updateSchema.parse(raw);
-
 
       // Call update handler
       await onUpdate(item, validated);
@@ -243,7 +324,18 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
 
   if (!drawerConfig) {
     return (
-      <TableRow>
+      <TableRow style={style} {...props}>
+        {dragHandle && (
+          <TableCell className="w-12">
+            <div
+              className="cursor-grab hover:cursor-grabbing p-1"
+              {...dragAttributes}
+              {...dragListeners}
+            >
+              <IconGripVertical className="h-4 w-4 text-gray-400" />
+            </div>
+          </TableCell>
+        )}
         {row.getVisibleCells().map((cell) => (
           <TableCell key={cell.id}>
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -267,7 +359,23 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
         }}
       >
         <DrawerTrigger asChild>
-          <TableRow className="cursor-pointer hover:bg-muted/50">
+          <TableRow
+            className="cursor-pointer hover:bg-muted/50"
+            style={style}
+            {...props}
+          >
+            {dragHandle && (
+              <TableCell className="w-12">
+                <div
+                  className="cursor-grab hover:cursor-grabbing p-1"
+                  {...dragAttributes}
+                  {...dragListeners}
+                  onClick={(e) => e.stopPropagation()} // Evita abrir drawer ao arrastar
+                >
+                  <IconGripVertical className="h-4 w-4 text-gray-400" />
+                </div>
+              </TableCell>
+            )}
             {row.getVisibleCells().map((cell) => (
               <TableCell key={cell.id}>
                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -312,7 +420,6 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
                   getNested(formData, f.name) ??
                   (f.type === "number" ? 0 : f.type === "select" ? "" : "");
 
-
                 return (
                   <div
                     key={f.name}
@@ -325,7 +432,9 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
                       <Input
                         id={f.name}
                         value={curr || ""}
-                        onChange={(e) => handleChange(f.name, e.target.value)}
+                        onChange={(e: { target: { value: any } }) =>
+                          handleChange(f.name, e.target.value)
+                        }
                         disabled={isLoading}
                         className="mt-1"
                       />
@@ -336,7 +445,7 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
                         type="number"
                         value={curr}
                         disabled={isLoading}
-                        onChange={(e) =>
+                        onChange={(e: { target: { value: string } }) =>
                           handleChange(f.name, parseFloat(e.target.value) || 0)
                         }
                         className="mt-1"
@@ -405,6 +514,7 @@ export function DataTable<
   drawerConfig,
   onUpdate,
   onDelete,
+  onSaveOrder, // Nova prop
   mutate,
   saveButtonText,
   savingButtonText,
@@ -413,7 +523,9 @@ export function DataTable<
   fetchData,
   apiEndpoint,
   currentPage = 0,
-  onPaginationChange, // Adicione esta prop
+  onPaginationChange,
+  enableDragAndDrop = false, // Nova prop
+  dragHandle = true, // Nova prop
 }: DataTableProps<TData, TUpdate>) {
   const [data, setData] = useState<TData[]>(() => initialData);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -426,6 +538,88 @@ export function DataTable<
   const [totalCount, setTotalCount] = useState(initialTotalCount);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Estados para controle do drag and drop
+  const [tableOrder, setTableOrder] = useState<TData[]>([]);
+  const [hasOrderChanged, setHasOrderChanged] = useState(false);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+
+  // Sensors para drag and drop
+  const sensors = useSensors(
+    // PointerSensor (desktop modernos e alguns mobile que suportam Pointer Events)
+
+    // TouchSensor (Android/iOS que não disparam PointerEvents corretamente)
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 0,
+        tolerance: 5,
+      },
+    }),
+
+    // MouseSensor (fallback caso TouchSensor/PointerSensor falhem em alguns navegadores)
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+
+    // KeyboardSensor (suporte a arrastar via teclado)
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Inicializar tableOrder quando data muda
+  useEffect(() => {
+    setTableOrder([...data]);
+    setHasOrderChanged(false);
+  }, [data]);
+
+  // Função para lidar com o fim do drag
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setTableOrder((items) => {
+        const oldIndex = items.findIndex(
+          (item, index) =>
+            `${index}` === active.id || (item as any).id === active.id
+        );
+        const newIndex = items.findIndex(
+          (item, index) =>
+            `${index}` === over.id || (item as any).id === over.id
+        );
+
+        const newOrder = arrayMove(items, oldIndex, newIndex);
+        setHasOrderChanged(true);
+        return newOrder;
+      });
+    }
+  };
+
+  // Função para salvar a nova ordem
+  const handleSaveOrder = async () => {
+    if (!onSaveOrder || !hasOrderChanged) return;
+
+    setIsSavingOrder(true);
+    try {
+      await onSaveOrder(tableOrder);
+      setHasOrderChanged(false);
+      // Atualizar os dados principais com a nova ordem
+      setData([...tableOrder]);
+      mutate?.();
+    } catch (error) {
+      console.error("Erro ao salvar ordem:", error);
+    } finally {
+      setIsSavingOrder(false);
+    }
+  };
+
+  // Função para resetar a ordem
+  const handleResetOrder = () => {
+    setTableOrder([...data]);
+    setHasOrderChanged(false);
+  };
 
   // Modificar o loadDataFromApi para garantir que está pegando os dados corretamente
   const loadDataFromApi = async (
@@ -440,10 +634,7 @@ export function DataTable<
       let result;
 
       if (fetchData) {
-
-        result = await fetchData(page, pageSize); // Mantenha 0-based index se já for usado no fetchData
-      
-      
+        result = await fetchData(page, pageSize);
       } else if (apiEndpoint) {
         const url = new URL(`${API_URL}${apiEndpoint}`);
         url.searchParams.append("page", String(page + 1)); // 1-based para backend
@@ -463,7 +654,6 @@ export function DataTable<
       }
 
       if (result) {
-        
         setData(result.data);
         setTotalCount(result.totalCount);
         // Atualiza o pageCount da tabela
@@ -476,8 +666,32 @@ export function DataTable<
     }
   };
 
+  // Memoize the pagination change handler to prevent re-creation on every render
+  const handlePaginationChange = React.useCallback(
+    (updater: any) => {
+      // Use React.startTransition to defer the state update
+      React.startTransition(() => {
+        const newPagination =
+          typeof updater === "function" ? updater(pagination) : updater;
+        setPagination(newPagination);
+
+        // Only call external handler if pagination actually changed
+        if (
+          onPaginationChange &&
+          (pagination.pageIndex !== newPagination.pageIndex ||
+            pagination.pageSize !== newPagination.pageSize)
+        ) {
+          // Defer the external call as well
+          setTimeout(() => {
+            onPaginationChange(newPagination);
+          }, 0);
+        }
+      });
+    },
+    [pagination, onPaginationChange]
+  );
+
   // Modificar o useEffect para manipular a paginação corretamente
-  // In DataTable component, modify this useEffect
   useEffect(() => {
     if (apiEndpoint || fetchData) {
       loadDataFromApi(pagination.pageIndex, pagination.pageSize, searchTerm);
@@ -506,14 +720,31 @@ export function DataTable<
     if (table && pageCount > 0) {
       table.setPageCount(pageCount);
     }
-
-
   }, [initialData, initialTotalCount]);
+
+  // Modificar as colunas para incluir a coluna de drag handle se necessário
+  const enhancedColumns = React.useMemo(() => {
+    if (!enableDragAndDrop || !dragHandle) return columns;
+
+    const dragColumn: ColumnDef<TData, any> = {
+      id: "drag-handle",
+      header: "",
+      cell: () => null, // O conteúdo será renderizado no componente de linha
+      size: 50,
+      enableSorting: false,
+      enableHiding: false,
+    };
+
+    return [dragColumn, ...columns];
+  }, [columns, enableDragAndDrop, dragHandle]);
+
+  // Usar tableOrder para os dados da tabela se drag and drop estiver habilitado
+  const tableData = enableDragAndDrop ? tableOrder : data;
 
   // Atualize a configuração da tabela
   const table = useReactTable({
-    data,
-    columns,
+    data: tableData,
+    columns: enhancedColumns,
     pageCount: Math.ceil(totalCount / pagination.pageSize),
     state: {
       globalFilter: searchTerm,
@@ -523,25 +754,10 @@ export function DataTable<
       pagination,
     },
     onGlobalFilterChange: setSearchTerm,
-    manualPagination: true,
-    getFilteredRowModel: getFilteredRowModel(), // coluna e global
+    manualPagination: !enableDragAndDrop, // Desabilitar paginação manual se DnD estiver ativo
+    getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    onPaginationChange: (updater) => {
-      // This function is called when pagination is changed by the table
-      const newPagination =
-        typeof updater === "function" ? updater(pagination) : updater;
-      setPagination(newPagination);
-
-      // Only call this ONCE when the user explicitly changes pagination
-      // Not on every effect run
-      if (
-        onPaginationChange &&
-        (pagination.pageIndex !== newPagination.pageIndex ||
-          pagination.pageSize !== newPagination.pageSize)
-      ) {
-        onPaginationChange(newPagination);
-      }
-    },
+    onPaginationChange: handlePaginationChange, // Use the memoized handler
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
@@ -567,68 +783,181 @@ export function DataTable<
             col.id === "order_number"
         );
 
+  const TableContent = () => (
+    <Table>
+      <TableHeader className="bg-muted sticky top-0 z-10">
+        {table.getHeaderGroups().map((headerGroup) => (
+          <TableRow key={headerGroup.id}>
+            {headerGroup.headers.map((header) => {
+              return (
+                <TableHead key={header.id} colSpan={header.colSpan}>
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
+                </TableHead>
+              );
+            })}
+          </TableRow>
+        ))}
+      </TableHeader>
+      <TableBody>
+        {table.getRowModel().rows?.length ? (
+          enableDragAndDrop ? (
+            <SortableContext
+              items={table.getRowModel().rows.map((row) => row.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {table.getRowModel().rows.map((row) => (
+                <SortableTableRow<TData, TUpdate>
+                  key={row.id}
+                  row={row}
+                  drawerConfig={drawerConfig}
+                  onUpdate={onUpdate}
+                  onDelete={onDelete}
+                  saveButtonText={saveButtonText}
+                  savingButtonText={savingButtonText}
+                  mutate={mutate}
+                  dragHandle={dragHandle}
+                />
+              ))}
+            </SortableContext>
+          ) : (
+            table
+              .getRowModel()
+              .rows.map((row) => (
+                <TableRowWithDrawer<TData, TUpdate>
+                  key={row.id}
+                  row={row}
+                  drawerConfig={drawerConfig}
+                  onUpdate={onUpdate}
+                  onDelete={onDelete}
+                  saveButtonText={saveButtonText}
+                  savingButtonText={savingButtonText}
+                  mutate={mutate}
+                />
+              ))
+          )
+        ) : (
+          <TableRow>
+            <TableCell
+              colSpan={enhancedColumns.length}
+              className="h-24 text-center"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                  Carregando...
+                </>
+              ) : (
+                "Nenhum item encontrado."
+              )}
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  );
+
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between px-4 lg:px-6 pb-4">
-        <div className="flex gap-2 items-end justify-center w-full">
-          <div className="flex items-center justify-between w-full">
-            <h1 className="text-2xl font-bold">{title}</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            {searchColumn && (
-              <div className="relative flex items-center">
-                {/* Ícone absolutamente posicionado */}
-                <Search className="absolute left-4 text-gray-400 pointer-events-none w-4 h-4" />
-
-                {/* Input com padding-left para não ficar em cima do ícone */}
-                <Input
-                  placeholder="Procurar..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setSearchTerm(v);
-                    table.setGlobalFilter(v);
-                  }}
-                  className="w-[100px] md:w-[200px] lg:w-[300px] pl-10"
-                />
-              </div>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <IconLayoutColumns className="h-4 w-4 mr-2" />
-                  <span className="hidden lg:inline">Filtrar colunas</span>
-                  <span className="lg:hidden">Colunas</span>
-                  <IconChevronDown className="h-4 w-4 ml-2" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                {table
-                  .getAllColumns()
-                  .filter(
-                    (column) =>
-                      typeof column.accessorFn !== "undefined" &&
-                      column.getCanHide()
-                  )
-                  .map((column) => {
-                    return (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        className="capitalize"
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) =>
-                          column.toggleVisibility(!!value)
-                        }
-                      >
-                        {column.id}
-                      </DropdownMenuCheckboxItem>
-                    );
-                  })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+      <div className="flex flex-col gap-4 px-4 lg:px-6 pb-4">
+        {/* Título e botões de controle - empilhados em mobile */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h1 className="text-2xl font-bold">{title}</h1>
+          
+          {/* Botões de controle de ordem */}
+          {enableDragAndDrop && hasOrderChanged && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button
+                variant="outline"
+                onClick={handleResetOrder}
+                disabled={isSavingOrder}
+                className="flex items-center gap-2 text-xs sm:text-sm"
+                size="sm"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span className="hidden sm:inline">Resetar</span>
+              </Button>
+              <Button
+                variant={"outline"}
+                onClick={handleSaveOrder}
+                disabled={isSavingOrder}
+                className="bg-[#FF8F3F] text-white flex items-center gap-2 text-xs sm:text-sm"
+                size="sm"
+              >
+                {isSavingOrder ? (
+                  <>
+                    <Loader2 className="animate-spin h-4 w-4" />
+                    <span className="hidden sm:inline">Salvando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    <span className="hidden sm:inline">Salvar Ordem</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+  
+        {/* Busca e filtros - empilhados em mobile */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end">
+          {searchColumn && (
+            <div className="relative flex items-center order-2 sm:order-1">
+              <Search className="absolute left-3 text-gray-400 pointer-events-none w-4 h-4" />
+              <Input
+                placeholder="Procurar..."
+                value={searchTerm}
+                onChange={(value: string) => {
+                  const v = value;
+                  setSearchTerm(v);
+                  table.setGlobalFilter(v);
+                }}
+                className="w-full sm:w-[200px] lg:w-[300px] pl-10"
+              />
+            </div>
+          )}
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="order-1 sm:order-2 w-full sm:w-auto">
+                <IconLayoutColumns className="h-4 w-4 mr-2" />
+                <span className="sm:hidden lg:inline">Filtrar colunas</span>
+                <span className="hidden sm:inline lg:hidden">Colunas</span>
+                <IconChevronDown className="h-4 w-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              {table
+                .getAllColumns()
+                .filter(
+                  (column) =>
+                    typeof column.accessorFn !== "undefined" &&
+                    column.getCanHide()
+                )
+                .map((column) => {
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      className="capitalize"
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) =>
+                        column.toggleVisibility(!!value)
+                      }
+                    >
+                      {column.id}
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
+  
       <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
         <div className="overflow-hidden rounded-lg border">
           {isLoading && (
@@ -636,150 +965,126 @@ export function DataTable<
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
             </div>
           )}
-          <Table>
-            <TableHeader className="bg-muted sticky top-0 z-10">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead key={header.id} colSpan={header.colSpan}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table
-                  .getRowModel()
-                  .rows.map((row) => (
-                    <TableRowWithDrawer<TData, TUpdate>
-                      key={row.id}
-                      row={row}
-                      drawerConfig={drawerConfig}
-                      onUpdate={onUpdate}
-                      onDelete={onDelete}
-                      saveButtonText={saveButtonText}
-                      savingButtonText={savingButtonText}
-                      mutate={mutate}
+  
+          {enableDragAndDrop ? (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <TableContent />
+            </DndContext>
+          ) : (
+            <TableContent />
+          )}
+        </div>
+  
+        {/* Paginação - ocultar se drag and drop estiver ativo e houver mudanças */}
+        {(!enableDragAndDrop || !hasOrderChanged) && (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-2 sm:px-4">
+            <div className="text-muted-foreground text-sm order-2 sm:order-1 text-center sm:text-left">
+              {apiEndpoint || fetchData
+                ? `Mostrando ${Math.min(
+                    pagination.pageIndex * pagination.pageSize + 1,
+                    totalCount
+                  )} - ${Math.min(
+                    (pagination.pageIndex + 1) * pagination.pageSize,
+                    totalCount
+                  )} de ${totalCount} item(ns).`
+                : `Mostrando ${
+                    table.getFilteredRowModel().rows.length
+                  } item(ns).`}
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-center gap-4 order-1 sm:order-2">
+              {/* Seletor de linhas por página */}
+              <div className="flex items-center gap-2">
+                <Label htmlFor="rows-per-page" className="text-sm font-medium whitespace-nowrap">
+                  <span className="hidden sm:inline">Linhas por página</span>
+                  <span className="sm:hidden">Por página</span>
+                </Label>
+                <Select
+                  value={`${table.getState().pagination.pageSize}`}
+                  onValueChange={(value) => {
+                    table.setPageSize(Number(value));
+                  }}
+                >
+                  <SelectTrigger size="sm" className="w-20" id="rows-per-page">
+                    <SelectValue
+                      placeholder={table.getState().pagination.pageSize}
                     />
-                  ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                        Carregando...
-                      </>
-                    ) : (
-                      "Nenhum item encontrado."
-                    )}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        <div className="flex items-center justify-between px-4">
-          <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
-            {apiEndpoint || fetchData
-              ? `Mostrando ${Math.min(
-                  pagination.pageIndex * pagination.pageSize + 1,
-                  totalCount
-                )} - ${Math.min(
-                  (pagination.pageIndex + 1) * pagination.pageSize,
-                  totalCount
-                )} de ${totalCount} item(ns).`
-              : `Mostrando ${
-                  table.getFilteredRowModel().rows.length
-                } item(ns).`}
-          </div>
-          <div className="flex w-full items-center gap-8 lg:w-fit">
-            <div className="hidden items-center gap-2 lg:flex">
-              <Label htmlFor="rows-per-page" className="text-sm font-medium">
-                Linhas por página
-              </Label>
-              <Select
-                value={`${table.getState().pagination.pageSize}`}
-                onValueChange={(value) => {
-                  table.setPageSize(Number(value));
-                }}
-              >
-                <SelectTrigger size="sm" className="w-20" id="rows-per-page">
-                  <SelectValue
-                    placeholder={table.getState().pagination.pageSize}
-                  />
-                </SelectTrigger>
-                <SelectContent side="top">
-                  {[10, 20, 30, 40, 50, 100].map((pageSizeOption) => (
-                    <SelectItem
-                      key={pageSizeOption}
-                      value={`${pageSizeOption}`}
-                    >
-                      {pageSizeOption}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex w-fit items-center justify-center text-sm font-medium">
-              Página {table.getState().pagination.pageIndex + 1} de{" "}
-              {table.getPageCount() || 1}
-            </div>
-            <div className="ml-auto flex items-center gap-2 lg:ml-0">
-              <Button
-                variant="outline"
-                className="hidden h-8 w-8 p-0 lg:flex"
-                onClick={() => table.setPageIndex(0)}
-                disabled={!table.getCanPreviousPage() || isLoading}
-              >
-                <span className="sr-only">Ir para a primeira página</span>
-                <IconChevronsLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                className="size-8"
-                size="icon"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage() || isLoading}
-              >
-                <span className="sr-only">Ir para a página anterior</span>
-                <IconChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                className="size-8"
-                size="icon"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage() || isLoading}
-              >
-                <span className="sr-only">Ir para a próxima página</span>
-                <IconChevronRight className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                className="hidden size-8 lg:flex"
-                size="icon"
-                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                disabled={!table.getCanNextPage() || isLoading}
-              >
-                <span className="sr-only">Ir para a última página</span>
-                <IconChevronsRight className="h-4 w-4" />
-              </Button>
+                  </SelectTrigger>
+                  <SelectContent side="top">
+                    {[10, 20, 30, 40, 50, 100].map((pageSizeOption) => (
+                      <SelectItem
+                        key={pageSizeOption}
+                        value={`${pageSizeOption}`}
+                      >
+                        {pageSizeOption}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+  
+              {/* Informação da página atual */}
+              <div className="flex items-center justify-center text-sm font-medium whitespace-nowrap">
+                Página {table.getState().pagination.pageIndex + 1} de{" "}
+                {table.getPageCount() || 1}
+              </div>
+  
+              {/* Controles de navegação */}
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  className="hidden h-8 w-8 p-0 sm:flex"
+                  onClick={() => table.setPageIndex(0)}
+                  disabled={!table.getCanPreviousPage() || isLoading}
+                >
+                  <span className="sr-only">Ir para a primeira página</span>
+                  <IconChevronsLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => table.previousPage()}
+                  disabled={!table.getCanPreviousPage() || isLoading}
+                >
+                  <span className="sr-only">Ir para a página anterior</span>
+                  <IconChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => table.nextPage()}
+                  disabled={!table.getCanNextPage() || isLoading}
+                >
+                  <span className="sr-only">Ir para a próxima página</span>
+                  <IconChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  className="hidden h-8 w-8 p-0 sm:flex"
+                  onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                  disabled={!table.getCanNextPage() || isLoading}
+                >
+                  <span className="sr-only">Ir para a última página</span>
+                  <IconChevronsRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
+  
+        {/* Aviso quando drag and drop está ativo */}
+        {enableDragAndDrop && hasOrderChanged && (
+          <div className="mx-2 sm:mx-4 py-3 px-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-700">
+              📋 Você alterou a ordem dos itens. Clique em "Salvar Ordem" para
+              confirmar as mudanças ou "Resetar" para voltar à ordem original.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

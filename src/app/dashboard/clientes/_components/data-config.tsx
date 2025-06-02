@@ -1,17 +1,38 @@
-"use client"
-import type { DrawerConfig } from "@/components/datatable"
-import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { cleanCNPJ, cleanPhone, cleanCEP, formatCEP, formatCNPJ, formatPhone } from "@/lib/utils"
-import { type CustomerResponse, type CustomerUpdateRequest, CustomerUpdateRequestSchema } from "@/types/Customer"
-import type { ColumnDef } from "@tanstack/react-table"
-import { useCustomerList } from "@/hooks/useCustomer"
-import DatePicker from "@/components/ui/date-picker"
-import { Building2, Briefcase, FileText, Mail, MapPin, Phone, User, Calendar, Hash } from "lucide-react"
+"use client";
+import type { DrawerConfig } from "@/components/datatable";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  cleanCNPJ,
+  cleanPhone,
+  cleanCEP,
+  formatCEP,
+  formatCNPJ,
+  formatPhone,
+} from "@/lib/utils";
+import {
+  type CustomerResponse,
+  type CustomerUpdateRequest,
+  CustomerUpdateRequestSchema,
+} from "@/types/Customer";
+import type { ColumnDef } from "@tanstack/react-table";
+import { useCustomerList } from "@/hooks/useCustomer";
+import DatePicker from "@/components/ui/date-picker";
+import {
+  Building2,
+  Briefcase,
+  FileText,
+  Mail,
+  MapPin,
+  Phone,
+  User,
+  Calendar,
+  Hash,
+} from "lucide-react";
 
 // Colunas da tabela
 export const columns: ColumnDef<CustomerResponse, string>[] = [
@@ -45,11 +66,11 @@ export const columns: ColumnDef<CustomerResponse, string>[] = [
     header: "Telefone",
     cell: ({ row }) => formatPhone(row.original.contact.contact_phone),
   },
-]
+];
 
 export function useDrawerConfig() {
   // Configuração do drawer para edição
-  const { mutate } = useCustomerList()
+  const { mutate } = useCustomerList();
   const drawerConfig: DrawerConfig<CustomerResponse, CustomerUpdateRequest> = {
     title: (cliente) => (
       <div className="flex items-center gap-2">
@@ -58,9 +79,12 @@ export function useDrawerConfig() {
       </div>
     ),
     description: (cliente) => (
-        <Badge variant="outline" className=" bg-[#FF8F3F]/10 text-[#FF8F3F] border-[#FF8F3F]/20 mt-2">
-          {formatCNPJ(cliente.cnpj)}
-        </Badge>
+      <Badge
+        variant="outline"
+        className=" bg-[#FF8F3F]/10 text-[#FF8F3F] border-[#FF8F3F]/20 mt-2"
+      >
+        {formatCNPJ(cliente.cnpj)}
+      </Badge>
     ),
     updateSchema: CustomerUpdateRequestSchema,
     mutate: mutate,
@@ -79,7 +103,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               className="transition-all focus-visible:ring-[#FF8F3F]"
               placeholder="Razão Social da empresa"
             />
@@ -99,7 +125,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               className="transition-all focus-visible:ring-[#FF8F3F]"
               placeholder="Nome Fantasia da empresa"
             />
@@ -124,7 +152,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(value: string) => onChange(value)} // ✅ Recebe só números!
               placeholder="00.000.000/0000-00"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -145,7 +173,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="Inscrição Estadual"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -167,7 +197,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="email@empresa.com"
               className="transition-all focus-visible:ring-[#FF8F3F]"
               type="email"
@@ -187,7 +219,7 @@ export function useDrawerConfig() {
               <User className="h-5 w-5 text-[#FF8F3F]" />
               <h3 className="text-base font-medium">Informações de Contato</h3>
             </div>
-            <Separator  />
+            <Separator />
           </div>
         ),
       },
@@ -206,7 +238,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="Nome da pessoa de contato"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -252,8 +286,9 @@ export function useDrawerConfig() {
               <span className="text-destructive">*</span>
             </Label>
             <Input
+
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(value: string) => onChange(value)} // ✅ Recebe só números!
               placeholder="(00) 00000-0000"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -293,8 +328,9 @@ export function useDrawerConfig() {
               <span className="text-destructive">*</span>
             </Label>
             <Input
+
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(value: string) => onChange(value)} // ✅ Recebe só números!
               placeholder="00000-000"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -314,9 +350,9 @@ export function useDrawerConfig() {
               <span className="text-destructive">*</span>
             </Label>
             <Input
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              placeholder="Nome da rua"
+
+              onChange={(value: string) => onChange(value)} // ✅ Recebe só números!
+              placeholder="000.000.000-00"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
           </div>
@@ -336,7 +372,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="Número"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -355,7 +393,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="Bairro"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -376,7 +416,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="Cidade"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -395,7 +437,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(value: string) => onChange(value)}
               placeholder="UF"
               className="transition-all focus-visible:ring-[#FF8F3F]"
               maxLength={2}
@@ -414,8 +456,8 @@ export function useDrawerConfig() {
               <span className="text-destructive"></span>
             </Label>
             <Input
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
+              value={value ?? ""}
+              onChange={(value: string) => onChange(value)}
               placeholder="Trabalho"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -434,7 +476,7 @@ export function useDrawerConfig() {
               <span>Observação</span>
             </Label>
             <Textarea
-              value={value}
+              value={value ?? ""}
               onChange={(e) => onChange(e.target.value)}
               placeholder="Observações sobre o endereço"
               className="min-h-[80px] transition-all focus-visible:ring-[#FF8F3F]"
@@ -442,8 +484,7 @@ export function useDrawerConfig() {
           </div>
         ),
       },
-
     ],
-  }
-  return drawerConfig
+  };
+  return drawerConfig;
 }

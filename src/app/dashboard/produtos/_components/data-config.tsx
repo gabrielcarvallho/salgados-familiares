@@ -123,7 +123,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string; }; }) => onChange(e.target.value)}
               placeholder="Nome do produto"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -147,7 +147,7 @@ export function useDrawerConfig() {
               type="number"
               step="0.01"
               value={value}
-              onChange={(e) => onChange(Number.parseFloat(e.target.value) || 0)}
+              onChange={(e: { target: { value: string; }; }) => onChange(Number.parseFloat(e.target.value) || 0)}
               placeholder="0.00"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -169,7 +169,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string; }; }) => onChange(e.target.value)}
               placeholder="Peso em gramas"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -208,7 +208,7 @@ export function useDrawerConfig() {
             <Input
               type="number"
               value={value}
-              onChange={(e) => onChange(Number.parseInt(e.target.value) || 0)}
+              onChange={(e: { target: { value: string; }; }) => onChange(Number.parseInt(e.target.value) || 0)}
               placeholder="Quantidade de pacotes por fornada"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -231,7 +231,7 @@ export function useDrawerConfig() {
             <Input
               type="number"
               value={value}
-              onChange={(e) => onChange(Number.parseInt(e.target.value) || 0)}
+              onChange={(e: { target: { value: string; }; }) => onChange(Number.parseInt(e.target.value) || 0)}
               placeholder="Dias necessários"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -254,7 +254,7 @@ export function useDrawerConfig() {
             <Input
               type="number"
               value={value}
-              onChange={(e) => onChange(Number.parseInt(e.target.value) || 0)}
+              onChange={(e: { target: { value: string; }; }) => onChange(Number.parseInt(e.target.value) || 0)}
               placeholder="Capacidade diária"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />

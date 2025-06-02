@@ -548,7 +548,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string; }; }) => onChange(e.target.value)}
               className="transition-all focus-visible:ring-[#FF8F3F]"
               placeholder="Razão Social da empresa"
             />
@@ -568,7 +568,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string; }; }) => onChange(e.target.value)}
               className="transition-all focus-visible:ring-[#FF8F3F]"
               placeholder="Nome Fantasia da empresa"
             />
@@ -593,7 +593,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string; }; }) => onChange(e.target.value)}
               placeholder="00.000.000/0000-00"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -614,7 +614,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string; }; }) => onChange(e.target.value)}
               placeholder="Inscrição Estadual"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -636,7 +636,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string; }; }) => onChange(e.target.value)}
               placeholder="email@empresa.com"
               className="transition-all focus-visible:ring-[#FF8F3F]"
               type="email"
@@ -675,7 +675,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string; }; }) => onChange(e.target.value)}
               placeholder="Nome da pessoa de contato"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -722,7 +722,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string; }; }) => onChange(e.target.value)}
               placeholder="(00) 00000-0000"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -763,7 +763,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string; }; }) => onChange(e.target.value)}
               placeholder="00000-000"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -784,7 +784,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string; }; }) => onChange(e.target.value)}
               placeholder="Nome da rua"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -805,7 +805,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string; }; }) => onChange(e.target.value)}
               placeholder="Número"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -824,7 +824,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string; }; }) => onChange(e.target.value)}
               placeholder="Bairro"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -845,7 +845,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string; }; }) => onChange(e.target.value)}
               placeholder="Cidade"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -864,7 +864,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string; }; }) => onChange(e.target.value)}
               placeholder="UF"
               className="transition-all focus-visible:ring-[#FF8F3F]"
               maxLength={2}
@@ -884,7 +884,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string; }; }) => onChange(e.target.value)}
               placeholder="Trabalho"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
