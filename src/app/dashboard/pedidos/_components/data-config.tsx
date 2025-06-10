@@ -363,8 +363,6 @@ export function useDrawerConfig() {
         name: "products",
         type: "custom",
         colSpan: 2,
-
-        // 1) estado interno do form: { items: [], isEditable: boolean }
         defaultValue: (o) => ({
           items: Array.isArray(o.products)
             ? o.products.map((p: { product: { id: any }; quantity: any }) => ({
@@ -372,167 +370,68 @@ export function useDrawerConfig() {
                 quantity: p.quantity,
               }))
             : [],
-          isEditable: Number(o.order_status.identifier) === 0,
         }),
-
-        // 2) antes de validar, extraímos só o array
         formatValue: (valueObj) => {
-          if (
-            valueObj &&
-            typeof valueObj === "object" &&
-            Array.isArray(valueObj.items)
-          ) {
-            return valueObj.items;
+          if (valueObj && typeof valueObj === "object" && Array.isArray(valueObj.items)) {
+            return valueObj.items.filter((item: { quantity: number; }) => 
+              item.quantity > 0 || 
+              item.quantity === 0
+            )
           }
-          return [];
+          return []
         },
-
-        // 3) UI: continua recebendo { items, isEditable }
         customRender: (valueObj, onChange) => {
-          const { items = [], isEditable } =
+          const { items = [], isEditable } = 
             typeof valueObj === "object" && valueObj !== null
               ? valueObj
-              : { items: [], isEditable: false };
-
-
-
-          // Função para atualizar os itens quando o ProductSelector mudar
+              : { items: [], isEditable: false }
+      
           const handleProductChange = (newItems: any) => {
-            onChange({ items: newItems, isEditable });
-          };
-
-          // Preparar os produtos para o ProductSelector
+            onChange({ items: newItems, isEditable })
+          }
+      
           const formattedProducts = products.map((product) => ({
             id: String(product.id),
             name: product.name,
             price: product.price,
-          }));
-
-          // Calcular o total do pedido
+          }))
+      
           const calculateTotal = () => {
-            if (!items.length) return 0;
-
-            return items.reduce(
-              (
-                total: number,
-                item: { product_id: string; quantity: number }
-              ) => {
-                const product = products.find(
-                  (p) => String(p.id) === item.product_id
-                );
-                if (!product) return total;
-
-                const price =
-                  typeof product.price === "number"
-                    ? product.price
-                    : Number.parseFloat(String(product.price)) || 0;
-
-                return total + price * item.quantity;
-              },
-              0
-            );
-          };
-
-          // Se for editável, mostrar o ProductSelector
-          if (isEditable) {
-            return (
-              <div className="space-y-4">
-                <div className="">
-                  <ProductSelector
-                    products={formattedProducts}
-                    value={items}
-                    onChange={handleProductChange}
-                  />
-                </div>
-
-                {items.length > 0 && (
-                  <Card className="bg-muted/40 border-muted">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Calculator className="h-4 w-4 text-[#FF8F3F]" />
-                        <h3 className="text-sm font-medium">
-                          Resumo do Pedido
-                        </h3>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total:</span>
-                        <span className="font-medium text-lg text-[#FF8F3F]">
-                          R$ {calculateTotal().toFixed(2)}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            );
+            return items.reduce((total: number, item: { product_id: string; quantity: number; }) => {
+              const product = products.find((p) => String(p.id) === item.product_id)
+              return product ? total + (product.price * item.quantity) : total
+            }, 0)
           }
-
-          // Se não for editável, mostrar a tabela de produtos
+      
           return (
             <div className="space-y-4">
-              <Card className="bg-muted/30 border-muted">
-                <CardContent className="p-4">
-                  <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mb-3">
-                    <div className="col-span-6">Produto</div>
-                    <div className="col-span-3 text-center">Quantidade</div>
-                    <div className="col-span-3 text-right">Subtotal</div>
-                  </div>
-
-                  {items.length > 0 ? (
-                    <>
-                      {items.map(
-                        (
-                          item: { product_id: string; quantity: number },
-                          idx: Key | null | undefined
-                        ) => {
-                          const product = products.find(
-                            (p) => String(p.id) === item.product_id
-                          );
-                          if (!product) return null;
-
-                          const price =
-                            typeof product.price === "number"
-                              ? product.price
-                              : Number.parseFloat(String(product.price)) || 0;
-
-                          const subtotal = price * item.quantity;
-
-                          return (
-                            <div
-                              key={idx}
-                              className="grid grid-cols-12 gap-2 items-center py-2 last:border-0"
-                            >
-                              <div className="col-span-6 font-medium">
-                                {product.name}
-                              </div>
-                              <div className="col-span-3 text-center">
-                                {item.quantity}
-                              </div>
-                              <div className="col-span-3 text-right">
-                                R$ {subtotal.toFixed(2)}
-                              </div>
-                            </div>
-                          );
-                        }
-                      )}
-
-                      <div className="flex justify-between items-center mt-4 pt-2 border-t border-muted">
-                        <span className="font-medium">Total:</span>
-                        <span className="font-medium text-lg text-[#FF8F3F]">
-                          R$ {calculateTotal().toFixed(2)}
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center py-4 text-muted-foreground">
-                      Nenhum produto encontrado
+              <div className="">
+                <ProductSelector
+                  products={formattedProducts}
+                  value={items}
+                  onChange={handleProductChange}
+                />
+              </div>
+      
+              {items.length > 0 && (
+                <Card className="bg-muted/40 border-muted">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Calculator className="h-4 w-4 text-[#FF8F3F]" />
+                      <h3 className="text-sm font-medium">Resumo do Pedido</h3>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+      
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Total:</span>
+                      <span className="font-medium text-lg text-[#FF8F3F]">
+                        R$ {calculateTotal().toFixed(2)}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
-          );
+          )
         },
       },
       {

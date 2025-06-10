@@ -45,8 +45,13 @@ export const CustomerRequestSchema = z.object({
   brand_name: z.string().min(1, "Nome fantasia é obrigatória"),
   cnpj: z
     .string()
-    .min(14, "CNPJ inválido. Deve conter 14 dígitos numéricos."),
-  phone_number: z.string().min(1, "Telefone da empresa é obrigatório").max(16).transform(cleanPhone),
+    .min(14, "CNPJ inválido. Deve conter 14 dígitos numéricos.")
+    .transform(cleanCNPJ),
+  phone_number: z
+    .string()
+    .min(1, "Telefone da empresa é obrigatório")
+    .max(16)
+    .transform(cleanPhone),
   email: z.string().email("Digite um endereço de e-mail válido."),
   state_tax_registration: z.string().optional(),
   billing_address: addressSchema.omit({ id: true }),
@@ -117,8 +122,8 @@ export const EMPTY_CUSTOMER: CustomerRequest = {
     number: "",
     city: "",
     state: "",
-    observation: null,
-    description: null,
+    observation: "",
+    description: "",
   },
   contact: {
     name: "",

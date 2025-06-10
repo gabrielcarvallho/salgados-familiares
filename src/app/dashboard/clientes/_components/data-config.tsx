@@ -152,7 +152,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(value: string) => onChange(value)} // ✅ Recebe só números!
+              onChange={(e) => onChange(e.target.value)}
               placeholder="00.000.000/0000-00"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -288,7 +288,7 @@ export function useDrawerConfig() {
             <Input
 
               value={value}
-              onChange={(value: string) => onChange(value)} // ✅ Recebe só números!
+              onChange={(e) => onChange(e.target.value)}
               placeholder="(00) 00000-0000"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -330,7 +330,7 @@ export function useDrawerConfig() {
             <Input
 
               value={value}
-              onChange={(value: string) => onChange(value)} // ✅ Recebe só números!
+              onChange={(e) => onChange(e.target.value)}
               placeholder="00000-000"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -351,8 +351,8 @@ export function useDrawerConfig() {
             </Label>
             <Input
 
-              onChange={(value: string) => onChange(value)} // ✅ Recebe só números!
-              placeholder="000.000.000-00"
+onChange={(e) => onChange(e.target.value)}
+placeholder="000.000.000-00"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
           </div>
@@ -437,7 +437,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(value: string) => onChange(value)}
+              onChange={(e) => onChange(e.target.value)}
               placeholder="UF"
               className="transition-all focus-visible:ring-[#FF8F3F]"
               maxLength={2}
@@ -457,7 +457,7 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value ?? ""}
-              onChange={(value: string) => onChange(value)}
+              onChange={(e) => onChange(e.target.value)}
               placeholder="Trabalho"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />

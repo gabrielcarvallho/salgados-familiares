@@ -216,7 +216,7 @@ export function AddressForm({
           <FormLabel className="text-gray-700">Observação</FormLabel>
           <Textarea
             name="observation"
-            value={formData.observation}
+            value={formData.observation || ""}
             onChange={handleChange}
             placeholder="APTO 300"
             className="border-gray-300 focus:border-[#FF8F3F] focus:ring-[#FF8F3F]"
@@ -228,7 +228,7 @@ export function AddressForm({
           <FormLabel className="text-gray-700">Descrição</FormLabel>
           <Input
             name="description"
-            value={formData.description}
+            value={formData.description || ""}
             onChange={handleChange}
             placeholder="Trabalho"
             className="border-gray-300 focus:border-[#FF8F3F] focus:ring-[#FF8F3F]"

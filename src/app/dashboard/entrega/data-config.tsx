@@ -33,6 +33,7 @@ import { CalendarClock, CreditCard, MapPin, Package, ShoppingCart, Building, Clo
 
 // Colunas da tabela
 export const columns: ColumnDef<OrderResponse, any>[] = [
+
   {
     id: "order_number",
     accessorKey: "order_number",

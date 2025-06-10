@@ -330,13 +330,11 @@ export function DialogClientes() {
                                   </FormLabel>
                                   <FormControl>
                                     <Input
-                                      unmasked={true}
-                                      mask="cnpj"
                                       placeholder="00.000.000/0001-00"
                                       className="focus-visible:ring-[#FF8F3F]"
-                                      value={field.value}
-                                      onChange={(value: string) => {
-                                        field.onChange(value);
+                                      value={formatCNPJ(field.value)}
+                                      onChange={(e) => {
+                                        field.onChange(e.target.value);
                                       }}
                                       onBlur={field.onBlur}
                                     />
@@ -357,13 +355,12 @@ export function DialogClientes() {
                                   </FormLabel>
                                   <FormControl>
                                     <Input
-                                      unmasked={true}
-                                      mask="cellphone"
+                                      maxLength={15}
                                       placeholder="(47) 99999-9999"
                                       className="focus-visible:ring-[#FF8F3F]"
-                                      value={field.value}
-                                      onChange={(value: string) => {
-                                        field.onChange(value);
+                                      value={formatPhone(field.value)}
+                                      onChange={(e) => {
+                                        field.onChange(e.target.value);
                                       }}
                                       onBlur={field.onBlur}
                                     />
@@ -451,13 +448,11 @@ export function DialogClientes() {
                                   </FormLabel>
                                   <FormControl>
                                     <Input
-                                      unmasked={true}
-                                      mask="date"
                                       placeholder="01/01/2001"
                                       className="focus-visible:ring-[#FF8F3F]"
-                                      value={field.value}
-                                      onChange={(value: string) => {
-                                        field.onChange(value);
+                                      value={formatDateInput(field.value)}
+                                      onChange={(e) => {
+                                        field.onChange(e.target.value);
                                       }}
                                       onBlur={() => {
                                         field.onBlur();
@@ -501,13 +496,12 @@ export function DialogClientes() {
                                   </FormLabel>
                                   <FormControl>
                                     <Input
-                                      unmasked={true}
-                                      mask="cellphone"
+                                      maxLength={15}
                                       placeholder="(47) 99999-9999"
                                       className="focus-visible:ring-[#FF8F3F]"
                                       value={formatPhone(field.value)}
-                                      onChange={(value: string) => {
-                                        field.onChange(value);
+                                      onChange={(e) => {
+                                        field.onChange(e.target.value);
                                       }}
                                       onBlur={field.onBlur}
                                     />
@@ -536,16 +530,14 @@ export function DialogClientes() {
                                   <div className="relative">
                                     <FormControl>
                                       <Input
-                                        unmasked={true}
-                                        mask="cep"
                                         placeholder="89000-000"
                                         className={cn(
                                           "focus-visible:ring-[#FF8F3F] pr-10",
                                           loadingAddress && "pr-12"
                                         )}
-                                        value={(field.value)}
-                                        onChange={(value: string) => {
-                                          field.onChange(value);
+                                        value={formatCEP(field.value)}
+                                        onChange={(e) => {
+                                          field.onChange(e.target.value);
                                         }}
                                         onBlur={field.onBlur}
                                       />
@@ -681,7 +673,7 @@ export function DialogClientes() {
                                   </FormLabel>
                                   <FormControl>
                                     <Input
-                                    max={2}
+                                      max={2}
                                       placeholder="SC"
                                       className="focus-visible:ring-[#FF8F3F]"
                                       {...field}
@@ -705,10 +697,10 @@ export function DialogClientes() {
                                     </FormLabel>
                                     <FormControl>
                                       <Input
-                                      
-                                        placeholder="APTO 300"
+                                        placeholder="Trabalho"
                                         className="focus-visible:ring-[#FF8F3F]"
                                         {...field}
+                                        value={field.value ?? ""}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -731,6 +723,7 @@ export function DialogClientes() {
                                         placeholder="Trabalho"
                                         className="focus-visible:ring-[#FF8F3F]"
                                         {...field}
+                                        value={field.value ?? ""}
                                       />
                                     </FormControl>
                                     <FormMessage />

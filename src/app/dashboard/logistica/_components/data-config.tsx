@@ -44,13 +44,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { ProductSelector } from "@/components/productSelector";
-import {
-  ReactElement,
-  JSXElementConstructor,
-  ReactNode,
-  ReactPortal,
-  Key,
-} from "react";
+
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 
@@ -361,15 +355,15 @@ export function useDrawerConfig() {
 
         // 2) antes de validar, extraímos só o array
         formatValue: (valueObj) => {
-          if (
-            valueObj &&
-            typeof valueObj === "object" &&
-            Array.isArray(valueObj.items)
-          ) {
-            return valueObj.items;
+          if (valueObj && typeof valueObj === 'object' && Array.isArray(valueObj.items)) {
+            return valueObj.items.filter((item: { quantity: number; }) => 
+              item.quantity > 0 || // Itens ativos
+              item.quantity === 0  // Itens marcados para exclusão
+            )
           }
-          return [];
+          return []
         },
+        
 
         // 3) UI: continua recebendo { items, isEditable }
         customRender: (valueObj, onChange) => {
@@ -447,186 +441,186 @@ export function useDrawerConfig() {
           );
         },
       },
-      // {
-      //   name: "address_separator",
-      //   type: "custom",
-      //   colSpan: 2,
-      //   customRender: () => (
-      //     <div className="col-span-2 pt-2">
-      //       <div className="flex items-center gap-2 mb-2">
-      //         <MapPin className="h-5 w-5 text-[#FF8F3F]" />
-      //         <h3 className="text-base font-medium">Endereço de Cobrança</h3>
-      //       </div>
-      //       <Separator />
-      //     </div>
-      //   ),
-      // },
+      {
+        name: "address_separator",
+        type: "custom",
+        colSpan: 2,
+        customRender: () => (
+          <div className="col-span-2 pt-2">
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="h-5 w-5 text-[#FF8F3F]" />
+              <h3 className="text-base font-medium">Endereço de Cobrança</h3>
+            </div>
+            <Separator />
+          </div>
+        ),
+      },
 
-      // // CEP: exibe formatado, envia limpo
-      // {
-      //   name: "delivery_address.cep",
-      //   type: "custom",
-      //   colSpan: 2,
-      //   defaultValue: (o) => formatCEP(o.delivery_address.cep),
-      //   formatValue: (v) => formatCEP(v),
-      //   parseValue: (v) => cleanCEP(v),
-      //   customRender: (value: string, onChange: (v: string) => void) => (
-      //     <div className="space-y-2">
-      //       <Label className="flex items-center gap-2">
-      //         <MapPin className="h-4 w-4 text-[#FF8F3F]" />
-      //         <span>CEP</span>
-      //         <span className="text-destructive">*</span>
-      //       </Label>
-      //       <Input
-      //         value={value}
-      //         onChange={(e) => onChange(e.target.value)}
-      //         placeholder="00000-000"
-      //         className="transition-all focus-visible:ring-[#FF8F3F]"
-      //       />
-      //     </div>
-      //   ),
-      // },
+      // CEP: exibe formatado, envia limpo
+      {
+        name: "delivery_address.cep",
+        type: "custom",
+        colSpan: 2,
+        defaultValue: (o) => formatCEP(o.delivery_address.cep),
+        formatValue: (v) => formatCEP(v),
+        parseValue: (v) => cleanCEP(v),
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-[#FF8F3F]" />
+              <span>CEP</span>
+              <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="00000-000"
+              className="transition-all focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
 
-      // // Endereço completo em campos separados
-      // {
-      //   name: "delivery_address.street_name",
-      //   type: "custom",
-      //   colSpan: 1,
-      //   customRender: (value: string, onChange: (v: string) => void) => (
-      //     <div className="space-y-2">
-      //       <Label className="flex items-center gap-2">
-      //         <span>Rua</span>
-      //         <span className="text-destructive">*</span>
-      //       </Label>
-      //       <Input
-      //         value={value}
-      //         onChange={(e) => onChange(e.target.value)}
-      //         placeholder="Nome da rua"
-      //         className="transition-all focus-visible:ring-[#FF8F3F]"
-      //       />
-      //     </div>
-      //   ),
-      // },
+      // Endereço completo em campos separados
+      {
+        name: "delivery_address.street_name",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <span>Rua</span>
+              <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Nome da rua"
+              className="transition-all focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
 
-      // // Número e Bairro na mesma linha
-      // {
-      //   name: "delivery_address.number",
-      //   type: "custom",
-      //   colSpan: 1,
-      //   customRender: (value: string, onChange: (v: string) => void) => (
-      //     <div className="space-y-2">
-      //       <Label className="flex items-center gap-2">
-      //         <span>Número</span>
-      //         <span className="text-destructive">*</span>
-      //       </Label>
-      //       <Input
-      //         value={value}
-      //         onChange={(e) => onChange(e.target.value)}
-      //         placeholder="Número"
-      //         className="transition-all focus-visible:ring-[#FF8F3F]"
-      //       />
-      //     </div>
-      //   ),
-      // },
-      // {
-      //   name: "delivery_address.district",
-      //   type: "custom",
-      //   colSpan: 1,
-      //   customRender: (value: string, onChange: (v: string) => void) => (
-      //     <div className="space-y-2">
-      //       <Label className="flex items-center gap-2">
-      //         <span>Bairro</span>
-      //         <span className="text-destructive">*</span>
-      //       </Label>
-      //       <Input
-      //         value={value}
-      //         onChange={(e) => onChange(e.target.value)}
-      //         placeholder="Bairro"
-      //         className="transition-all focus-visible:ring-[#FF8F3F]"
-      //       />
-      //     </div>
-      //   ),
-      // },
+      // Número e Bairro na mesma linha
+      {
+        name: "delivery_address.number",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <span>Número</span>
+              <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Número"
+              className="transition-all focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
+      {
+        name: "delivery_address.district",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <span>Bairro</span>
+              <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Bairro"
+              className="transition-all focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
 
-      // // Cidade e Estado na mesma linha
-      // {
-      //   name: "delivery_address.city",
-      //   type: "custom",
-      //   colSpan: 1,
-      //   customRender: (value: string, onChange: (v: string) => void) => (
-      //     <div className="space-y-2">
-      //       <Label className="flex items-center gap-2">
-      //         <span>Cidade</span>
-      //         <span className="text-destructive">*</span>
-      //       </Label>
-      //       <Input
-      //         value={value}
-      //         onChange={(e) => onChange(e.target.value)}
-      //         placeholder="Cidade"
-      //         className="transition-all focus-visible:ring-[#FF8F3F]"
-      //       />
-      //     </div>
-      //   ),
-      // },
-      // {
-      //   name: "delivery_address.state",
-      //   type: "custom",
-      //   colSpan: 1,
-      //   customRender: (value: string, onChange: (v: string) => void) => (
-      //     <div className="space-y-2">
-      //       <Label className="flex items-center gap-2">
-      //         <span>Estado</span>
-      //         <span className="text-destructive">*</span>
-      //       </Label>
-      //       <Input
-      //         value={value}
-      //         onChange={(e) => onChange(e.target.value)}
-      //         placeholder="UF"
-      //         className="transition-all focus-visible:ring-[#FF8F3F]"
-      //         maxLength={2}
-      //       />
-      //     </div>
-      //   ),
-      // },
-      // {
-      //   name: "delivery_address.description",
-      //   type: "custom",
-      //   colSpan: 1,
-      //   customRender: (value: string, onChange: (v: string) => void) => (
-      //     <div className="space-y-2">
-      //       <Label className="flex items-center gap-2">
-      //         <span>Descrição</span>
-      //         <span className="text-destructive"></span>
-      //       </Label>
-      //       <Input
-      //         value={value ?? ""}
-      //         onChange={(e) => onChange(e.target.value)}
-      //         placeholder="Trabalho"
-      //         className="transition-all focus-visible:ring-[#FF8F3F]"
-      //       />
-      //     </div>
-      //   ),
-      // },
+      // Cidade e Estado na mesma linha
+      {
+        name: "delivery_address.city",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <span>Cidade</span>
+              <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Cidade"
+              className="transition-all focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
+      {
+        name: "delivery_address.state",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <span>Estado</span>
+              <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="UF"
+              className="transition-all focus-visible:ring-[#FF8F3F]"
+              maxLength={2}
+            />
+          </div>
+        ),
+      },
+      {
+        name: "delivery_address.description",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <span>Descrição</span>
+              <span className="text-destructive"></span>
+            </Label>
+            <Input
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Trabalho"
+              className="transition-all focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
 
-      // // Observação
-      // {
-      //   name: "delivery_address.observation",
-      //   type: "custom",
-      //   colSpan: 2,
-      //   customRender: (value: string, onChange: (v: string) => void) => (
-      //     <div className="space-y-2">
-      //       <Label className="flex items-center gap-2">
-      //         <span>Observação</span>
-      //       </Label>
-      //       <Textarea
-      //         value={value ?? ""}
-      //         onChange={(e) => onChange(e.target.value)}
-      //         placeholder="Observações sobre o endereço"
-      //         className="min-h-[80px] transition-all focus-visible:ring-[#FF8F3F]"
-      //       />
-      //     </div>
-      //   ),
-      // },
+      // Observação
+      {
+        name: "delivery_address.observation",
+        type: "custom",
+        colSpan: 2,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <span>Observação</span>
+            </Label>
+            <Textarea
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Observações sobre o endereço"
+              className="min-h-[80px] transition-all focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
     ],
   };
 

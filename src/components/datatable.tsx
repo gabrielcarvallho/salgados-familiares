@@ -324,21 +324,29 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
 
   if (!drawerConfig) {
     return (
-      <TableRow style={style} {...props}>
-        {dragHandle && (
-          <TableCell className="w-12">
-            <div
-              className="cursor-grab hover:cursor-grabbing p-1"
-              {...dragAttributes}
-              {...dragListeners}
-            >
-              <IconGripVertical className="h-4 w-4 text-gray-400" />
+      <TableRow className="relative" style={style} {...props}>
+        {/* Células normais, com drag handle na primeira célula */}
+        {row.getVisibleCells().map((cell, index) => (
+          <TableCell
+            key={cell.id}
+            className={`${dragHandle && index === 0 ? "relative" : ""}`}
+          >
+            {/* Drag handle dentro da primeira célula */}
+            {dragHandle && index === 0 && (
+              <div
+                className="absolute left-2 top-1/2 transform -translate-y-1/2 cursor-grab hover:cursor-grabbing p-1 z-10 bg-white/80 rounded"
+                {...dragAttributes}
+                {...dragListeners}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <IconGripVertical className="h-4 w-4 text-gray-400" />
+              </div>
+            )}
+
+            {/* Conteúdo da célula com padding se tiver drag handle */}
+            <div className={dragHandle && index === 0 ? "pl-8" : ""}>
+              {flexRender(cell.column.columnDef.cell, cell.getContext())}
             </div>
-          </TableCell>
-        )}
-        {row.getVisibleCells().map((cell) => (
-          <TableCell key={cell.id}>
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
           </TableCell>
         ))}
       </TableRow>
@@ -352,7 +360,6 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
         open={isDrawerOpen}
         onOpenChange={(open) => {
           setIsDrawerOpen(open);
-          // Reset form data when drawer closes
           if (!open) {
             setFormData({});
           }
@@ -360,29 +367,38 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
       >
         <DrawerTrigger asChild>
           <TableRow
-            className="cursor-pointer hover:bg-muted/50"
+            className="relative cursor-pointer hover:bg-muted/50"
             style={style}
             {...props}
           >
-            {dragHandle && (
-              <TableCell className="w-12">
-                <div
-                  className="cursor-grab hover:cursor-grabbing p-1"
-                  {...dragAttributes}
-                  {...dragListeners}
-                  onClick={(e) => e.stopPropagation()} // Evita abrir drawer ao arrastar
-                >
-                  <IconGripVertical className="h-4 w-4 text-gray-400" />
+            {/* Células normais, com drag handle na primeira célula */}
+            {row.getVisibleCells().map((cell, index) => (
+              <TableCell
+                key={cell.id}
+                className={`${dragHandle && index === 0 ? "relative" : ""}`}
+              >
+                {/* Drag handle dentro da primeira célula */}
+                {dragHandle && index === 0 && (
+                  <div
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 cursor-grab hover:cursor-grabbing p-1 z-10 bg-white/80 rounded"
+                    {...dragAttributes}
+                    {...dragListeners}
+                    onClick={(e) => e.stopPropagation()} // Evita abrir drawer ao arrastar
+                  >
+                    <IconGripVertical className="h-4 w-4 text-gray-400" />
+                  </div>
+                )}
+
+                {/* Conteúdo da célula com padding se tiver drag handle */}
+                <div className={dragHandle && index === 0 ? "pl-8" : ""}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </div>
-              </TableCell>
-            )}
-            {row.getVisibleCells().map((cell) => (
-              <TableCell key={cell.id}>
-                {flexRender(cell.column.columnDef.cell, cell.getContext())}
               </TableCell>
             ))}
           </TableRow>
         </DrawerTrigger>
+
+        {/* Resto do DrawerContent permanece igual */}
         <DrawerContent>
           <DrawerHeader>
             <div className="flex w-full items-center justify-between">
@@ -415,7 +431,6 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
           <div className="p-4">
             <div className="grid grid-cols-2 gap-1 space-x-3">
               {drawerConfig.fields.map((f) => {
-                // Get current value from formData, with fallbacks
                 const curr =
                   getNested(formData, f.name) ??
                   (f.type === "number" ? 0 : f.type === "select" ? "" : "");
@@ -432,9 +447,7 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
                       <Input
                         id={f.name}
                         value={curr || ""}
-                        onChange={(e: { target: { value: any } }) =>
-                          handleChange(f.name, e.target.value)
-                        }
+                        onChange={(e) => handleChange(f.name, e.target.value)}
                         disabled={isLoading}
                         className="mt-1"
                       />
@@ -445,7 +458,7 @@ function TableRowWithDrawer<TData, TUpdate extends Record<string, any>>({
                         type="number"
                         value={curr}
                         disabled={isLoading}
-                        onChange={(e: { target: { value: string } }) =>
+                        onChange={(e) =>
                           handleChange(f.name, parseFloat(e.target.value) || 0)
                         }
                         className="mt-1"
@@ -543,6 +556,7 @@ export function DataTable<
   const [tableOrder, setTableOrder] = useState<TData[]>([]);
   const [hasOrderChanged, setHasOrderChanged] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const isMounted = React.useRef(false);
 
   // Sensors para drag and drop
   const sensors = useSensors(
@@ -666,24 +680,36 @@ export function DataTable<
     }
   };
 
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   // Memoize the pagination change handler to prevent re-creation on every render
   const handlePaginationChange = React.useCallback(
     (updater: any) => {
-      // Use React.startTransition to defer the state update
+      // Verificar se o componente está montado antes de atualizar
+      if (!isMounted.current) {
+        return;
+      }
+
       React.startTransition(() => {
         const newPagination =
           typeof updater === "function" ? updater(pagination) : updater;
         setPagination(newPagination);
 
-        // Only call external handler if pagination actually changed
         if (
           onPaginationChange &&
           (pagination.pageIndex !== newPagination.pageIndex ||
             pagination.pageSize !== newPagination.pageSize)
         ) {
-          // Defer the external call as well
           setTimeout(() => {
-            onPaginationChange(newPagination);
+            if (isMounted.current) {
+              // Verificar novamente antes da chamada externa
+              onPaginationChange(newPagination);
+            }
           }, 0);
         }
       });
@@ -867,7 +893,7 @@ export function DataTable<
         {/* Título e botões de controle - empilhados em mobile */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h1 className="text-2xl font-bold">{title}</h1>
-          
+
           {/* Botões de controle de ordem */}
           {enableDragAndDrop && hasOrderChanged && (
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -903,7 +929,7 @@ export function DataTable<
             </div>
           )}
         </div>
-  
+
         {/* Busca e filtros - empilhados em mobile */}
         <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end">
           {searchColumn && (
@@ -912,8 +938,8 @@ export function DataTable<
               <Input
                 placeholder="Procurar..."
                 value={searchTerm}
-                onChange={(value: string) => {
-                  const v = value;
+                onChange={(e) => {
+                  const v = e.target.value;
                   setSearchTerm(v);
                   table.setGlobalFilter(v);
                 }}
@@ -921,10 +947,14 @@ export function DataTable<
               />
             </div>
           )}
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="order-1 sm:order-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                className="order-1 sm:order-2 w-full sm:w-auto"
+              >
                 <IconLayoutColumns className="h-4 w-4 mr-2" />
                 <span className="sm:hidden lg:inline">Filtrar colunas</span>
                 <span className="hidden sm:inline lg:hidden">Colunas</span>
@@ -957,7 +987,7 @@ export function DataTable<
           </DropdownMenu>
         </div>
       </div>
-  
+
       <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
         <div className="overflow-hidden rounded-lg border">
           {isLoading && (
@@ -965,7 +995,7 @@ export function DataTable<
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
             </div>
           )}
-  
+
           {enableDragAndDrop ? (
             <DndContext
               sensors={sensors}
@@ -978,7 +1008,7 @@ export function DataTable<
             <TableContent />
           )}
         </div>
-  
+
         {/* Paginação - ocultar se drag and drop estiver ativo e houver mudanças */}
         {(!enableDragAndDrop || !hasOrderChanged) && (
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-2 sm:px-4">
@@ -995,11 +1025,14 @@ export function DataTable<
                     table.getFilteredRowModel().rows.length
                   } item(ns).`}
             </div>
-            
+
             <div className="flex flex-col sm:flex-row items-center gap-4 order-1 sm:order-2">
               {/* Seletor de linhas por página */}
               <div className="flex items-center gap-2">
-                <Label htmlFor="rows-per-page" className="text-sm font-medium whitespace-nowrap">
+                <Label
+                  htmlFor="rows-per-page"
+                  className="text-sm font-medium whitespace-nowrap"
+                >
                   <span className="hidden sm:inline">Linhas por página</span>
                   <span className="sm:hidden">Por página</span>
                 </Label>
@@ -1026,13 +1059,13 @@ export function DataTable<
                   </SelectContent>
                 </Select>
               </div>
-  
+
               {/* Informação da página atual */}
               <div className="flex items-center justify-center text-sm font-medium whitespace-nowrap">
                 Página {table.getState().pagination.pageIndex + 1} de{" "}
                 {table.getPageCount() || 1}
               </div>
-  
+
               {/* Controles de navegação */}
               <div className="flex items-center gap-1">
                 <Button
@@ -1075,13 +1108,14 @@ export function DataTable<
             </div>
           </div>
         )}
-  
+
         {/* Aviso quando drag and drop está ativo */}
         {enableDragAndDrop && hasOrderChanged && (
           <div className="mx-2 sm:mx-4 py-3 px-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-700">
-              📋 Você alterou a ordem dos itens. Clique em "Salvar Ordem" para
-              confirmar as mudanças ou "Resetar" para voltar à ordem original.
+              📋 Você alterou a ordem dos itens. Clique em &quot;Salvar
+              Ordem&quot; para confirmar as mudanças ou &quot;Resetar&quot; para
+              voltar à ordem original.
             </p>
           </div>
         )}
