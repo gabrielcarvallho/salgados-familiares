@@ -24,8 +24,8 @@ export const addressSchema = z.object({
   number: z.string().min(1, "Número de residência é obrigatório"),
   city: z.string().min(1, "Cidade é obrigatória"),
   state: z.string().min(1, "Estado é obrigatório"),
-  observation: z.string().optional(),
-  description: z.string().optional(),
+  observation: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
 });
 
 export const viaCEPSchema = z.object({
@@ -47,7 +47,11 @@ export const CustomerRequestSchema = z.object({
     .string()
     .min(14, "CNPJ inválido. Deve conter 14 dígitos numéricos.")
     .transform(cleanCNPJ),
-  phone_number: z.string().max(16).transform(cleanPhone),
+  phone_number: z
+    .string()
+    .min(1, "Telefone da empresa é obrigatório")
+    .max(16)
+    .transform(cleanPhone),
   email: z.string().email("Digite um endereço de e-mail válido."),
   state_tax_registration: z.string().optional(),
   billing_address: addressSchema.omit({ id: true }),
@@ -119,6 +123,7 @@ export const EMPTY_CUSTOMER: CustomerRequest = {
     city: "",
     state: "",
     observation: "",
+    description: "",
   },
   contact: {
     name: "",

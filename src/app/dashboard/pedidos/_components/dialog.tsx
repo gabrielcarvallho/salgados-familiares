@@ -114,6 +114,14 @@ export function DialogPedidos() {
   const watchedProducts = watch("products");
   const watchedCustomerId = watch("customer_id");
 
+  const watchedPaymentmethod = watch("payment_method_id");
+
+  // 2. Encontra o objeto cujo nome é "Boleto bancário"
+  const boleto = paymentMethods.find((pm) => pm.name === "Boleto bancário");
+
+  // 3. Verifica se o ID batem
+  const isBoletoBancario = boleto ? watchedPaymentmethod === boleto.id : false;
+
   // Handle customer selection and address changes
   useEffect(() => {
     if (watchedCustomerId) {
@@ -579,6 +587,33 @@ export function DialogPedidos() {
                       </FormItem>
                     )}
                   />
+                {isBoletoBancario && (
+                  <FormField
+                    control={control}
+                    name="due_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center">
+                          <CalendarIcon className="mr-2 h-4 w-4 text-[#FF8F3F]" />
+                          Data de vencimento*
+                        </FormLabel>
+                        <FormControl>
+                          <DatePicker
+                            value={field.value || ""}
+                            onChange={(date) => field.onChange(date)}
+                            label={undefined}
+                            placeholder="Selecione uma data"
+                            errorMessage={errors.due_date?.message}
+                            locale={ptBR}
+                            dateFormat="dd/MM/yyyy"
+                            buttonClassName="w-full"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
                 </div>
 
                 {/* Error Summary */}
@@ -620,6 +655,11 @@ export function DialogPedidos() {
                         {errors.delivery_date && (
                           <li>
                             • Data de entrega: {errors.delivery_date.message}
+                          </li>
+                        )}
+                        {errors.due_date && (
+                          <li>
+                            • Data de vencimento: {errors.due_date.message}
                           </li>
                         )}
                         {errors.payment_method_id && (

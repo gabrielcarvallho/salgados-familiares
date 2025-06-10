@@ -155,8 +155,6 @@ export function DialogClientes() {
         },
       };
 
-
-
       await create(dataToSubmit);
       mutate();
       toast.success("Cliente cadastrado com sucesso!", {
@@ -184,7 +182,6 @@ export function DialogClientes() {
     setFormSubmitted(true);
 
     const formValid = await trigger();
-
 
     if (formValid) {
       handleSubmit(onSubmit)();
@@ -676,6 +673,7 @@ export function DialogClientes() {
                                   </FormLabel>
                                   <FormControl>
                                     <Input
+                                      max={2}
                                       placeholder="SC"
                                       className="focus-visible:ring-[#FF8F3F]"
                                       {...field}
@@ -699,9 +697,10 @@ export function DialogClientes() {
                                     </FormLabel>
                                     <FormControl>
                                       <Input
-                                        placeholder="APTO 300"
+                                        placeholder="Trabalho"
                                         className="focus-visible:ring-[#FF8F3F]"
                                         {...field}
+                                        value={field.value ?? ""}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -724,6 +723,7 @@ export function DialogClientes() {
                                         placeholder="Trabalho"
                                         className="focus-visible:ring-[#FF8F3F]"
                                         {...field}
+                                        value={field.value ?? ""}
                                       />
                                     </FormControl>
                                     <FormMessage />
