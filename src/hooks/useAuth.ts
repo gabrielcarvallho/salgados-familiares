@@ -50,7 +50,6 @@ export function useAuth() {
       const homePage = getHomePage(user.group_id);
 
       router.push(homePage);
-
       return true;
     } catch (err) {
       const formattedError = handleApiError(err);

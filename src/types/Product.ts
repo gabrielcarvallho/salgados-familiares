@@ -22,10 +22,6 @@ export const productUpdateRequestSchema = productRequestSchema
   });
 export const productResponseSchema = productRequestSchema.extend({
   id: z.string().uuid(),
-  daily_batch_capacity: z.coerce
-    .number()
-    .min(1, "Capacidade diária deve ser maior que 0")
-    .optional(),
   batch_production_days: z.coerce
     .number()
     .min(0, "Dias de produção devem ser >= 0")

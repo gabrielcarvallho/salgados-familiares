@@ -66,6 +66,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 
+const isDisabled = (identifier: number) => {
+  if (identifier > 2) return true;
+  return false;
+};
+
 // Colunas da tabela
 export const columns: ColumnDef<OrderResponse, any>[] = [
   {
@@ -289,7 +294,6 @@ export function useDrawerConfig() {
               ? valueObj
               : { value: valueObj, isEditable: false };
 
-
           return (
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
@@ -324,8 +328,6 @@ export function useDrawerConfig() {
             typeof valueObj === "object" && valueObj !== null
               ? valueObj
               : { value: valueObj, isEditable: false };
-
-
 
           return (
             <div className="space-y-2">
@@ -364,179 +366,136 @@ export function useDrawerConfig() {
         type: "custom",
         colSpan: 2,
 
-        // 1) estado interno do form: { items: [], isEditable: boolean }
+        // 1. PRIMEIRO: Ajuste o defaultValue do campo "products" para garantir que sale_price seja mapeado corretamente:
+
         defaultValue: (o) => ({
           items: Array.isArray(o.products)
-            ? o.products.map((p: { product: { id: any }; quantity: any }) => ({
-                product_id: String(p.product.id),
-                quantity: p.quantity,
-              }))
+            ? o.products.map(
+                (p: {
+                  product: { id: any; price: any };
+                  quantity: any;
+                  sale_price: any;
+                }) => ({
+                  product_id: String(p.product.id),
+                  quantity: p.quantity,
+                  sale_price:
+                    Number(p.sale_price) || Number(p.product.price) || 0, // ✅ Fallback para product.price
+                  price: Number(p.product.price) || 0,
+                })
+              )
             : [],
-          isEditable: Number(o.order_status.identifier) === 0,
         }),
 
-        // 2) antes de validar, extraímos só o array
+        // 2. DEPOIS: Ajuste o formatValue para garantir que sale_price seja preservado:
+
         formatValue: (valueObj) => {
           if (
             valueObj &&
             typeof valueObj === "object" &&
             Array.isArray(valueObj.items)
           ) {
-            return valueObj.items;
+            return valueObj.items
+              .filter(
+                (item: { quantity: number }) =>
+                  item.quantity > 0 || item.quantity === 0
+              )
+              .map((item: any) => ({
+                ...item,
+                sale_price: Number(item.sale_price) || 0, // ✅ Garantir que sale_price seja preservado
+              }));
           }
           return [];
         },
 
-        // 3) UI: continua recebendo { items, isEditable }
+        // 3. FINALMENTE: O customRender ajustado:
+
         customRender: (valueObj, onChange) => {
           const { items = [], isEditable } =
             typeof valueObj === "object" && valueObj !== null
               ? valueObj
               : { items: [], isEditable: false };
 
-
-
-          // Função para atualizar os itens quando o ProductSelector mudar
           const handleProductChange = (newItems: any) => {
             onChange({ items: newItems, isEditable });
           };
 
-          // Preparar os produtos para o ProductSelector
+          // ✅ Calcular total usando sale_price de cada item do pedido
+
+          // ✅ CORREÇÃO: Formatar produtos base sem sale_price (que vem dos items)
           const formattedProducts = products.map((product) => ({
             id: String(product.id),
             name: product.name,
-            price: product.price,
+            price: Number(product.price) || 0,
+            // ❌ Remover sale_price daqui, pois não existe no produto base
+            // sale_price: Number(product.sale_price) || 0
           }));
 
-          // Calcular o total do pedido
+          // ✅ Calcular total usando sale_price de cada item do pedido
           const calculateTotal = () => {
             if (!items.length) return 0;
 
             return items.reduce(
               (
                 total: number,
-                item: { product_id: string; quantity: number }
+                item: {
+                  product_id: string;
+                  quantity: number;
+                  sale_price?: number;
+                  price?: number;
+                }
               ) => {
-                const product = products.find(
-                  (p) => String(p.id) === item.product_id
-                );
-                if (!product) return total;
+                // ✅ Usar o sale_price do item do pedido com fallbacks
+                const itemSalePrice = Number(item.sale_price) || 0;
+                const itemPrice = Number(item.price) || 0;
 
-                const price =
-                  typeof product.price === "number"
-                    ? product.price
-                    : Number.parseFloat(String(product.price)) || 0;
+                // Fallback para preço do produto base se necessário
+                const fallbackPrice =
+                  products.find((p) => String(p.id) === item.product_id)
+                    ?.price || 0;
 
-                return total + price * item.quantity;
+                const finalPrice =
+                  itemSalePrice || itemPrice || Number(fallbackPrice) || 0;
+
+                return total + finalPrice * item.quantity;
               },
               0
             );
           };
 
-          // Se for editável, mostrar o ProductSelector
-          if (isEditable) {
-            return (
-              <div className="space-y-4">
-                <div className="">
-                  <ProductSelector
-                    products={formattedProducts}
-                    value={items}
-                    onChange={handleProductChange}
-                  />
-                </div>
-
-                {items.length > 0 && (
-                  <Card className="bg-muted/40 border-muted">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Calculator className="h-4 w-4 text-[#FF8F3F]" />
-                        <h3 className="text-sm font-medium">
-                          Resumo do Pedido
-                        </h3>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Total:</span>
-                        <span className="font-medium text-lg text-[#FF8F3F]">
-                          R$ {calculateTotal().toFixed(2)}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            );
-          }
-
-          // Se não for editável, mostrar a tabela de produtos
           return (
             <div className="space-y-4">
-              <Card className="bg-muted/30 border-muted">
-                <CardContent className="p-4">
-                  <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground mb-3">
-                    <div className="col-span-6">Produto</div>
-                    <div className="col-span-3 text-center">Quantidade</div>
-                    <div className="col-span-3 text-right">Subtotal</div>
-                  </div>
+              <div className="">
+                <ProductSelector
+                  products={formattedProducts}
+                  value={items} // ✅ items já inclui sale_price do backend
+                  onChange={handleProductChange}
+                />
+              </div>
 
-                  {items.length > 0 ? (
-                    <>
-                      {items.map(
-                        (
-                          item: { product_id: string; quantity: number },
-                          idx: Key | null | undefined
-                        ) => {
-                          const product = products.find(
-                            (p) => String(p.id) === item.product_id
-                          );
-                          if (!product) return null;
-
-                          const price =
-                            typeof product.price === "number"
-                              ? product.price
-                              : Number.parseFloat(String(product.price)) || 0;
-
-                          const subtotal = price * item.quantity;
-
-                          return (
-                            <div
-                              key={idx}
-                              className="grid grid-cols-12 gap-2 items-center py-2 last:border-0"
-                            >
-                              <div className="col-span-6 font-medium">
-                                {product.name}
-                              </div>
-                              <div className="col-span-3 text-center">
-                                {item.quantity}
-                              </div>
-                              <div className="col-span-3 text-right">
-                                R$ {subtotal.toFixed(2)}
-                              </div>
-                            </div>
-                          );
-                        }
-                      )}
-
-                      <div className="flex justify-between items-center mt-4 pt-2 border-t border-muted">
-                        <span className="font-medium">Total:</span>
-                        <span className="font-medium text-lg text-[#FF8F3F]">
-                          R$ {calculateTotal().toFixed(2)}
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center py-4 text-muted-foreground">
-                      Nenhum produto encontrado
+              {items.length > 0 && (
+                <Card className="bg-muted/40 border-muted">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Calculator className="h-4 w-4 text-[#FF8F3F]" />
+                      <h3 className="text-sm font-medium">Resumo do Pedido</h3>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Total:</span>
+                      <span className="font-medium text-lg text-[#FF8F3F]">
+                        R$ {calculateTotal().toFixed(2)}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           );
         },
       },
+
       {
-        name: "company_name",
+        name: "customer.company_name",
         type: "custom",
         colSpan: 2,
         customRender: (value: string, onChange: (v: string) => void) => (
@@ -548,7 +507,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               className="transition-all focus-visible:ring-[#FF8F3F]"
               placeholder="Razão Social da empresa"
             />
@@ -556,7 +517,7 @@ export function useDrawerConfig() {
         ),
       },
       {
-        name: "brand_name",
+        name: "customer.brand_name",
         type: "custom",
         colSpan: 2,
         customRender: (value: string, onChange: (v: string) => void) => (
@@ -568,7 +529,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               className="transition-all focus-visible:ring-[#FF8F3F]"
               placeholder="Nome Fantasia da empresa"
             />
@@ -593,7 +556,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="00.000.000/0000-00"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -614,7 +579,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="Inscrição Estadual"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -636,7 +603,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="email@empresa.com"
               className="transition-all focus-visible:ring-[#FF8F3F]"
               type="email"
@@ -675,7 +644,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="Nome da pessoa de contato"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -722,7 +693,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="(00) 00000-0000"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -763,7 +736,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="00000-000"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -784,7 +759,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="Nome da rua"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -805,7 +782,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="Número"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -824,7 +803,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="Bairro"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -845,7 +826,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="Cidade"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -864,7 +847,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="UF"
               className="transition-all focus-visible:ring-[#FF8F3F]"
               maxLength={2}
@@ -884,7 +869,9 @@ export function useDrawerConfig() {
             </Label>
             <Input
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e: { target: { value: string } }) =>
+                onChange(e.target.value)
+              }
               placeholder="Trabalho"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />

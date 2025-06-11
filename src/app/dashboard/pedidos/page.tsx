@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { DataTable } from "@/components/datatable";
@@ -94,6 +94,20 @@ export default function OrdersPage() {
     }
   };
 
+  const ascendingOrders = useMemo(() => {
+    if (!orders || !Array.isArray(orders)) return [];
+    
+    return [...orders].sort((a, b) => {
+      // Conversão segura para números
+      const orderA = Number(a.order_number) || 0;
+      const orderB = Number(b.order_number) || 0;
+      
+      // Ordenação ascendente (1, 2, 3, 4...)
+      return orderA - orderB;
+    });
+  }, [orders]);
+  
+
   // Show skeleton while loading
   if (isLoading) {
     return <OrdersSkeletonLoading />;
@@ -124,7 +138,7 @@ export default function OrdersPage() {
             drawerConfig={drawerConfig}
             title="Pedidos"
             columns={columns}
-            data={orders || []}
+            data={ascendingOrders || []}
             totalCount={totalItems || 0}
             pageSize={pagination.pageSize}
             currentPage={pagination.pageIndex}

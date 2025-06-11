@@ -23,16 +23,20 @@ export const orderRequestSchema = z.object({
   payment_method_id: z
     .string()
     .uuid({ message: "ID de método de pagamento inválido" }),
-  delivery_date: z.string().min(1),
+  delivery_date: z.string(),
+  due_date: z.string().nullable().optional(),
+  table_order: z.coerce.number().optional().nullable(),
+
   delivery_address_id: z.string().optional().nullable(),
   delivery_address: addressSchema.optional().nullable(),
   products: z.array(
     z.object({
+      sale_price: z.coerce.number().optional(),
       product_id: z.string().uuid({ message: "ID de produto inválido" }),
-      quantity: z.coerce.number().min(1, "Quantidade deve ser maior que 0"),
+      quantity: z.coerce.number(),
     })
   ),
-  is_delivered: z.boolean().optional()
+  is_delivered: z.boolean().optional(),
 });
 
 export const orderUpdateRequestSchema = orderRequestSchema.partial();
@@ -41,12 +45,14 @@ const orderItemSchema = z.object({
   id: z.string().uuid(),
   product: productResponseSchema,
   quantity: z.number().min(1, "Quantidade deve ser maior que 0"),
-  total_price: z.number().min(0, "Preço total deve ser positivo"),
+  total_price: z.coerce.number(), 
+  sale_price: z.coerce.number(), 
 });
 // --- Response de Pedido ---
 export const orderResponseSchema = z.object({
   id: z.string().uuid({ message: "ID de pedido inválido" }),
   order_number: z.coerce.number(),
+  table_order: z.coerce.number(),
   is_delivered: z.boolean(),
   customer: CustomerResponseSchema.omit({ billing_address: true }),
   products: z.array(orderItemSchema),
@@ -66,7 +72,6 @@ export const orderWithAddressSchema = orderRequestSchema.merge(
     delivery_address: addressSchema,
   })
 );
-
 
 // --- Lista de Pedidos ---
 export const ordersResponseSchema = z.object({
@@ -93,6 +98,7 @@ export const EMPTY_ORDER: OrderRequest = {
   order_status_id: "",
   payment_method_id: "",
   delivery_date: "",
+  due_date: "",
   delivery_address_id: "",
   products: [
     {

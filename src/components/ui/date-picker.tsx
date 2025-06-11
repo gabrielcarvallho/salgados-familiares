@@ -131,10 +131,11 @@ export default function DatePicker({
               onChange(iso);
             }}
             initialFocus
-            // desabilita sábado(6) e domingo(0)
             disabled={(date: Date) => {
-              const d = date.getDay();
-              return d === 0 || d === 6;
+              const today = new Date();
+              today.setHours(0, 0, 0, 0); // Normalização temporal
+              const day = date.getDay();
+              return date < today || day === 0 || day === 6;
             }}
             className="[&_[aria-selected='true']]:bg-[#FF8F3F] [&_[aria-selected='true']]:text-white"
           />

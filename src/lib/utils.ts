@@ -34,12 +34,14 @@ export function formatDateToBR(input: string | Date): string {
   } else {
     date = input;
   }
-
-  const dd = String(date.getDate()).padStart(2, "0");
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const yyyy = date.getFullYear();
-
-  return `${dd}/${mm}/${yyyy}`;
+  if (date != null) {
+    const dd = String(date.getDate()).padStart(2, "0");
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const yyyy = date.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  } else {
+    return "";
+  }
 }
 
 export const convertDateFormat = (date: string) => {
@@ -246,16 +248,11 @@ export const badgesVariant = (identifier: number): BadgeInfo => {
       return { badge, stats };
     }
     case 3: {
-      const stats = "Entregue";
-      const badge = "entregue";
-      return { badge, stats };
-    }
-    case 4: {
       const stats = "Pagamento pendente";
       const badge = "pagamentoPendente";
       return { badge, stats };
     }
-    case 5: {
+    case 4: {
       const stats = "Pagamento aprovado";
       const badge = "pagamentoAprovado";
       return { badge, stats };

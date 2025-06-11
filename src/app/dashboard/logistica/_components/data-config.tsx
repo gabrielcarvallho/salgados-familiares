@@ -3,6 +3,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import type { DrawerConfig } from "@/components/datatable";
 import { Badge } from "@/components/ui/badge";
 import {
+  useOrderById,
   useOrderList,
   useOrderStatus,
   usePaymentMethods,
@@ -19,6 +20,7 @@ import {
   type OrderUpdateRequest,
   orderUpdateRequestSchema,
   type OrderResponse,
+  ordersResponseSchema,
 } from "@/types/Order";
 import {
   Select,
@@ -44,13 +46,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { ProductSelector } from "@/components/productSelector";
-import {
-  ReactElement,
-  JSXElementConstructor,
-  ReactNode,
-  ReactPortal,
-  Key,
-} from "react";
+
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 
@@ -73,9 +69,7 @@ export const columns: ColumnDef<OrderResponse, any>[] = [
     accessorKey: "payment_method.name",
     header: "Método de Pagamento",
     cell: ({ row }) => (
-      <Badge variant="outline">
-        {(row.original.payment_method.name)}
-      </Badge>
+      <Badge variant="outline">{row.original.payment_method.name}</Badge>
     ),
   },
   {
@@ -203,7 +197,7 @@ export function useDrawerConfig() {
                 <SelectContent>
                   {orderStatuses.map((st) => (
                     <SelectItem key={st.id} value={String(st.id)}>
-                      {formatStatus(st.description)}
+                      {st.description}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -250,7 +244,7 @@ export function useDrawerConfig() {
                 <SelectContent>
                   {paymentMethods.map((pm) => (
                     <SelectItem key={pm.id} value={String(pm.id)}>
-                      {(pm.name)}
+                      {pm.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -276,7 +270,6 @@ export function useDrawerConfig() {
             typeof valueObj === "object" && valueObj !== null
               ? valueObj
               : { value: valueObj, isEditable: false };
-
 
           return (
             <div className="space-y-2">
@@ -349,79 +342,120 @@ export function useDrawerConfig() {
         type: "custom",
         colSpan: 2,
 
-        // 1) estado interno do form: { items: [], isEditable: boolean }
+        // 1. PRIMEIRO: Ajuste o defaultValue do campo "products" para garantir que sale_price seja mapeado corretamente:
+
         defaultValue: (o) => ({
           items: Array.isArray(o.products)
-            ? o.products.map((p: { product: { id: any }; quantity: any }) => ({
-                product_id: String(p.product.id),
-                quantity: p.quantity,
-              }))
+            ? o.products.map(
+                (p: {
+                  product: { id: any; price: any };
+                  quantity: any;
+                  sale_price: any;
+                }) => ({
+                  product_id: String(p.product.id),
+                  quantity: p.quantity,
+                  sale_price:
+                    Number(p.sale_price) || Number(p.product.price) || 0, // ✅ Fallback para product.price
+                  price: Number(p.product.price) || 0,
+                })
+              )
             : [],
+          order_status: o.order_status,
+          order_id: o.id, // Caso precise do ID também
         }),
 
-        // 2) antes de validar, extraímos só o array
         formatValue: (valueObj) => {
           if (
             valueObj &&
             typeof valueObj === "object" &&
             Array.isArray(valueObj.items)
           ) {
-            return valueObj.items;
+            return valueObj.items
+              .filter(
+                (item: { quantity: number }) =>
+                  item.quantity > 0 || item.quantity === 0
+              )
+              .map((item: any) => ({
+                ...item,
+                sale_price: Number(item.sale_price) || 0, // ✅ Garantir que sale_price seja preservado
+              }));
           }
           return [];
         },
 
-        // 3) UI: continua recebendo { items, isEditable }
-        customRender: (valueObj, onChange) => {
-          const { items = [], isEditable } =
-            typeof valueObj === "object" && valueObj !== null
-              ? valueObj
-              : { items: [], isEditable: false };
+        // 3. FINALMENTE: O customRender ajustado:
 
-          // Função para atualizar os itens quando o ProductSelector mudar
+        customRender: (valueObj, onChange) => {
+          const {
+            items = [],
+            order_status = null,
+            order_id = null,
+          } = typeof valueObj === "object" && valueObj !== null
+            ? valueObj
+            : { items: [], order_status: null, order_id: null };
+
           const handleProductChange = (newItems: any) => {
-            onChange({ items: newItems, isEditable });
+            // ✅ Preservar o order_status ao atualizar
+            onChange({
+              items: newItems,
+              order_status,
+              order_id,
+            });
           };
 
-          // Preparar os produtos para o ProductSelector
+          // ✅ Calcular total usando sale_price de cada item do pedido
+
+          // ✅ CORREÇÃO: Formatar produtos base sem sale_price (que vem dos items)
           const formattedProducts = products.map((product) => ({
             id: String(product.id),
             name: product.name,
-            price: product.price,
+            price: Number(product.price) || 0,
+            // ❌ Remover sale_price daqui, pois não existe no produto base
+            // sale_price: Number(product.sale_price) || 0
           }));
 
-          // Calcular o total do pedido
+          // ✅ Calcular total usando sale_price de cada item do pedido
           const calculateTotal = () => {
             if (!items.length) return 0;
 
             return items.reduce(
               (
                 total: number,
-                item: { product_id: string; quantity: number }
+                item: {
+                  product_id: string;
+                  quantity: number;
+                  sale_price?: number;
+                  price?: number;
+                }
               ) => {
-                const product = products.find(
-                  (p) => String(p.id) === item.product_id
-                );
-                if (!product) return total;
+                // ✅ Usar o sale_price do item do pedido com fallbacks
+                const itemSalePrice = Number(item.sale_price) || 0;
+                const itemPrice = Number(item.price) || 0;
 
-                const price =
-                  typeof product.price === "number"
-                    ? product.price
-                    : Number.parseFloat(String(product.price)) || 0;
+                // Fallback para preço do produto base se necessário
+                const fallbackPrice =
+                  products.find((p) => String(p.id) === item.product_id)
+                    ?.price || 0;
 
-                return total + price * item.quantity;
+                const finalPrice =
+                  itemSalePrice || itemPrice || Number(fallbackPrice) || 0;
+
+                return total + finalPrice * item.quantity;
               },
               0
             );
           };
 
-          // Se for editável, mostrar o ProductSelector
           return (
             <div className="space-y-4">
               <div className="">
                 <ProductSelector
+                  onDisabled={() => {
+                    // Sem necessidade de hook adicional!
+                    return order_status ? order_status.identifier > 1 : false;
+                  }}
                   products={formattedProducts}
-                  value={items}
+                  value={items} // ✅ items já inclui sale_price do backend
                   onChange={handleProductChange}
                 />
               </div>
@@ -447,186 +481,186 @@ export function useDrawerConfig() {
           );
         },
       },
-      // {
-      //   name: "address_separator",
-      //   type: "custom",
-      //   colSpan: 2,
-      //   customRender: () => (
-      //     <div className="col-span-2 pt-2">
-      //       <div className="flex items-center gap-2 mb-2">
-      //         <MapPin className="h-5 w-5 text-[#FF8F3F]" />
-      //         <h3 className="text-base font-medium">Endereço de Cobrança</h3>
-      //       </div>
-      //       <Separator />
-      //     </div>
-      //   ),
-      // },
+      {
+        name: "address_separator",
+        type: "custom",
+        colSpan: 2,
+        customRender: () => (
+          <div className="col-span-2 pt-2">
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="h-5 w-5 text-[#FF8F3F]" />
+              <h3 className="text-base font-medium">Endereço de Cobrança</h3>
+            </div>
+            <Separator />
+          </div>
+        ),
+      },
 
-      // // CEP: exibe formatado, envia limpo
-      // {
-      //   name: "delivery_address.cep",
-      //   type: "custom",
-      //   colSpan: 2,
-      //   defaultValue: (o) => formatCEP(o.delivery_address.cep),
-      //   formatValue: (v) => formatCEP(v),
-      //   parseValue: (v) => cleanCEP(v),
-      //   customRender: (value: string, onChange: (v: string) => void) => (
-      //     <div className="space-y-2">
-      //       <Label className="flex items-center gap-2">
-      //         <MapPin className="h-4 w-4 text-[#FF8F3F]" />
-      //         <span>CEP</span>
-      //         <span className="text-destructive">*</span>
-      //       </Label>
-      //       <Input
-      //         value={value}
-      //         onChange={(e) => onChange(e.target.value)}
-      //         placeholder="00000-000"
-      //         className="transition-all focus-visible:ring-[#FF8F3F]"
-      //       />
-      //     </div>
-      //   ),
-      // },
+      // CEP: exibe formatado, envia limpo
+      {
+        name: "delivery_address.cep",
+        type: "custom",
+        colSpan: 2,
+        defaultValue: (o) => formatCEP(o.delivery_address.cep),
+        formatValue: (v) => formatCEP(v),
+        parseValue: (v) => cleanCEP(v),
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-[#FF8F3F]" />
+              <span>CEP</span>
+              <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="00000-000"
+              className="transition-all focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
 
-      // // Endereço completo em campos separados
-      // {
-      //   name: "delivery_address.street_name",
-      //   type: "custom",
-      //   colSpan: 1,
-      //   customRender: (value: string, onChange: (v: string) => void) => (
-      //     <div className="space-y-2">
-      //       <Label className="flex items-center gap-2">
-      //         <span>Rua</span>
-      //         <span className="text-destructive">*</span>
-      //       </Label>
-      //       <Input
-      //         value={value}
-      //         onChange={(e) => onChange(e.target.value)}
-      //         placeholder="Nome da rua"
-      //         className="transition-all focus-visible:ring-[#FF8F3F]"
-      //       />
-      //     </div>
-      //   ),
-      // },
+      // Endereço completo em campos separados
+      {
+        name: "delivery_address.street_name",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <span>Rua</span>
+              <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Nome da rua"
+              className="transition-all focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
 
-      // // Número e Bairro na mesma linha
-      // {
-      //   name: "delivery_address.number",
-      //   type: "custom",
-      //   colSpan: 1,
-      //   customRender: (value: string, onChange: (v: string) => void) => (
-      //     <div className="space-y-2">
-      //       <Label className="flex items-center gap-2">
-      //         <span>Número</span>
-      //         <span className="text-destructive">*</span>
-      //       </Label>
-      //       <Input
-      //         value={value}
-      //         onChange={(e) => onChange(e.target.value)}
-      //         placeholder="Número"
-      //         className="transition-all focus-visible:ring-[#FF8F3F]"
-      //       />
-      //     </div>
-      //   ),
-      // },
-      // {
-      //   name: "delivery_address.district",
-      //   type: "custom",
-      //   colSpan: 1,
-      //   customRender: (value: string, onChange: (v: string) => void) => (
-      //     <div className="space-y-2">
-      //       <Label className="flex items-center gap-2">
-      //         <span>Bairro</span>
-      //         <span className="text-destructive">*</span>
-      //       </Label>
-      //       <Input
-      //         value={value}
-      //         onChange={(e) => onChange(e.target.value)}
-      //         placeholder="Bairro"
-      //         className="transition-all focus-visible:ring-[#FF8F3F]"
-      //       />
-      //     </div>
-      //   ),
-      // },
+      // Número e Bairro na mesma linha
+      {
+        name: "delivery_address.number",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <span>Número</span>
+              <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Número"
+              className="transition-all focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
+      {
+        name: "delivery_address.district",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <span>Bairro</span>
+              <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Bairro"
+              className="transition-all focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
 
-      // // Cidade e Estado na mesma linha
-      // {
-      //   name: "delivery_address.city",
-      //   type: "custom",
-      //   colSpan: 1,
-      //   customRender: (value: string, onChange: (v: string) => void) => (
-      //     <div className="space-y-2">
-      //       <Label className="flex items-center gap-2">
-      //         <span>Cidade</span>
-      //         <span className="text-destructive">*</span>
-      //       </Label>
-      //       <Input
-      //         value={value}
-      //         onChange={(e) => onChange(e.target.value)}
-      //         placeholder="Cidade"
-      //         className="transition-all focus-visible:ring-[#FF8F3F]"
-      //       />
-      //     </div>
-      //   ),
-      // },
-      // {
-      //   name: "delivery_address.state",
-      //   type: "custom",
-      //   colSpan: 1,
-      //   customRender: (value: string, onChange: (v: string) => void) => (
-      //     <div className="space-y-2">
-      //       <Label className="flex items-center gap-2">
-      //         <span>Estado</span>
-      //         <span className="text-destructive">*</span>
-      //       </Label>
-      //       <Input
-      //         value={value}
-      //         onChange={(e) => onChange(e.target.value)}
-      //         placeholder="UF"
-      //         className="transition-all focus-visible:ring-[#FF8F3F]"
-      //         maxLength={2}
-      //       />
-      //     </div>
-      //   ),
-      // },
-      // {
-      //   name: "delivery_address.description",
-      //   type: "custom",
-      //   colSpan: 1,
-      //   customRender: (value: string, onChange: (v: string) => void) => (
-      //     <div className="space-y-2">
-      //       <Label className="flex items-center gap-2">
-      //         <span>Descrição</span>
-      //         <span className="text-destructive"></span>
-      //       </Label>
-      //       <Input
-      //         value={value ?? ""}
-      //         onChange={(e) => onChange(e.target.value)}
-      //         placeholder="Trabalho"
-      //         className="transition-all focus-visible:ring-[#FF8F3F]"
-      //       />
-      //     </div>
-      //   ),
-      // },
+      // Cidade e Estado na mesma linha
+      {
+        name: "delivery_address.city",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <span>Cidade</span>
+              <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Cidade"
+              className="transition-all focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
+      {
+        name: "delivery_address.state",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <span>Estado</span>
+              <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="UF"
+              className="transition-all focus-visible:ring-[#FF8F3F]"
+              maxLength={2}
+            />
+          </div>
+        ),
+      },
+      {
+        name: "delivery_address.description",
+        type: "custom",
+        colSpan: 1,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <span>Descrição</span>
+              <span className="text-destructive"></span>
+            </Label>
+            <Input
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Trabalho"
+              className="transition-all focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
 
-      // // Observação
-      // {
-      //   name: "delivery_address.observation",
-      //   type: "custom",
-      //   colSpan: 2,
-      //   customRender: (value: string, onChange: (v: string) => void) => (
-      //     <div className="space-y-2">
-      //       <Label className="flex items-center gap-2">
-      //         <span>Observação</span>
-      //       </Label>
-      //       <Textarea
-      //         value={value ?? ""}
-      //         onChange={(e) => onChange(e.target.value)}
-      //         placeholder="Observações sobre o endereço"
-      //         className="min-h-[80px] transition-all focus-visible:ring-[#FF8F3F]"
-      //       />
-      //     </div>
-      //   ),
-      // },
+      // Observação
+      {
+        name: "delivery_address.observation",
+        type: "custom",
+        colSpan: 2,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <span>Observação</span>
+            </Label>
+            <Textarea
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Observações sobre o endereço"
+              className="min-h-[80px] transition-all focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
     ],
   };
 
