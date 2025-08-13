@@ -18,12 +18,19 @@ export const orderStatusSchema = z.object({
 export const orderRequestSchema = z.object({
   id: z.string().uuid().optional(),
 
-  customer_id: z.string().uuid({ message: "ID de cliente inválido" }),
-  order_status_id: z.string().uuid({ message: "ID de status inválido" }),
+  customer_id: z.string().uuid({ message: "Cliente inválido" }),
+  order_status_id: z.string().uuid({ message: "Status inválido" }),
   payment_method_id: z
     .string()
-    .uuid({ message: "ID de método de pagamento inválido" }),
-  delivery_date: z.string(),
+    .uuid({ message: "Método de pagamento inválido" }),
+  delivery_date: z
+    .string()
+    .min(1, { message: "Data de entrega é obrigatória" })
+    .refine((date) => {
+      if (!date) return false;
+      const parsedDate = new Date(date);
+      return !isNaN(parsedDate.getTime());
+    }),
   due_date: z.string().nullable().optional(),
   table_order: z.coerce.number().optional().nullable(),
 
@@ -45,8 +52,8 @@ const orderItemSchema = z.object({
   id: z.string().uuid(),
   product: productResponseSchema,
   quantity: z.number().min(1, "Quantidade deve ser maior que 0"),
-  total_price: z.coerce.number(), 
-  sale_price: z.coerce.number(), 
+  total_price: z.coerce.number(),
+  sale_price: z.coerce.number(),
 });
 // --- Response de Pedido ---
 export const orderResponseSchema = z.object({

@@ -577,7 +577,6 @@ export function DialogPedidos() {
                             label={undefined}
                             placeholder="Selecione uma data"
                             required
-                            errorMessage={errors.delivery_date?.message}
                             locale={ptBR}
                             dateFormat="dd/MM/yyyy"
                             buttonClassName="w-full"
@@ -587,33 +586,33 @@ export function DialogPedidos() {
                       </FormItem>
                     )}
                   />
-                {isBoletoBancario && (
-                  <FormField
-                    control={control}
-                    name="due_date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center">
-                          <CalendarIcon className="mr-2 h-4 w-4 text-[#FF8F3F]" />
-                          Data de vencimento*
-                        </FormLabel>
-                        <FormControl>
-                          <DatePicker
-                            value={field.value || ""}
-                            onChange={(date) => field.onChange(date)}
-                            label={undefined}
-                            placeholder="Selecione uma data"
-                            errorMessage={errors.due_date?.message}
-                            locale={ptBR}
-                            dateFormat="dd/MM/yyyy"
-                            buttonClassName="w-full"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
+                  {isBoletoBancario && (
+                    <FormField
+                      control={control}
+                      name="due_date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center">
+                            <CalendarIcon className="mr-2 h-4 w-4 text-[#FF8F3F]" />
+                            Data de vencimento*
+                          </FormLabel>
+                          <FormControl>
+                            <DatePicker
+                              value={field.value || ""}
+                              onChange={(date) => field.onChange(date)}
+                              label={undefined}
+                              placeholder="Selecione uma data"
+                              errorMessage={errors.due_date?.message}
+                              locale={ptBR}
+                              dateFormat="dd/MM/yyyy"
+                              buttonClassName="w-full"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
 
                 {/* Error Summary */}

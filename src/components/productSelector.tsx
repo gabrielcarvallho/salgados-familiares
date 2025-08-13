@@ -86,6 +86,8 @@ export const ProductSelector = ({
 
     if (isDuplicate) {
       alert("Este produto já foi adicionado ao pedido");
+      // ✅ FECHAR DROPDOWN MESMO SE DUPLICADO
+      setShowProductList(false);
       return;
     }
 
@@ -98,6 +100,12 @@ export const ProductSelector = ({
         price: Number(product.price) || 0,
       },
     ]);
+
+    // ✅ FECHAR DROPDOWN APÓS SELECIONAR PRODUTO (com setTimeout para garantir)
+    setTimeout(() => {
+      setShowProductList(false);
+      setSearchTerm("");
+    }, 0);
   };
 
   const updateQuantity = (productId: string | number, quantity: number) => {
@@ -245,7 +253,10 @@ export const ProductSelector = ({
                           className={`flex items-center justify-between p-2 rounded-md cursor-pointer ${
                             disabledItem ? "opacity-50 pointer-events-none" : ""
                           }`}
-                          onClick={() => addProduct(product)}
+                          onClick={() => {
+                            setShowProductList(false);
+                            addProduct(product);
+                          }}
                         >
                           <div>
                             <div className="font-medium">{product.name}</div>
