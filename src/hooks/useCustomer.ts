@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { useApiBase } from "./api/useApiBase";
 import {
-  type AddressUpdate,
+  type Address,
   type CustomerRequest,
   type CustomerResponse,
   type CustomerUpdateRequest,
@@ -85,7 +85,7 @@ export function useCustomer() {
     setError(null);
 
     try {
-      const response = await api.patch(`/customers/`, Customer);
+      const response = await api.put(`/customers/`, Customer);
       return response;
     } catch (error) {
       const formattedError = handleApiError(error);
@@ -96,12 +96,12 @@ export function useCustomer() {
     }
   };
 
-  const updateAddress = async (address: AddressUpdate) => {
+  const updateAddress = async (address: Address) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await api.patch(`/customers/address/`, {
+      const response = await api.put(`/customers/address/`, {
         address,
       });
       return response;

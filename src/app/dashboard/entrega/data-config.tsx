@@ -44,7 +44,7 @@ export const columns: ColumnDef<OrderResponse, any>[] = [
     id: "cliente",
     accessorKey: "customer.company_name",
     header: "Cliente",
-    cell: ({ row }) => row.original.customer.company_name,
+    cell: ({ row }) => row.original.customer.name,
   },
   {
     id: "payment_method",
@@ -64,15 +64,19 @@ export const columns: ColumnDef<OrderResponse, any>[] = [
   },
   {
     id: "order_status",
-    accessorKey: "order_status.description",
     header: "Status",
     cell: ({ row }) => {
-      const { badge, stats } = badgesVariant(
-        row.original.order_status.identifier
-      )
-      return <Badge variant={badge}>{stats}</Badge>
+      const st = row.original.order_status;
+      const { badge, stats } = badgesVariant({
+        sequence_order: st?.sequence_order,
+        category: st?.category,
+        delivery_method: st?.delivery_method, // pode ser string; a função já normaliza
+        description: st?.description,
+      });
+      return <Badge variant={badge as any}>{stats}</Badge>;
     },
   },
+  
   {
     id: "total_price",
     accessorKey: "total_price",
@@ -90,7 +94,7 @@ export const columns: ColumnDef<OrderResponse, any>[] = [
 export function useDrawerConfig() {
   const { paymentMethods = [] } = usePaymentMethods()
   const { orderStatus: orderStatuses = [] } = useOrderStatus()
-  const { products = [] } = useProductList()
+  const { products = [] } = useProductList("all")
   const { mutate } = useOrderList()
 
   const drawerConfig: DrawerConfig<OrderResponse, OrderUpdateRequest> = {
@@ -100,20 +104,28 @@ export function useDrawerConfig() {
         <span>Pedido #{o.order_number}</span>
       </div>
     ),
-    description: (o) => (
-      <div className="flex items-center gap-2">
-        <Building className="h-4 w-4 text-muted-foreground" />
-        <span className="text-muted-foreground">Cliente: {o.customer.company_name}</span>
-        {o.order_status && (
-          <Badge 
-            variant={badgesVariant(o.order_status.identifier).badge}
-            className="ml-2"
-          >
-            {badgesVariant(o.order_status.identifier).stats}
-          </Badge>
-        )}
-      </div>
-    ),
+    description: (o) => {
+      const st = o.order_status;
+      const { badge, stats } = badgesVariant({
+        sequence_order: st?.sequence_order,
+        category: st?.category,
+        delivery_method: st?.delivery_method,
+        description: st?.description,
+      });
+    
+      return (
+        <div className="flex items-start gap-2 flex-col justify-center mt-2">
+          <div className="flex items-center gap-2">
+            <Building className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">
+              Cliente: {o.customer.name}
+            </span>
+          </div>
+          {st && <Badge variant={badge as any}>{stats}</Badge>}
+        </div>
+      );
+    },
+    
     updateSchema: orderUpdateRequestSchema,
     mutate: mutate,
 

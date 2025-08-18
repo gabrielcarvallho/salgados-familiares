@@ -17,6 +17,8 @@ const badgeVariants = cva(
           "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/70",
         outline:
           "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+
+        // Existentes
         prontoEntrega:
           "border-transparent bg-blue-600 text-primary-foreground [a&]:hover:bg-primary/90",
         aguardoExpediente:
@@ -31,7 +33,13 @@ const badgeVariants = cva(
           "border-transparent bg-green-600 text-primary-foreground [a&]:hover:bg-primary/90",
         concluido:
           "border-transparent bg-green-400 text-primary-foreground [a&]:hover:bg-primary/90",
-       },
+
+        // Novos para RETIRADA
+        prontoRetirada:
+          "border-transparent bg-indigo-500 text-primary-foreground [a&]:hover:bg-indigo-600",
+        retiradoCliente:
+          "border-transparent bg-purple-500 text-primary-foreground [a&]:hover:bg-purple-600",
+      },
     },
     defaultVariants: {
       variant: "default",

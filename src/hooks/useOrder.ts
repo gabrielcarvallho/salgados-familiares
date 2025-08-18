@@ -53,10 +53,12 @@ export function usePaymentMethods() {
 }
 
 // Hook para obter status de ordens (usando SWR)
-export function useOrderStatus() {
-  const { data, error, isLoading } = useApiBase<OrderStatus>(`/orders/status/`);
+export function useOrderStatus(deliveryMethod?: string) {
+  const { data, error, isLoading } = useApiBase<OrderStatus>(
+    `/orders/status/?delivery_method=${deliveryMethod}`
+  );
   return {
-    orderStatus: data?.order_status ?? [],
+    orderStatus: data?.status ?? [], // ✅ Mudança aqui: era order_status, agora é status
     isLoading,
     isError: error ? String(error) : null,
   };

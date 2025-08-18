@@ -1,5 +1,4 @@
 import { useState } from "react";
-
 import { useApiBase } from "./api/useApiBase";
 import {
   ProductRequest,
@@ -9,17 +8,24 @@ import {
 import { handleApiError } from "./api/apiErrorHandler";
 import api from "@/lib/axios";
 
-// Hook para listar produtos (usando SWR)
-// Corrigir a tipagem e acesso aos dados
-export function useProductList(page = 1, page_size = 10) {
+// Lista de produtos com status novo
+// status: "active" | "inactive" | "all" (ajuste conforme backend)
+// page: 1-based
+export function useProductList(
+  status: string,
+  page = 1,
+  page_size = 10
+) {
   const { data, error, isLoading, mutate } = useApiBase<{
     count: number;
-    products: ProductResponse[]; // Alterado de 'results' para 'products'
-  }>(`/products/?list&page=${page}&page_size=${page_size}`);
+    products: ProductResponse[];
+  }>(
+    `/products/?list&status=${status}&page=${page}&page_size=${page_size}`
+  );
 
   return {
     data,
-    products: data?.products ?? [], // Acessa a propriedade correta
+    products: data?.products ?? [],
     totalItems: data?.count ?? 0,
     isLoading,
     isError: error ? String(error) : null,
@@ -27,9 +33,9 @@ export function useProductList(page = 1, page_size = 10) {
   };
 }
 
-// Hook para obter produto por ID (usando SWR)
+// Produto por ID
 export function useProductById(id: string) {
-  const { data, error, isLoading } = useApiBase<{ product: ProductRequest }>(
+  const { data, error, isLoading } = useApiBase<{ product: ProductResponse }>(
     `/products/?id=${id}`
   );
   return {
@@ -46,7 +52,6 @@ export function useProduct() {
   const create = async (product: ProductRequest) => {
     setIsLoading(true);
     setError(null);
-
     try {
       const response = await api.post(`/products/`, product);
       return response;
@@ -59,12 +64,12 @@ export function useProduct() {
     }
   };
 
+  // Update agora é PUT com payload completo
   const update = async (product: ProductUpdateRequest) => {
     setIsLoading(true);
     setError(null);
-
     try {
-      const response = await api.patch(`/products/`, product);
+      const response = await api.put(`/products/`, product);
       return response;
     } catch (error) {
       const formattedError = handleApiError(error);

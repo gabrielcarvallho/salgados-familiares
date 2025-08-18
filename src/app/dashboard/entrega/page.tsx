@@ -35,11 +35,17 @@ export default function OrdersPage() {
     });
   }, []);
 
-  const entregue = orderStatus.find((o) => o.identifier === 3)?.id;
+  const entregue = orderStatus.find((o) => o.sequence_order === 3)?.id;
 
   // 1) filtra apenas status 2
+  // Apenas pedidos com status "Pronto para entrega": sequence_order=2 e delivery_method="ENTREGA"
   const filteredOrders = useMemo(
-    () => orders.filter((o) => o.order_status.identifier === 2),
+    () =>
+      orders.filter(
+        (o) =>
+          o?.order_status?.sequence_order === 2 &&
+          (o?.order_status?.delivery_method || "").toUpperCase() === "ENTREGA"
+      ),
     [orders]
   );
 

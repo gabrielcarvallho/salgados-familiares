@@ -6,22 +6,75 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Formata a entrada do usuário para DD/MM/YYYY enquanto digita
-export const formatDateInput = (value: string) => {
-  // Remove caracteres não numéricos
-  const numericValue = value.replace(/\D/g, "");
+const onlyDigits = (v?: string | number | null) => (v ?? "").toString().replace(/\D/g, "");
 
-  // Aplica a máscara DD/MM/YYYY
-  if (numericValue.length <= 2) {
-    return numericValue;
-  } else if (numericValue.length <= 4) {
-    return `${numericValue.slice(0, 2)}/${numericValue.slice(2)}`;
-  } else {
-    return `${numericValue.slice(0, 2)}/${numericValue.slice(
-      2,
-      4
-    )}/${numericValue.slice(4, 8)}`;
+export const formatCPF = (v?: string | null) => {
+  const s = onlyDigits(v);
+  if (!s) return "";
+  return s
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4")
+    .slice(0, 14);
+};
+
+// CNPJ
+export const formatCNPJ = (v?: string | null) => {
+  const s = onlyDigits(v);
+  if (!s) return "";
+  return s
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/^(\d{2})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3/$4")
+    .replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, "$1.$2.$3/$4-$5")
+    .slice(0, 18);
+};
+
+// Documento por tipo
+export const formatDocumentByType = (doc?: string | null, type?: "PF" | "PJ") => {
+  if (type === "PJ") return formatCNPJ(doc);
+  if (type === "PF") return formatCPF(doc);
+  const digits = onlyDigits(doc);
+  return digits.length > 11 ? formatCNPJ(doc) : formatCPF(doc);
+};
+
+export const cleanDocument = (doc?: string | null) => onlyDigits(doc);
+
+// Telefone
+export const formatPhone = (v?: string | null) => {
+  const s = onlyDigits(v);
+  if (!s) return "";
+  if (s.length <= 10) {
+    return s
+      .replace(/^(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{4})(\d)/, "$1-$2")
+      .slice(0, 14);
   }
+  return s
+    .replace(/^(\d{2})(\d)/, "($1) $2")
+    .replace(/(\d{5})(\d)/, "$1-$2")
+    .slice(0, 15);
+};
+
+export const cleanPhone = (v?: string | null) => onlyDigits(v);
+
+// CEP
+export const formatCEP = (v?: string | null) => {
+  const s = onlyDigits(v);
+  if (!s) return "";
+  return s.replace(/^(\d{5})(\d)/, "$1-$2").slice(0, 9);
+};
+
+export const cleanCEP = (v?: string | null) => onlyDigits(v);
+
+// Data (input dd/mm/yyyy)
+export const formatDateInput = (v?: string | null) => {
+  const s = onlyDigits(v);
+  if (!s) return "";
+  return s
+    .replace(/^(\d{2})(\d)/, "$1/$2")
+    .replace(/^(\d{2})\/(\d{2})(\d)/, "$1/$2/$3")
+    .slice(0, 10);
 };
 
 export function formatDateToBR(input: string | Date): string {
@@ -104,65 +157,6 @@ export const formatGroup = (group: string | undefined) => {
   }
 };
 
-// Format CNPJ as user types (XX.XXX.XXX/YYYY-ZZ)
-export const formatCNPJ = (value: string) => {
-  const numericValue = value.replace(/\D/g, "");
-
-  if (numericValue.length <= 2) {
-    return numericValue;
-  } else if (numericValue.length <= 5) {
-    return `${numericValue.slice(0, 2)}.${numericValue.slice(2)}`;
-  } else if (numericValue.length <= 8) {
-    return `${numericValue.slice(0, 2)}.${numericValue.slice(
-      2,
-      5
-    )}.${numericValue.slice(5)}`;
-  } else if (numericValue.length <= 12) {
-    return `${numericValue.slice(0, 2)}.${numericValue.slice(
-      2,
-      5
-    )}.${numericValue.slice(5, 8)}/${numericValue.slice(8)}`;
-  } else {
-    return `${numericValue.slice(0, 2)}.${numericValue.slice(
-      2,
-      5
-    )}.${numericValue.slice(5, 8)}/${numericValue.slice(
-      8,
-      12
-    )}-${numericValue.slice(12, 14)}`;
-  }
-};
-
-// Format phone as user types ((XX) XXXXX-XXXX)
-export const formatPhone = (value: string) => {
-  const numericValue = value.replace(/\D/g, "");
-
-  if (numericValue.length <= 2) {
-    return numericValue;
-  } else if (numericValue.length <= 7) {
-    return `(${numericValue.slice(0, 2)}) ${numericValue.slice(2)}`;
-  } else {
-    return `(${numericValue.slice(0, 2)}) ${numericValue.slice(
-      2,
-      7
-    )}-${numericValue.slice(7, 11)}`;
-  }
-};
-
-// Format CEP as user types (XXXXX-XXX)
-export const formatCEP = (value: string) => {
-  const numericValue = value.replace(/\D/g, "");
-
-  if (numericValue.length <= 5) {
-    return numericValue;
-  } else {
-    return `${numericValue.slice(0, 5)}-${numericValue.slice(5, 8)}`;
-  }
-};
-
-// Função para limpar formatação de telefone (remove parênteses, espaços e hífens)
-export const cleanPhone = (phone: string) => phone.replace(/\D/g, "");
-
 // Função para limpar formatação de CNPJ (remove pontos, barra e hífen)
 export const cleanCNPJ = (cnpj: string) => cnpj.replace(/\D/g, "");
 
@@ -226,50 +220,109 @@ export const dateValidator = (value: string) => {
   return true;
 };
 
-interface BadgeInfo {
-  badge: any;
-  stats: string;
-}
 
-export const badgesVariant = (identifier: number): BadgeInfo => {
-  switch (identifier) {
-    case 0: {
-      const stats = "Aguardo do expediente";
-      const badge = "aguardoExpediente";
-      return { badge, stats };
+type DeliveryMethod = "ENTREGA" | "RETIRADA" | null;
+type BadgeInfo = { badge: string; stats: string };
+
+// Entrada mais completa  
+type OrderStatusInput = {
+  sequence_order?: number | null;
+  category?: number | null;
+  delivery_method?: string | null | undefined; // <<< aceita string genérica
+  description?: string | null;
+};
+
+/**
+ * Retorna a variant de badge e o texto (stats) considerando:
+ * - sequence_order (0..5)
+ * - delivery_method (ENTREGA | RETIRADA)
+ * - category (1=Processo, 2=Logística/Finalização, 3=Pagamento, 4=Conclusão)
+ * - description (fallback)
+ */
+export const badgesVariant = ({
+  sequence_order,
+  delivery_method,
+  category,
+  description,
+}: OrderStatusInput): BadgeInfo => {
+  // Normaliza
+  const seq = typeof sequence_order === "number" ? sequence_order : -1;
+  const method = delivery_method ?? null;
+  const desc = (description || "").toLowerCase().trim();
+
+  // Casos específicos pelo contrato novo:
+  // 0: Aguardo do expediente
+  if (seq === 0) {
+    return { badge: "aguardoExpediente", stats: "Aguardo do expediente" };
+  }
+
+  // 1: Em separação (antes era emProducao; mantenho nome "emProducao" para não quebrar estilo)
+  if (seq === 1) {
+    return { badge: "emProducao", stats: "Em separação" };
+  }
+
+  // 2: "Pronto para ..." depende do método
+  if (seq === 2) {
+    if (method === "RETIRADA") {
+      return { badge: "prontoRetirada", stats: "Pronto para retirada" };
     }
-    case 1: {
-      const stats = "Em produção";
-      const badge = "emProducao";
-      return { badge, stats };
+    // default para entrega
+    return { badge: "prontoEntrega", stats: "Pronto para entrega" };
+  }
+
+  // 3: Finalização: depende do método
+  if (seq === 3) {
+    if (method === "RETIRADA") {
+      return { badge: "retiradoCliente", stats: "Retirado pelo cliente" };
     }
-    case 2: {
-      const stats = "Pronta entrega";
-      const badge = "prontoEntrega";
-      return { badge, stats };
+    return { badge: "entregue", stats: "Entregue" };
+  }
+
+  // 4: Pagamento pendente
+  if (seq === 4) {
+    return { badge: "pagamentoPendente", stats: "Aguardando pagamento" };
+  }
+
+  // 5: Concluído (mantendo seu mapeamento atual)
+  if (seq === 5) {
+    return { badge: "concluido", stats: "Concluído" };
+  }
+
+  // Fallbacks por descrição (para robustez futura)
+  if (desc.includes("aguardo")) {
+    return { badge: "aguardoExpediente", stats: "Aguardo do expediente" };
+  }
+  if (desc.includes("separação") || desc.includes("separacao")) {
+    return { badge: "emProducao", stats: "Em separação" };
+  }
+  if (desc.includes("pronto para retirada")) {
+    return { badge: "prontoRetirada", stats: "Pronto para retirada" };
+  }
+  if (desc.includes("pronto para entrega")) {
+    return { badge: "prontoEntrega", stats: "Pronto para entrega" };
+  }
+  if (desc.includes("entregue")) {
+    return { badge: "entregue", stats: "Entregue" };
+  }
+  if (desc.includes("retirado")) {
+    return { badge: "retiradoCliente", stats: "Retirado pelo cliente" };
+  }
+  if (desc.includes("pagamento")) {
+    if (desc.includes("pendente") || desc.includes("aguardando")) {
+      return { badge: "pagamentoPendente", stats: "Aguardando pagamento" };
     }
-    case 3: {
-      const stats = "Entregue";
-      const badge = "entregue";
-      return { badge, stats };
-    }
-    case 4: {
-      const stats = "Pagamento pendente";
-      const badge = "pagamentoPendente";
-      return { badge, stats };
-    }
-    case 5: {
-      const stats = "Pagamento aprovado";
-      const badge = "pagamentoAprovado";
-      return { badge, stats };
-    }
-    default: {
-      const stats = "Concluído";
-      const badge = "concluido";
-      return { badge, stats };
+    if (desc.includes("aprovado")) {
+      return { badge: "pagamentoAprovado", stats: "Pagamento aprovado" };
     }
   }
+  if (desc.includes("conclu")) {
+    return { badge: "concluido", stats: "Concluído" };
+  }
+
+  // Fallback final
+  return { badge: "outline", stats: description || "Status" };
 };
+
 
 export const formatStatus = (name: string) => {
   if (name === "Conclu├¡do") {
@@ -281,9 +334,6 @@ export const formatStatus = (name: string) => {
   }
 };
 
-export function cleanCEP(cep: string): string {
-  return cep.replace(/\D/g, "");
-}
 export function getTomorrowDayMonth(): { day: number; month: number } {
   const today = new Date();
   const tomorrow = new Date(today);
@@ -322,3 +372,23 @@ export function formatDateToDDMMYYYY(isoString: string | Date): string {
 // Exemplo de uso:
 const raw = "2025-05-06T10:25:54.865049-03:00";
 formatDateToDDMMYYYY(raw); // "06/05/2025"
+
+// Converte "dd/MM/yyyy" -> "yyyy-MM-dd"; se já for "yyyy-MM-dd", retorna como está.
+// Retorna null se input vazio ou inválido.
+export const toISODateSafe = (v?: string | null): string | null => {
+  if (!v) return null;
+  const s = String(v).trim();
+
+  // já está ISO curto
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // dd/MM/yyyy -> yyyy-MM-dd
+  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (m) {
+    const [, dd, mm, yyyy] = m;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  // outros formatos: considere inválido para evitar sujeira no payload
+  return null;
+};
