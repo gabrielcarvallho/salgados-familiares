@@ -1,6 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
-import type React from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,25 +13,25 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
-  Loader2,
-  Plus,
+  AlertCircle,
   Building2,
-  User,
+  Calendar,
+  CheckCircle,
+  FileText,
+  Hash,
+  Home,
+  Hotel,
+  IdCard,
+  Loader2,
+  Mail,
   MapPin,
   Phone,
-  Mail,
-  Calendar,
-  Hash,
-  FileText,
-  Home,
-  CheckCircle,
-  AlertCircle,
+  Plus,
+  User,
   X,
-  Hotel,
 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
-
-import { useForm } from "react-hook-form";
+import { useForm, UseFormSetError } from "react-hook-form";
 import {
   Form,
   FormControl,
@@ -42,56 +41,138 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "sonner";
-import {
-  type CustomerRequest,
-  CustomerRequestSchema,
-  EMPTY_CUSTOMER,
-} from "@/types/Customer";
+import { type CustomerRequest, CustomerRequestSchema } from "@/types/Customer";
 import { useCustomer, useCustomerList, useViaCEP } from "@/hooks/useCustomer";
 import { motion, AnimatePresence } from "framer-motion";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
-  cleanCNPJ,
-  cleanPhone,
   cleanCEP,
-  convertDateFormat,
+  cleanPhone,
   formatCEP,
-  formatCNPJ,
   formatDateInput,
   formatPhone,
 } from "@/lib/utils";
 import { getErrorMessage } from "@/hooks/api/apiErrorHandler";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+
+// Helpers de documento (somente front)
+const cleanDocument = (doc: string) => (doc ?? "").replace(/\D/g, "");
+const formatDocument = (doc: string, type: "PF" | "PJ") => {
+  const digits = cleanDocument(doc);
+  if (type === "PF") {
+    return digits
+      .replace(/^(\d{3})(\d)/, "$1.$2")
+      .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4")
+      .slice(0, 14);
+  }
+  return digits
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/^(\d{2})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3/$4")
+    .replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, "$1.$2.$3/$4-$5")
+    .slice(0, 18);
+};
+
+// Converte "dd/MM/yyyy" -> "yyyy-MM-dd"; se já for ISO curto, retorna como está; inválido => null
+const toISODateSafe = (v?: string | null): string | null => {
+  if (!v) return null;
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; // já ISO curto
+  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (m) {
+    const [, dd, mm, yyyy] = m;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return null;
+};
+
+// Tipo do formulário (adiciona a flag local; não vai à API)
+type CustomerForm = CustomerRequest & { useDefaultContact?: boolean };
+
+// Valores iniciais
+const EMPTY_FORM: CustomerForm = {
+  customer_type: "PF",
+  document: "",
+  name: "",
+  fantasy_name: "",
+  phone_number: "",
+  email: "",
+  birth_date: null,
+  billing_address: {
+    cep: "",
+    street_name: "",
+    district: "",
+    number: "",
+    city: "",
+    state: "",
+    observation: "",
+    description: "",
+  },
+  contact: undefined,
+  useDefaultContact: false,
+};
+
+// Validação de regras PF/PJ fora do Zod
+function validateBusinessRules(
+  values: CustomerForm,
+  setError: UseFormSetError<CustomerForm>
+): boolean {
+  if (values.customer_type === "PF") {
+    if (!values.email) {
+      setError("email", {
+        type: "manual",
+        message: "Email é obrigatório para Pessoa Física.",
+      });
+      return false;
+    }
+    // PF: contact é opcional; quando usar contato padrão, será montado no envio
+    return true;
+  }
+  if (values.customer_type === "PJ") {
+    if (!values.contact) {
+      setError("contact", {
+        type: "manual",
+        message: "Contato é obrigatório para Pessoa Jurídica.",
+      });
+      return false;
+    }
+  }
+  return true;
+}
 
 export function DialogClientes() {
   const { mutate } = useCustomerList();
-  const { create, isLoading, error: err } = useCustomer();
+  const { create, isLoading } = useCustomer();
+
   const [open, setOpen] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [activeTab, setActiveTab] = useState("cliente");
   const [cepValue, setCepValue] = useState("");
 
-  const shouldFetch = (cep: string): string => {
-    const cepLength = cep.length;
-
-    if (cepLength == 9) return cep;
-
-    return "";
-  };
-
+  // Busca ViaCEP quando no formato XXXXX-XXX
+  const shouldFetch = (cep: string) => (cep.length === 9 ? cep : "");
   const cep = shouldFetch(cepValue);
 
-  // Usar o hook useViaCEP para buscar o endereço
   const {
     address,
     isLoading: loadingAddress,
     isError: errorAddress,
   } = useViaCEP(cleanCEP(cep));
 
-  const form = useForm<CustomerRequest>({
+  // Form (schema sem effects)
+  const form = useForm<CustomerForm>({
     resolver: zodResolver(CustomerRequestSchema),
-    defaultValues: EMPTY_CUSTOMER,
+    defaultValues: EMPTY_FORM,
     mode: "onSubmit",
   });
 
@@ -102,32 +183,43 @@ export function DialogClientes() {
     reset,
     setValue,
     watch,
+    getValues,
+    setError,
   } = form;
 
-  // Observar mudanças no CEP para atualizar o estado local
+  // Watchers
   const watchedCep = watch("billing_address.cep");
+  const customerType = watch("customer_type") || "PF";
+  const useDefaultContact = watch("useDefaultContact") || false;
 
+  const watchedBirthDate = watch("birth_date");
+  const watchedName = watch("name");
+  const watchedEmail = watch("email");
+  const watchedPhone = watch("phone_number");
+
+  // Sync CEP local
   useEffect(() => {
     setCepValue(watchedCep || "");
   }, [watchedCep]);
 
+  // Preenche endereço via ViaCEP
   useEffect(() => {
     if (address && typeof address === "object") {
-      setValue("billing_address.street_name", address.logradouro || "", {
+      setValue(
+        "billing_address.street_name",
+        (address as any).logradouro || "",
+        { shouldValidate: true }
+      );
+      setValue("billing_address.district", (address as any).bairro || "", {
         shouldValidate: true,
       });
-      setValue("billing_address.district", address.bairro || "", {
+      setValue("billing_address.city", (address as any).localidade || "", {
         shouldValidate: true,
       });
-      setValue("billing_address.city", address.localidade || "", {
+      setValue("billing_address.state", (address as any).uf || "", {
         shouldValidate: true,
       });
-      setValue("billing_address.state", address.uf || "", {
-        shouldValidate: true,
-      });
-
-      // Notificar o usuário
-      if (address.logradouro) {
+      if ((address as any).logradouro) {
         toast.success("Endereço preenchido automaticamente!", {
           duration: 2000,
         });
@@ -135,40 +227,114 @@ export function DialogClientes() {
     }
   }, [address, setValue]);
 
-  // Exibir todos os erros no console ao submeter o formulário
-  if (formSubmitted && Object.keys(errors).length > 0) {
-  }
+  // Força birth_date=null no form quando PJ (UI)
+  useEffect(() => {
+    if (customerType === "PJ" && watchedBirthDate !== null) {
+      setValue("birth_date", null, { shouldValidate: true });
+    }
+  }, [customerType, watchedBirthDate, setValue]);
 
-  // Importe o apiErrorHandler
+  // Ao trocar para PJ, desmarca contato padrão
+  useEffect(() => {
+    if (customerType === "PJ" && useDefaultContact) {
+      setValue("useDefaultContact", false, { shouldValidate: true });
+    }
+  }, [customerType, useDefaultContact, setValue]);
 
-  const onSubmit = async (formData: CustomerRequest) => {
+  const contactDisabled = customerType === "PF" && useDefaultContact;
+
+  // Submit
+  const onSubmit = async (rawValues: CustomerForm) => {
     try {
-      // Limpar e formatar dados antes do envio
-      const dataToSubmit = {
-        ...formData,
-        phone_number: cleanPhone(formData.phone_number),
-        cnpj: cleanCNPJ(formData.cnpj),
-        contact: {
-          ...formData.contact,
-          contact_phone: cleanPhone(formData.contact.contact_phone),
-          date_of_birth: convertDateFormat(formData.contact.date_of_birth),
+      // clona para normalizar sem mutar RHF
+      const values: CustomerForm = JSON.parse(JSON.stringify(rawValues));
+
+      const birthISO =
+      values.customer_type === "PF"
+        ? toISODateSafe(values.birth_date)   // string | null
+        : null;
+
+      // Monta contact quando PF + usar contato padrão
+      const usingDefault =
+        values.customer_type === "PF" && !!values.useDefaultContact;
+
+      const contactFromClient = usingDefault
+        ? {
+            name: values.name,
+            contact_email: values.email || "",
+            contact_phone: cleanPhone(values.phone_number),
+            date_of_birth: birthISO, // ISO correto
+          }
+        : undefined;
+
+      const contactManual = values.contact
+        ? {
+            name: values.contact.name ?? "",
+            contact_email: values.contact.contact_email ?? "",
+            contact_phone: cleanPhone(values.contact.contact_phone ?? ""),
+            date_of_birth: toISODateSafe(values.contact.date_of_birth ?? null),
+          }
+        : undefined;
+
+      const normalizedContact = contactFromClient ?? contactManual;
+
+      // Remove contact se todos os campos estiverem vazios
+      const contact =
+        normalizedContact &&
+        (normalizedContact.name ||
+          normalizedContact.contact_email ||
+          normalizedContact.contact_phone ||
+          normalizedContact.date_of_birth)
+          ? normalizedContact
+          : undefined;
+
+      // Regras de negócio (fora do Zod)
+      const ok = validateBusinessRules({ ...values, contact }, setError);
+      if (!ok) {
+        if (values.customer_type === "PJ" && !contact) setActiveTab("contato");
+        if (values.customer_type === "PF" && !values.email)
+          setActiveTab("cliente");
+        return;
+      }
+
+      // Normaliza city (se vier "Joinville - SC")
+      const cityNormalized =
+        typeof values.billing_address.city === "string"
+          ? values.billing_address.city.split("-")[0].trim()
+          : values.billing_address.city;
+
+      // Payload base
+      const base = {
+        customer_type: values.customer_type,
+        document: cleanDocument(values.document),
+        name: values.name,
+        fantasy_name: values.fantasy_name,
+        phone_number: cleanPhone(values.phone_number),
+        email: values.email,
+        billing_address: {
+          ...values.billing_address,
+          cep: cleanCEP(values.billing_address.cep),
+          city: cityNormalized,
         },
+        contact,
       };
 
-      await create(dataToSubmit);
+      // Para PF: incluir birth_date ISO; Para PJ: omitir a chave
+      const payload: CustomerRequest = {
+        ...base,
+        ...(values.customer_type === "PF" && birthISO
+          ? { birth_date: birthISO }          // só envia se existir
+          : {}),                              // não inclui a chave
+      };
+      
+      await create(payload);
       mutate();
-      toast.success("Cliente cadastrado com sucesso!", {
-        duration: 3000,
-      });
-      reset(EMPTY_CUSTOMER);
-      setFormSubmitted(false);
+      toast.success("Cliente cadastrado com sucesso!", { duration: 3000 });
+      reset(EMPTY_FORM);
       setOpen(false);
+      setFormSubmitted(false);
     } catch (error) {
-      console.error("Erro ao cadastrar cliente:", error);
-
-      // O getErrorMessage agora vai capturar corretamente "Invalid CNPJ." do seu exemplo
       const errorMessage = getErrorMessage(error);
-
       toast.error("Falha ao cadastrar cliente!", {
         description: errorMessage,
         duration: 3000,
@@ -176,13 +342,11 @@ export function DialogClientes() {
     }
   };
 
-  // Função de validação e submissão
+  // Submit com trigger de validação base
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormSubmitted(true);
-
     const formValid = await trigger();
-
     if (formValid) {
       handleSubmit(onSubmit)();
     } else {
@@ -194,9 +358,8 @@ export function DialogClientes() {
 
   const handleClose = () => {
     setOpen(false);
-    // Pequeno delay para resetar o formulário após a animação de fechamento
     setTimeout(() => {
-      reset(EMPTY_CUSTOMER);
+      reset(EMPTY_FORM);
       setFormSubmitted(false);
     }, 300);
   };
@@ -221,7 +384,7 @@ export function DialogClientes() {
       <AnimatePresence>
         {open && (
           <DialogContent
-            className="sm:max-w-[600px] p-0 overflow-hidden "
+            className="sm:max-w-[640px] p-0 overflow-hidden"
             forceMount
           >
             <motion.div
@@ -256,7 +419,7 @@ export function DialogClientes() {
                           className="flex items-center gap-2"
                         >
                           <Building2 className="h-4 w-4" />
-                          Empresa
+                          Cliente
                         </TabsTrigger>
                         <TabsTrigger
                           value="contato"
@@ -274,24 +437,52 @@ export function DialogClientes() {
                         </TabsTrigger>
                       </TabsList>
 
-                      <div className="mt-4 relative min-h-[300px]">
+                      <div className="mt-4 relative min-h-[320px]">
+                        {/* Aba Cliente */}
                         <TabsContent value="cliente" className="space-y-4 mt-0">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormField
                               control={form.control}
-                              name="company_name"
+                              name="customer_type"
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className="flex items-center gap-1.5">
-                                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                    Razão social*
+                                    <IdCard className="h-3.5 w-3.5 text-muted-foreground" />
+                                    Tipo de cliente*
                                   </FormLabel>
                                   <FormControl>
-                                    <Input
-                                      placeholder="Insira a razão social da empresa"
-                                      className="focus-visible:ring-[#FF8F3F]"
-                                      {...field}
-                                    />
+                                    <Select
+                                      onValueChange={(v: "PF" | "PJ") => {
+                                        field.onChange(v);
+                                        const currentDoc =
+                                          getValues("document") || "";
+                                        setValue(
+                                          "document",
+                                          formatDocument(currentDoc, v)
+                                        );
+                                        if (v === "PJ") {
+                                          setValue("birth_date", null, {
+                                            shouldValidate: true,
+                                          });
+                                          setValue("useDefaultContact", false, {
+                                            shouldValidate: true,
+                                          });
+                                        }
+                                      }}
+                                      value={field.value}
+                                    >
+                                      <SelectTrigger className="focus-visible:ring-[#FF8F3F]">
+                                        <SelectValue placeholder="Selecione PF ou PJ" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="PF">
+                                          Pessoa Física
+                                        </SelectItem>
+                                        <SelectItem value="PJ">
+                                          Pessoa Jurídica
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -300,43 +491,75 @@ export function DialogClientes() {
 
                             <FormField
                               control={form.control}
-                              name="brand_name"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="flex items-center gap-1.5">
-                                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                                    Nome fantasia*
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="Insira o nome fantasia"
-                                      className="focus-visible:ring-[#FF8F3F]"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="cnpj"
+                              name="document"
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className="flex items-center gap-1.5">
                                     <Hash className="h-3.5 w-3.5 text-muted-foreground" />
-                                    CNPJ*
+                                    {customerType === "PF" ? "CPF*" : "CNPJ*"}
                                   </FormLabel>
                                   <FormControl>
                                     <Input
-                                      placeholder="00.000.000/0001-00"
+                                      placeholder={
+                                        customerType === "PF"
+                                          ? "000.000.000-00"
+                                          : "00.000.000/0000-00"
+                                      }
                                       className="focus-visible:ring-[#FF8F3F]"
-                                      value={formatCNPJ(field.value)}
-                                      onChange={(e) => {
-                                        field.onChange(e.target.value);
-                                      }}
+                                      value={formatDocument(
+                                        field.value || "",
+                                        customerType as "PF" | "PJ"
+                                      )}
+                                      onChange={(e) =>
+                                        field.onChange(e.target.value)
+                                      }
                                       onBlur={field.onBlur}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="name"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="flex items-center gap-1.5">
+                                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                    Nome*
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder={
+                                        customerType === "PF"
+                                          ? "Nome completo"
+                                          : "Razão social"
+                                      }
+                                      className="focus-visible:ring-[#FF8F3F]"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="fantasy_name"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="flex items-center gap-1.5">
+                                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                                    Nome fantasia
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="Opcional"
+                                      className="focus-visible:ring-[#FF8F3F]"
+                                      {...field}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -351,39 +574,18 @@ export function DialogClientes() {
                                 <FormItem>
                                   <FormLabel className="flex items-center gap-1.5">
                                     <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                                    Telefone da empresa*
+                                    Telefone*
                                   </FormLabel>
                                   <FormControl>
                                     <Input
                                       maxLength={15}
                                       placeholder="(47) 99999-9999"
                                       className="focus-visible:ring-[#FF8F3F]"
-                                      value={formatPhone(field.value)}
-                                      onChange={(e) => {
-                                        field.onChange(e.target.value);
-                                      }}
+                                      value={formatPhone(field.value || "")}
+                                      onChange={(e) =>
+                                        field.onChange(e.target.value)
+                                      }
                                       onBlur={field.onBlur}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="state_tax_registration"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="flex items-center gap-1.5">
-                                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                                    Inscrição estadual
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="Insira a inscrição estadual"
-                                      className="focus-visible:ring-[#FF8F3F]"
-                                      {...field}
                                     />
                                   </FormControl>
                                   <FormMessage />
@@ -398,36 +600,14 @@ export function DialogClientes() {
                                 <FormItem>
                                   <FormLabel className="flex items-center gap-1.5">
                                     <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                                    E-mail*
+                                    E-mail
+                                    {customerType === "PF"
+                                      ? "*"
+                                      : " (opcional)"}
                                   </FormLabel>
                                   <FormControl>
                                     <Input
-                                      placeholder="empresa@exemplo.com"
-                                      className="focus-visible:ring-[#FF8F3F]"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        </TabsContent>
-
-                        <TabsContent value="contato" className="space-y-4 mt-0">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <FormField
-                              control={form.control}
-                              name="contact.name"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="flex items-center gap-1.5">
-                                    <User className="h-3.5 w-3.5 text-muted-foreground" />
-                                    Nome para contato*
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="Fernando"
+                                      placeholder="contato@exemplo.com"
                                       className="focus-visible:ring-[#FF8F3F]"
                                       {...field}
                                     />
@@ -439,69 +619,34 @@ export function DialogClientes() {
 
                             <FormField
                               control={form.control}
-                              name="contact.date_of_birth"
+                              name="birth_date"
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className="flex items-center gap-1.5">
                                     <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                                    Data de nascimento*
+                                    Data de nascimento{" "}
+                                    {customerType === "PF"
+                                      ? "(opcional)"
+                                      : "(não enviado para PJ)"}
                                   </FormLabel>
                                   <FormControl>
                                     <Input
                                       placeholder="01/01/2001"
                                       className="focus-visible:ring-[#FF8F3F]"
-                                      value={formatDateInput(field.value)}
+                                      disabled={customerType === "PJ"}
+                                      value={
+                                        field.value === null
+                                          ? ""
+                                          : formatDateInput(
+                                              (field.value as string) || ""
+                                            )
+                                      }
                                       onChange={(e) => {
-                                        field.onChange(e.target.value);
-                                      }}
-                                      onBlur={() => {
-                                        field.onBlur();
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="contact.contact_email"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="flex items-center gap-1.5">
-                                    <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                                    E-mail para contato*
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      placeholder="fernando@gmail.com"
-                                      className="focus-visible:ring-[#FF8F3F]"
-                                      {...field}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="contact.contact_phone"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="flex items-center gap-1.5">
-                                    <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                                    Telefone para contato*
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      maxLength={15}
-                                      placeholder="(47) 99999-9999"
-                                      className="focus-visible:ring-[#FF8F3F]"
-                                      value={formatPhone(field.value)}
-                                      onChange={(e) => {
-                                        field.onChange(e.target.value);
+                                        if (customerType === "PJ") return;
+                                        const v = e.target.value;
+                                        field.onChange(
+                                          v.trim() === "" ? null : v
+                                        );
                                       }}
                                       onBlur={field.onBlur}
                                     />
@@ -513,6 +658,189 @@ export function DialogClientes() {
                           </div>
                         </TabsContent>
 
+                        {/* Aba Contato */}
+                        <TabsContent value="contato" className="space-y-4 mt-0">
+                          {customerType === "PF" && (
+                            <div className="mb-2 flex items-center gap-2">
+                              <Checkbox
+                                id="useDefaultContact"
+                                checked={!!useDefaultContact}
+                                onCheckedChange={(checked) =>
+                                  setValue("useDefaultContact", !!checked, {
+                                    shouldValidate: true,
+                                  })
+                                }
+                              />
+                              <label
+                                htmlFor="useDefaultContact"
+                                className="text-sm text-muted-foreground cursor-pointer"
+                              >
+                                Utilizar contato padrão (usar dados do cliente)
+                              </label>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="contact.name"
+                              render={({ field }) => {
+                                const value =
+                                  customerType === "PF" && useDefaultContact
+                                    ? watchedName ?? ""
+                                    : (field.value as string) ?? "";
+                                return (
+                                  <FormItem>
+                                    <FormLabel className="flex items-center gap-1.5">
+                                      <User className="h-3.5 w-3.5 text-muted-foreground" />
+                                      Nome para contato
+                                      {customerType === "PJ" ? "*" : ""}
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="Ex.: Fernando"
+                                        className="focus-visible:ring-[#FF8F3F]"
+                                        value={value}
+                                        onChange={(e) =>
+                                          field.onChange(e.target.value)
+                                        }
+                                        disabled={
+                                          customerType === "PF" &&
+                                          useDefaultContact
+                                        }
+                                      />
+                                    </FormControl>
+                                    {!(
+                                      customerType === "PF" && useDefaultContact
+                                    ) && <FormMessage />}
+                                  </FormItem>
+                                );
+                              }}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="contact.date_of_birth"
+                              render={({ field }) => {
+                                const value =
+                                  customerType === "PF" && useDefaultContact
+                                    ? watchedBirthDate === null
+                                      ? ""
+                                      : formatDateInput(
+                                          (watchedBirthDate as string) || ""
+                                        )
+                                    : formatDateInput(
+                                        (field.value as string) ?? ""
+                                      );
+                                return (
+                                  <FormItem>
+                                    <FormLabel className="flex items-center gap-1.5">
+                                      <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                                      Data de nascimento (contato)
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="01/01/2001"
+                                        className="focus-visible:ring-[#FF8F3F]"
+                                        value={value}
+                                        onChange={(e) =>
+                                          field.onChange(e.target.value)
+                                        }
+                                        disabled={
+                                          customerType === "PF" &&
+                                          useDefaultContact
+                                        }
+                                      />
+                                    </FormControl>
+                                    {!(
+                                      customerType === "PF" && useDefaultContact
+                                    ) && <FormMessage />}
+                                  </FormItem>
+                                );
+                              }}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="contact.contact_email"
+                              render={({ field }) => {
+                                const value =
+                                  customerType === "PF" && useDefaultContact
+                                    ? watchedEmail ?? ""
+                                    : (field.value as string) ?? "";
+                                return (
+                                  <FormItem>
+                                    <FormLabel className="flex items-center gap-1.5">
+                                      <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                                      E-mail para contato
+                                      {customerType === "PJ" ? "*" : ""}
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="contato@exemplo.com"
+                                        className="focus-visible:ring-[#FF8F3F]"
+                                        value={value}
+                                        onChange={(e) =>
+                                          field.onChange(e.target.value)
+                                        }
+                                        disabled={
+                                          customerType === "PF" &&
+                                          useDefaultContact
+                                        }
+                                        type="email"
+                                      />
+                                    </FormControl>
+                                    {!(
+                                      customerType === "PF" && useDefaultContact
+                                    ) && <FormMessage />}
+                                  </FormItem>
+                                );
+                              }}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="contact.contact_phone"
+                              render={({ field }) => {
+                                const value =
+                                  customerType === "PF" && useDefaultContact
+                                    ? formatPhone(watchedPhone ?? "")
+                                    : formatPhone(
+                                        (field.value as string) ?? ""
+                                      );
+                                return (
+                                  <FormItem>
+                                    <FormLabel className="flex items-center gap-1.5">
+                                      <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                                      Telefone para contato
+                                      {customerType === "PJ" ? "*" : ""}
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        maxLength={15}
+                                        placeholder="(47) 99999-9999"
+                                        className="focus-visible:ring-[#FF8F3F]"
+                                        value={value}
+                                        onChange={(e) =>
+                                          field.onChange(e.target.value)
+                                        }
+                                        disabled={
+                                          customerType === "PF" &&
+                                          useDefaultContact
+                                        }
+                                      />
+                                    </FormControl>
+                                    {!(
+                                      customerType === "PF" && useDefaultContact
+                                    ) && <FormMessage />}
+                                  </FormItem>
+                                );
+                              }}
+                            />
+                          </div>
+                        </TabsContent>
+
+                        {/* Aba Endereço */}
                         <TabsContent
                           value="endereco"
                           className="space-y-4 mt-0"
@@ -535,15 +863,15 @@ export function DialogClientes() {
                                           "focus-visible:ring-[#FF8F3F] pr-10",
                                           loadingAddress && "pr-12"
                                         )}
-                                        value={formatCEP(field.value)}
-                                        onChange={(e) => {
-                                          field.onChange(e.target.value);
-                                        }}
+                                        value={formatCEP(field.value || "")}
+                                        onChange={(e) =>
+                                          field.onChange(e.target.value)
+                                        }
                                         onBlur={field.onBlur}
                                       />
                                     </FormControl>
                                     {loadingAddress && (
-                                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                                       </div>
                                     )}
@@ -551,14 +879,14 @@ export function DialogClientes() {
                                       address &&
                                       !errorAddress &&
                                       cleanCEP(field.value).length === 8 && (
-                                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                           <CheckCircle className="h-4 w-4 text-green-500" />
                                         </div>
                                       )}
                                     {!loadingAddress &&
                                       errorAddress &&
                                       cleanCEP(field.value).length === 8 && (
-                                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                           <AlertCircle className="h-4 w-4 text-red-500" />
                                         </div>
                                       )}
@@ -673,7 +1001,7 @@ export function DialogClientes() {
                                   </FormLabel>
                                   <FormControl>
                                     <Input
-                                      max={2}
+                                      maxLength={2}
                                       placeholder="SC"
                                       className="focus-visible:ring-[#FF8F3F]"
                                       {...field}
@@ -697,10 +1025,10 @@ export function DialogClientes() {
                                     </FormLabel>
                                     <FormControl>
                                       <Input
-                                        placeholder="Trabalho"
+                                        placeholder="Apartamento 101"
                                         className="focus-visible:ring-[#FF8F3F]"
                                         {...field}
-                                        value={field.value ?? ""}
+                                        value={(field.value as string) ?? ""}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -708,6 +1036,7 @@ export function DialogClientes() {
                                 )}
                               />
                             </div>
+
                             <div className="md:col-span-1">
                               <FormField
                                 control={form.control}
@@ -723,7 +1052,7 @@ export function DialogClientes() {
                                         placeholder="Trabalho"
                                         className="focus-visible:ring-[#FF8F3F]"
                                         {...field}
-                                        value={field.value ?? ""}
+                                        value={(field.value as string) ?? ""}
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -749,43 +1078,67 @@ export function DialogClientes() {
                           Por favor, corrija os seguintes erros:
                         </p>
                         <ul className="list-disc pl-5 space-y-1">
-                          {errors.company_name && (
-                            <li>{errors.company_name.message}</li>
+                          {errors.customer_type && (
+                            <li>{errors.customer_type.message}</li>
                           )}
-                          {errors.brand_name && (
-                            <li>{errors.brand_name.message}</li>
+                          {errors.document && (
+                            <li>{errors.document.message}</li>
                           )}
-                          {errors.cnpj && <li>{errors.cnpj.message}</li>}
+                          {errors.name && <li>{errors.name.message}</li>}
+                          {errors.fantasy_name && (
+                            <li>{errors.fantasy_name.message}</li>
+                          )}
                           {errors.phone_number && (
                             <li>{errors.phone_number.message}</li>
                           )}
                           {errors.email && <li>{errors.email.message}</li>}
-                          {errors.state_tax_registration && (
-                            <li>{errors.state_tax_registration.message}</li>
+                          {errors.birth_date && (
+                            <li>{errors.birth_date.message}</li>
                           )}
-                          {errors.contact?.name && (
-                            <li>
-                              Nome para contato: {errors.contact.name.message}
-                            </li>
-                          )}
-                          {errors.contact?.date_of_birth && (
-                            <li>
-                              Data de nascimento:{" "}
-                              {errors.contact.date_of_birth.message}
-                            </li>
-                          )}
-                          {errors.contact?.contact_email && (
-                            <li>
-                              Email de contato:{" "}
-                              {errors.contact.contact_email.message}
-                            </li>
-                          )}
-                          {errors.contact?.contact_phone && (
-                            <li>
-                              Telefone de contato:{" "}
-                              {errors.contact.contact_phone.message}
-                            </li>
-                          )}
+
+                          {errors.contact &&
+                            typeof errors.contact === "object" && (
+                              <>
+                                {"name" in errors.contact &&
+                                  (errors.contact as any).name && (
+                                    <li>
+                                      Nome para contato:{" "}
+                                      {(errors.contact as any).name.message}
+                                    </li>
+                                  )}
+                                {"date_of_birth" in errors.contact &&
+                                  (errors.contact as any).date_of_birth && (
+                                    <li>
+                                      Data de nascimento (contato):{" "}
+                                      {
+                                        (errors.contact as any).date_of_birth
+                                          .message
+                                      }
+                                    </li>
+                                  )}
+                                {"contact_email" in errors.contact &&
+                                  (errors.contact as any).contact_email && (
+                                    <li>
+                                      Email de contato:{" "}
+                                      {
+                                        (errors.contact as any).contact_email
+                                          .message
+                                      }
+                                    </li>
+                                  )}
+                                {"contact_phone" in errors.contact &&
+                                  (errors.contact as any).contact_phone && (
+                                    <li>
+                                      Telefone de contato:{" "}
+                                      {
+                                        (errors.contact as any).contact_phone
+                                          .message
+                                      }
+                                    </li>
+                                  )}
+                              </>
+                            )}
+
                           {errors.billing_address?.cep && (
                             <li>CEP: {errors.billing_address.cep.message}</li>
                           )}

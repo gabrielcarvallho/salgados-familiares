@@ -1,4 +1,5 @@
 "use client";
+
 import type { ColumnDef } from "@tanstack/react-table";
 import type { DrawerConfig } from "@/components/datatable";
 import { Badge } from "@/components/ui/badge";
@@ -11,12 +12,9 @@ import {
   badgesVariant,
   formatDateToBR,
   formatStatus,
-  formatPaymentMethod,
   formatCEP,
   cleanCEP,
-  cleanCNPJ,
   cleanPhone,
-  formatCNPJ,
   formatPhone,
 } from "@/lib/utils";
 import {
@@ -48,27 +46,47 @@ import {
   MapPin,
   Briefcase,
   Building2,
-  Calendar,
-  FileText,
   Hash,
   Mail,
   Phone,
   User,
 } from "lucide-react";
 import { ProductSelector } from "@/components/productSelector";
-import {
-  ReactElement,
-  JSXElementConstructor,
-  ReactNode,
-  ReactPortal,
-  Key,
-} from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 
-const isDisabled = (identifier: number) => {
-  if (identifier > 2) return true;
-  return false;
+// Helpers seguros
+const safeCustomerName = (o: OrderResponse) => o?.customer?.name ?? "";
+const safeCustomerFantasy = (o: OrderResponse) =>
+  o?.customer?.fantasy_name ?? "";
+const safeCustomerDisplay = (o: OrderResponse) => {
+  const n = safeCustomerName(o);
+  const f = safeCustomerFantasy(o);
+  return f ? `${n} (${f})` : n;
+};
+const safePaymentName = (o: OrderResponse) => o?.payment_method?.name ?? "";
+
+// Helper atualizado para usar a nova configuração de badges
+const safeOrderStatusBadge = (o: OrderResponse) => {
+  const st = o?.order_status;
+  return badgesVariant({
+    sequence_order: st?.sequence_order,
+    category: st?.category,
+    delivery_method: st?.delivery_method,
+    description: st?.description,
+  });
+};
+
+const safeDeliveryDate = (o: OrderResponse) =>
+  o?.delivery_date ? formatDateToBR(o.delivery_date) : "";
+const safeDueDate = (o: OrderResponse) =>
+  o?.due_date ? formatDateToBR(o.due_date) : "";
+const safeTotalPrice = (o: OrderResponse) => {
+  const n =
+    typeof o.total_price === "number"
+      ? o.total_price
+      : Number.parseFloat(o.total_price as any) || 0;
+  return `R$ ${n.toFixed(2)}`;
 };
 
 // Colunas da tabela
@@ -81,59 +99,42 @@ export const columns: ColumnDef<OrderResponse, any>[] = [
   },
   {
     id: "cliente",
-    accessorKey: "customer.company_name",
     header: "Cliente",
-    cell: ({ row }) => row.original.customer.company_name,
+    cell: ({ row }) => safeCustomerDisplay(row.original),
   },
   {
     id: "payment_method",
-    accessorKey: "payment_method.name",
     header: "Método de Pagamento",
     cell: ({ row }) => (
-      <Badge variant="outline">{row.original.payment_method.name}</Badge>
+      <Badge variant="outline">{safePaymentName(row.original)}</Badge>
     ),
   },
   {
     id: "delivery_date",
-    accessorKey: "delivery_date",
     header: "Data de entrega",
-    cell: ({ row }) => formatDateToBR(row.original.delivery_date),
+    cell: ({ row }) => safeDeliveryDate(row.original),
   },
-  {
-    id: "due_date",
-    accessorKey: "due_date",
-    header: "Data de vencimento",
-    cell: ({ row }) => formatDateToBR(row.original.due_date),
-  },
+
   {
     id: "order_status",
-    accessorKey: "order_status.description",
     header: "Status",
     cell: ({ row }) => {
-      const { badge, stats } = badgesVariant(
-        row.original.order_status.identifier
-      );
-      return <Badge variant={badge}>{stats}</Badge>;
+      const { badge, stats } = safeOrderStatusBadge(row.original);
+      return <Badge variant={badge as any}>{stats}</Badge>;
     },
   },
   {
     id: "total_price",
-    accessorKey: "total_price",
     header: "Preço",
-    cell: ({ row }) => {
-      const n =
-        typeof row.original.total_price === "number"
-          ? row.original.total_price
-          : Number.parseFloat(row.original.total_price as any) || 0;
-      return `R$ ${n.toFixed(2)}`;
-    },
+    cell: ({ row }) => safeTotalPrice(row.original),
   },
 ];
 
 export function useDrawerConfig() {
   const { paymentMethods = [] } = usePaymentMethods();
-  const { orderStatus: orderStatuses = [] } = useOrderStatus();
-  const { products = [] } = useProductList();
+  // Lista base para exibir nomes de status (readonly)
+  const { orderStatus: orderStatuses = [] } = useOrderStatus("ENTREGA");
+  const { products = [] } = useProductList("all");
   const { mutate } = useOrderList();
 
   const drawerConfig: DrawerConfig<OrderResponse, OrderUpdateRequest> = {
@@ -143,21 +144,42 @@ export function useDrawerConfig() {
         <span>Pedido #{o.order_number}</span>
       </div>
     ),
-    description: (o) => (
-      <div className="flex items-start gap-2 flex-col justify-center mt-2">
-        <div className="flex items-center gap-2">
-          <Building className="h-4 w-4 text-muted-foreground" />
-          <span className="text-muted-foreground">
-            Cliente: {o.customer.company_name}
-          </span>
+    description: (o) => {
+      const { badge, stats } = safeOrderStatusBadge(o);
+      return (
+        <div className="flex items-start gap-2 flex-col justify-center mt-2">
+          <div className="flex items-center gap-2">
+            <Building className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">
+              Cliente: {safeCustomerDisplay(o)}
+            </span>
+          </div>
+          {o?.customer?.email && (
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">{o.customer.email}</span>
+            </div>
+          )}
+          {o?.customer?.contact?.name && (
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                Contato: {o.customer.contact.name}
+              </span>
+            </div>
+          )}
+          {o?.customer?.contact?.contact_phone && (
+            <div className="flex items-center gap-2">
+              <Phone className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                {formatPhone(o.customer.contact.contact_phone)}
+              </span>
+            </div>
+          )}
+          {o.order_status && <Badge variant={badge as any}>{stats}</Badge>}
         </div>
-        {o.order_status && (
-          <Badge variant={badgesVariant(o.order_status.identifier).badge}>
-            {badgesVariant(o.order_status.identifier).stats}
-          </Badge>
-        )}
-      </div>
-    ),
+      );
+    },
     updateSchema: orderUpdateRequestSchema,
     mutate: mutate,
     fields: [
@@ -177,26 +199,25 @@ export function useDrawerConfig() {
         ),
       },
 
-      // Status do pedido
+      // Status do pedido (readonly)
       {
         name: "order_status_id",
         type: "custom",
         colSpan: 2,
-
         defaultValue: (o) => {
-          return {
-            value: String(o.order_status.id),
-            isEditable: Number(o.order_status.identifier) === 0,
-          };
+          const id = String(o?.order_status?.id ?? "");
+          const isEditable = Number(o?.order_status?.sequence_order ?? 1) === 0;
+          return { value: id, isEditable };
         },
         formatValue: (v) =>
-          typeof v === "object" && v !== null ? String(v.value) : String(v),
+          typeof v === "object" && v !== null
+            ? String(v.value)
+            : String(v ?? ""),
         customRender: (valueObj, onChange) => {
-          // Extract value and editable state from the object
           const { value, isEditable } =
             typeof valueObj === "object" && valueObj !== null
               ? valueObj
-              : { value: String(valueObj), isEditable: false };
+              : { value: String(valueObj ?? ""), isEditable: false };
 
           const safeValue = value || "";
 
@@ -217,7 +238,7 @@ export function useDrawerConfig() {
                   <SelectValue placeholder="Selecione status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {orderStatuses.map((st) => (
+                  {orderStatuses.map((st: any) => (
                     <SelectItem key={st.id} value={String(st.id)}>
                       {formatStatus(st.description)}
                     </SelectItem>
@@ -229,22 +250,24 @@ export function useDrawerConfig() {
         },
       },
 
+      // Método de Pagamento
       {
         name: "payment_method_id",
         type: "custom",
         colSpan: 2,
         defaultValue: (o) => ({
-          value: String(o.payment_method.id),
-          isEditable: Number(o.order_status.identifier) === 0,
+          value: String(o?.payment_method?.id ?? ""),
+          isEditable: Number(o?.order_status?.sequence_order ?? 1) === 0,
         }),
         formatValue: (v) =>
-          typeof v === "object" && v !== null ? String(v.value) : String(v),
+          typeof v === "object" && v !== null
+            ? String(v.value)
+            : String(v ?? ""),
         customRender: (valueObj, onChange) => {
-          // Extract value and editable state from the object
           const { value, isEditable } =
             typeof valueObj === "object" && valueObj !== null
               ? valueObj
-              : { value: String(valueObj), isEditable: false };
+              : { value: String(valueObj ?? ""), isEditable: false };
 
           const safeValue = value || "";
 
@@ -283,16 +306,16 @@ export function useDrawerConfig() {
         type: "custom",
         colSpan: 2,
         defaultValue: (o) => ({
-          value: o.delivery_date,
-          isEditable: Number(o.order_status.identifier) === 0,
+          value: o?.delivery_date ?? "",
+          isEditable: Number(o?.order_status?.sequence_order ?? 1) === 0,
         }),
-        formatValue: (v) => (typeof v === "object" && v !== null ? v.value : v),
+        formatValue: (v) =>
+          typeof v === "object" && v !== null ? v.value : v ?? "",
         customRender: (valueObj, onChange) => {
-          // Extract value and editable state from the object
           const { value, isEditable } =
             typeof valueObj === "object" && valueObj !== null
               ? valueObj
-              : { value: valueObj, isEditable: false };
+              : { value: valueObj ?? "", isEditable: false };
 
           return (
             <div className="space-y-2">
@@ -318,16 +341,16 @@ export function useDrawerConfig() {
         type: "custom",
         colSpan: 2,
         defaultValue: (o) => ({
-          value: o.due_date,
-          isEditable: Number(o.order_status.identifier) === 0,
+          value: o?.due_date ?? "",
+          isEditable: false,
         }),
-        formatValue: (v) => (typeof v === "object" && v !== null ? v.value : v),
+        formatValue: (v) =>
+          typeof v === "object" && v !== null ? v.value : v ?? "",
         customRender: (valueObj, onChange) => {
-          // Extract value and editable state from the object
           const { value, isEditable } =
             typeof valueObj === "object" && valueObj !== null
               ? valueObj
-              : { value: valueObj, isEditable: false };
+              : { value: valueObj ?? "", isEditable: false };
 
           return (
             <div className="space-y-2">
@@ -369,20 +392,11 @@ export function useDrawerConfig() {
         // 1. PRIMEIRO: Ajuste o defaultValue do campo "products" para garantir que sale_price seja mapeado corretamente:
 
         defaultValue: (o) => ({
-          items: Array.isArray(o.products)
-            ? o.products.map(
-                (p: {
-                  product: { id: any; price: any };
-                  quantity: any;
-                  sale_price: any;
-                }) => ({
-                  product_id: String(p.product.id),
-                  quantity: p.quantity,
-                  sale_price:
-                    Number(p.sale_price) || Number(p.product.price) || 0, // ✅ Fallback para product.price
-                  price: Number(p.product.price) || 0,
-                })
-              )
+          items: Array.isArray(o?.products)
+            ? o.products.map((p: { product: { id: any }; quantity: any }) => ({
+                product_id: String(p?.product?.id ?? ""),
+                quantity: p?.quantity ?? 0,
+              }))
             : [],
         }),
 
@@ -394,15 +408,9 @@ export function useDrawerConfig() {
             typeof valueObj === "object" &&
             Array.isArray(valueObj.items)
           ) {
-            return valueObj.items
-              .filter(
-                (item: { quantity: number }) =>
-                  item.quantity > 0 || item.quantity === 0
-              )
-              .map((item: any) => ({
-                ...item,
-                sale_price: Number(item.sale_price) || 0, // ✅ Garantir que sale_price seja preservado
-              }));
+            return valueObj.items.filter(
+              (item: { quantity: number }) => typeof item.quantity === "number"
+            );
           }
           return [];
         },
@@ -419,44 +427,26 @@ export function useDrawerConfig() {
             onChange({ items: newItems, isEditable });
           };
 
-          // ✅ Calcular total usando sale_price de cada item do pedido
-
-          // ✅ CORREÇÃO: Formatar produtos base sem sale_price (que vem dos items)
           const formattedProducts = products.map((product) => ({
             id: String(product.id),
             name: product.name,
-            price: Number(product.price) || 0,
-            // ❌ Remover sale_price daqui, pois não existe no produto base
-            // sale_price: Number(product.sale_price) || 0
+            price: product.price,
           }));
 
-          // ✅ Calcular total usando sale_price de cada item do pedido
           const calculateTotal = () => {
-            if (!items.length) return 0;
-
             return items.reduce(
               (
                 total: number,
-                item: {
-                  product_id: string;
-                  quantity: number;
-                  sale_price?: number;
-                  price?: number;
-                }
+                item: { product_id: string; quantity: number }
               ) => {
-                // ✅ Usar o sale_price do item do pedido com fallbacks
-                const itemSalePrice = Number(item.sale_price) || 0;
-                const itemPrice = Number(item.price) || 0;
-
-                // Fallback para preço do produto base se necessário
-                const fallbackPrice =
-                  products.find((p) => String(p.id) === item.product_id)
-                    ?.price || 0;
-
-                const finalPrice =
-                  itemSalePrice || itemPrice || Number(fallbackPrice) || 0;
-
-                return total + finalPrice * item.quantity;
+                const product = products.find(
+                  (p) => String(p.id) === item.product_id
+                );
+                const price =
+                  product && typeof product.price === "number"
+                    ? product.price
+                    : Number(product?.price as any) || 0;
+                return total + price * (item.quantity || 0);
               },
               0
             );
@@ -464,7 +454,7 @@ export function useDrawerConfig() {
 
           return (
             <div className="space-y-4">
-              <div className="">
+              <div>
                 <ProductSelector
                   products={formattedProducts}
                   value={items} // ✅ items já inclui sale_price do backend
@@ -494,216 +484,7 @@ export function useDrawerConfig() {
         },
       },
 
-      {
-        name: "customer.company_name",
-        type: "custom",
-        colSpan: 2,
-        customRender: (value: string, onChange: (v: string) => void) => (
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-[#FF8F3F]" />
-              <span>Razão Social</span>
-              <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
-              className="transition-all focus-visible:ring-[#FF8F3F]"
-              placeholder="Razão Social da empresa"
-            />
-          </div>
-        ),
-      },
-      {
-        name: "customer.brand_name",
-        type: "custom",
-        colSpan: 2,
-        customRender: (value: string, onChange: (v: string) => void) => (
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Briefcase className="h-4 w-4 text-[#FF8F3F]" />
-              <span>Nome Fantasia</span>
-              <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
-              className="transition-all focus-visible:ring-[#FF8F3F]"
-              placeholder="Nome Fantasia da empresa"
-            />
-          </div>
-        ),
-      },
-
-      // CNPJ: exibe formatado, mas envia limpo
-      {
-        name: "customer.cnpj",
-        type: "custom",
-        colSpan: 2,
-        defaultValue: (o) => formatCNPJ(o.customer.cnpj),
-        formatValue: (v) => formatCNPJ(v),
-        parseValue: (v) => cleanCNPJ(v),
-        customRender: (value: string, onChange: (v: string) => void) => (
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Hash className="h-4 w-4 text-[#FF8F3F]" />
-              <span>CNPJ</span>
-              <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
-              placeholder="00.000.000/0000-00"
-              className="transition-all focus-visible:ring-[#FF8F3F]"
-            />
-          </div>
-        ),
-      },
-
-      // Inscrição Estadual
-      {
-        name: "customer.state_tax_registration",
-        type: "custom",
-        colSpan: 2,
-        customRender: (value: string, onChange: (v: string) => void) => (
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-[#FF8F3F]" />
-              <span>Inscrição Estadual</span>
-            </Label>
-            <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
-              placeholder="Inscrição Estadual"
-              className="transition-all focus-visible:ring-[#FF8F3F]"
-            />
-          </div>
-        ),
-      },
-
-      // E-mail
-      {
-        name: "customer.email",
-        type: "custom",
-        colSpan: 2,
-        customRender: (value: string, onChange: (v: string) => void) => (
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-[#FF8F3F]" />
-              <span>E-mail</span>
-              <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
-              placeholder="email@empresa.com"
-              className="transition-all focus-visible:ring-[#FF8F3F]"
-              type="email"
-            />
-          </div>
-        ),
-      },
-
-      // Separador para Informações de Contato
-      {
-        name: "contact_separator",
-        type: "custom",
-        colSpan: 2,
-        customRender: () => (
-          <div className="col-span-2 pt-2">
-            <div className="flex items-center gap-2 mb-2">
-              <User className="h-5 w-5 text-[#FF8F3F]" />
-              <h3 className="text-base font-medium">Informações de Contato</h3>
-            </div>
-            <Separator />
-          </div>
-        ),
-      },
-
-      // Nome para Contato
-      {
-        name: "customer.contact.name",
-        type: "custom",
-        colSpan: 2,
-        customRender: (value: string, onChange: (v: string) => void) => (
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <User className="h-4 w-4 text-[#FF8F3F]" />
-              <span>Nome para Contato</span>
-              <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
-              placeholder="Nome da pessoa de contato"
-              className="transition-all focus-visible:ring-[#FF8F3F]"
-            />
-          </div>
-        ),
-      },
-
-      // Data de Nascimento: display BR, send ISO
-      {
-        name: "customer.contact.date_of_birth",
-        type: "custom",
-        colSpan: 2,
-        defaultValue: (o) => o.customer.contact.date_of_birth,
-        formatValue: (v) => v,
-        customRender: (value: string, onChange: (v: string) => void) => (
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-[#FF8F3F]" />
-              <span>Data de Nascimento</span>
-            </Label>
-            <DatePicker
-              value={value}
-              onChange={onChange}
-              className="w-full transition-all focus-visible:ring-[#FF8F3F]"
-            />
-          </div>
-        ),
-      },
-
-      // Telefone: exibe formatado, envia limpo
-      {
-        name: "customer.contact.contact_phone",
-        type: "custom",
-        colSpan: 2,
-        defaultValue: (o) => formatPhone(o.customer.contact.contact_phone),
-        formatValue: (v) => formatPhone(v),
-        parseValue: (v) => cleanPhone(v),
-        customRender: (value: string, onChange: (v: string) => void) => (
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-[#FF8F3F]" />
-              <span>Telefone para Contato</span>
-              <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
-              placeholder="(00) 00000-0000"
-              className="transition-all focus-visible:ring-[#FF8F3F]"
-            />
-          </div>
-        ),
-      },
-
-      // Separador para Endereço
+      // Endereço de Cobrança
       {
         name: "address_separator",
         type: "custom",
@@ -719,14 +500,12 @@ export function useDrawerConfig() {
         ),
       },
 
-      // CEP: exibe formatado, envia limpo
       {
         name: "delivery_address.cep",
         type: "custom",
         colSpan: 2,
-        defaultValue: (o) => formatCEP(o.delivery_address.cep),
-        formatValue: (v) => formatCEP(v),
-        parseValue: (v) => cleanCEP(v),
+        defaultValue: (o) => formatCEP(o?.delivery_address?.cep ?? ""),
+        formatValue: (v) => formatCEP(v ?? ""),
         customRender: (value: string, onChange: (v: string) => void) => (
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
@@ -735,10 +514,8 @@ export function useDrawerConfig() {
               <span className="text-destructive">*</span>
             </Label>
             <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
               placeholder="00000-000"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -746,11 +523,12 @@ export function useDrawerConfig() {
         ),
       },
 
-      // Endereço completo em campos separados
       {
         name: "delivery_address.street_name",
         type: "custom",
         colSpan: 1,
+        defaultValue: (o) => o?.delivery_address?.street_name ?? "",
+        formatValue: (v) => String(v ?? ""),
         customRender: (value: string, onChange: (v: string) => void) => (
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
@@ -758,10 +536,8 @@ export function useDrawerConfig() {
               <span className="text-destructive">*</span>
             </Label>
             <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
               placeholder="Nome da rua"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -769,11 +545,12 @@ export function useDrawerConfig() {
         ),
       },
 
-      // Número e Bairro na mesma linha
       {
         name: "delivery_address.number",
         type: "custom",
         colSpan: 1,
+        defaultValue: (o) => o?.delivery_address?.number ?? "",
+        formatValue: (v) => String(v ?? ""),
         customRender: (value: string, onChange: (v: string) => void) => (
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
@@ -781,20 +558,21 @@ export function useDrawerConfig() {
               <span className="text-destructive">*</span>
             </Label>
             <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
               placeholder="Número"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
           </div>
         ),
       },
+
       {
         name: "delivery_address.district",
         type: "custom",
         colSpan: 1,
+        defaultValue: (o) => o?.delivery_address?.district ?? "",
+        formatValue: (v) => String(v ?? ""),
         customRender: (value: string, onChange: (v: string) => void) => (
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
@@ -802,10 +580,8 @@ export function useDrawerConfig() {
               <span className="text-destructive">*</span>
             </Label>
             <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
               placeholder="Bairro"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -813,11 +589,12 @@ export function useDrawerConfig() {
         ),
       },
 
-      // Cidade e Estado na mesma linha
       {
         name: "delivery_address.city",
         type: "custom",
         colSpan: 1,
+        defaultValue: (o) => o?.delivery_address?.city ?? "",
+        formatValue: (v) => String(v ?? ""),
         customRender: (value: string, onChange: (v: string) => void) => (
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
@@ -825,20 +602,21 @@ export function useDrawerConfig() {
               <span className="text-destructive">*</span>
             </Label>
             <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
               placeholder="Cidade"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
           </div>
         ),
       },
+
       {
         name: "delivery_address.state",
         type: "custom",
         colSpan: 1,
+        defaultValue: (o) => o?.delivery_address?.state ?? "",
+        formatValue: (v) => String(v ?? ""),
         customRender: (value: string, onChange: (v: string) => void) => (
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
@@ -846,10 +624,8 @@ export function useDrawerConfig() {
               <span className="text-destructive">*</span>
             </Label>
             <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
               placeholder="UF"
               className="transition-all focus-visible:ring-[#FF8F3F]"
               maxLength={2}
@@ -857,22 +633,22 @@ export function useDrawerConfig() {
           </div>
         ),
       },
+
       {
         name: "delivery_address.description",
         type: "custom",
         colSpan: 1,
+        defaultValue: (o) => o?.delivery_address?.description ?? "",
+        formatValue: (v) => String(v ?? ""),
         customRender: (value: string, onChange: (v: string) => void) => (
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <span>Descrição</span>
-              <span className="text-destructive"></span>
             </Label>
             <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
-              placeholder="Trabalho"
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Trabalho / Casa"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
           </div>
@@ -884,13 +660,15 @@ export function useDrawerConfig() {
         name: "delivery_address.observation",
         type: "custom",
         colSpan: 2,
+        defaultValue: (o) => o?.delivery_address?.observation ?? "",
+        formatValue: (v) => String(v ?? ""),
         customRender: (value: string, onChange: (v: string) => void) => (
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <span>Observação</span>
             </Label>
             <Textarea
-              value={value}
+              value={value ?? ""}
               onChange={(e) => onChange(e.target.value)}
               placeholder="Observações sobre o endereço"
               className="min-h-[80px] transition-all focus-visible:ring-[#FF8F3F]"

@@ -4,15 +4,15 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  cleanCNPJ,
-  cleanPhone,
   cleanCEP,
+  cleanPhone,
   formatCEP,
-  formatCNPJ,
   formatPhone,
+  formatDocumentByType,
+  cleanDocument,
+  toISODateSafe,
 } from "@/lib/utils";
 import {
   type CustomerResponse,
@@ -25,7 +25,6 @@ import DatePicker from "@/components/ui/date-picker";
 import {
   Building2,
   Briefcase,
-  FileText,
   Mail,
   MapPin,
   Phone,
@@ -34,86 +33,145 @@ import {
   Hash,
 } from "lucide-react";
 
-// Colunas da tabela
+/**
+  Recomendação para os utils (garanta algo equivalente no seu "@/lib/utils"):
+  - cleanDocument(doc?: string|null): string => apenas dígitos
+  - formatDocumentByType(doc?: string|null, type?: "PF"|"PJ"): string
+    - Deve limpar para dígitos e decidir a máscara por type (ou por length quando type ausente)
+  - formatPhone(phone?: string|null): string => formatar a partir de dígitos de forma segura
+  - Todas as funções devem tolerar undefined/null sem lançar erro
+*/
+
+// =====================
+// Colunas da Tabela
+// =====================
 export const columns: ColumnDef<CustomerResponse, string>[] = [
   {
-    id: "company_name",
-    accessorKey: "company_name",
-    header: "Razão Social",
-    cell: ({ row }) => row.original.company_name,
+    id: "name",
+    accessorKey: "name",
+    header: "Nome",
+    cell: ({ row }) => row.original.name ?? "-",
   },
   {
-    id: "brand_name",
-    accessorKey: "brand_name",
+    id: "fantasy_name",
+    accessorKey: "fantasy_name",
     header: "Nome Fantasia",
-    cell: ({ row }) => row.original.brand_name,
+    cell: ({ row }) => row.original.fantasy_name ?? "-",
   },
   {
-    id: "cnpj",
-    accessorKey: "cnpj",
-    header: "CNPJ",
-    cell: ({ row }) => formatCNPJ(row.original.cnpj),
+    id: "document",
+    accessorKey: "document",
+    header: "Documento",
+    cell: ({ row }) => {
+      const o = row.original as any;
+
+      // Coleta robusta (prioriza "document"; depois legados)
+      const rawDoc: string =
+        o?.document ??
+        o?.cpf ?? // legado PF
+        o?.cnpj ?? // legado PJ
+        "";
+
+      const digits = cleanDocument(rawDoc);
+      if (!digits) return "-";
+
+      // Usa o customer_type quando existir; senão infere por length (<=11 => CPF)
+      const type: "PF" | "PJ" =
+        o?.customer_type ?? (digits.length > 11 ? "PJ" : "PF");
+
+      const formatted = formatDocumentByType(digits, type);
+      return formatted || "-";
+    },
   },
   {
     id: "contact_name",
     accessorKey: "contact.name",
     header: "Contato",
-    cell: ({ row }) => row.original.contact.name,
+    cell: ({ row }) => {
+      const o = row.original as any;
+      // Fallback visual: PF sem contact persistido exibe o próprio nome
+      const name =
+        o?.contact?.name ?? (o?.customer_type === "PF" ? o?.name : undefined);
+      return name ?? "-";
+    },
   },
   {
     id: "contact_phone",
     accessorKey: "contact.contact_phone",
     header: "Telefone",
-    cell: ({ row }) => formatPhone(row.original.contact.contact_phone),
+    cell: ({ row }) => {
+      const o = row.original as any;
+      // Fallback visual: PF sem contact persistido exibe phone_number do cliente
+      const phone =
+        o?.contact?.contact_phone ??
+        (o?.customer_type === "PF" ? o?.phone_number : undefined);
+      return formatPhone(phone) || "-";
+    },
   },
 ];
 
+// =====================
+// Drawer de Edição
+// =====================
 export function useDrawerConfig() {
-  // Configuração do drawer para edição
   const { mutate } = useCustomerList();
+
   const drawerConfig: DrawerConfig<CustomerResponse, CustomerUpdateRequest> = {
     title: (cliente) => (
       <div className="flex items-center gap-2">
         <Briefcase className="h-5 w-5 text-[#FF8F3F]" />
-        <span>{cliente.brand_name}</span>
+        <span>{cliente.fantasy_name || cliente.name}</span>
       </div>
     ),
-    description: (cliente) => (
-      <Badge
-        variant="outline"
-        className=" bg-[#FF8F3F]/10 text-[#FF8F3F] border-[#FF8F3F]/20 mt-2"
-      >
-        {formatCNPJ(cliente.cnpj)}
-      </Badge>
-    ),
+
+    // Descrição com documento formatado de maneira robusta
+    description: (cliente) => {
+      const anyC = cliente as any;
+      const rawDoc = anyC?.document ?? anyC?.cpf ?? anyC?.cnpj ?? "";
+      const digits = cleanDocument(rawDoc);
+      const t: "PF" | "PJ" =
+        anyC?.customer_type ?? (digits.length > 11 ? "PJ" : "PF");
+      const label = digits ? formatDocumentByType(digits, t) : "-";
+      return (
+        <Badge
+          variant="outline"
+          className=" bg-[#FF8F3F]/10 text-[#FF8F3F] border-[#FF8F3F]/20 mt-2"
+        >
+          {label}
+        </Badge>
+      );
+    },
+
     updateSchema: CustomerUpdateRequestSchema,
-    mutate: mutate,
+    mutate,
+
+    // Campos do Drawer alinhados ao contrato
     fields: [
-      // Razão Social e Nome Fantasia sem formatação extra
+      // Nome
       {
-        name: "company_name",
+        name: "name",
         type: "custom",
         colSpan: 2,
         customRender: (value: string, onChange: (v: string) => void) => (
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-[#FF8F3F]" />
-              <span>Razão Social</span>
+              <span>Nome</span>
               <span className="text-destructive">*</span>
             </Label>
             <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
               className="transition-all focus-visible:ring-[#FF8F3F]"
-              placeholder="Razão Social da empresa"
+              placeholder="Nome (PF) ou Razão social (PJ)"
             />
           </div>
         ),
       },
+
+      // Nome Fantasia (opcional)
       {
-        name: "brand_name",
+        name: "fantasy_name",
         type: "custom",
         colSpan: 2,
         customRender: (value: string, onChange: (v: string) => void) => (
@@ -121,66 +179,59 @@ export function useDrawerConfig() {
             <Label className="flex items-center gap-2">
               <Briefcase className="h-4 w-4 text-[#FF8F3F]" />
               <span>Nome Fantasia</span>
-              <span className="text-destructive">*</span>
             </Label>
             <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
-              className="transition-all focus-visible:ring-[#FF8F3F]"
-              placeholder="Nome Fantasia da empresa"
-            />
-          </div>
-        ),
-      },
-
-      // CNPJ: exibe formatado, mas envia limpo
-      {
-        name: "cnpj",
-        type: "custom",
-        colSpan: 2,
-        defaultValue: (o) => formatCNPJ(o.cnpj),
-        formatValue: (v) => formatCNPJ(v),
-        parseValue: (v) => cleanCNPJ(v),
-        customRender: (value: string, onChange: (v: string) => void) => (
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Hash className="h-4 w-4 text-[#FF8F3F]" />
-              <span>CNPJ</span>
-              <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              value={value}
+              value={value ?? ""}
               onChange={(e) => onChange(e.target.value)}
-              placeholder="00.000.000/0000-00"
               className="transition-all focus-visible:ring-[#FF8F3F]"
+              placeholder="Nome fantasia (opcional)"
             />
           </div>
         ),
       },
 
-      // Inscrição Estadual
+      // Documento (CPF/CNPJ): exibe formatado a partir dos dígitos; envia limpo
       {
-        name: "state_tax_registration",
+        name: "document",
         type: "custom",
         colSpan: 2,
-        customRender: (value: string, onChange: (v: string) => void) => (
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-[#FF8F3F]" />
-              <span>Inscrição Estadual</span>
-            </Label>
-            <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
-              placeholder="Inscrição Estadual"
-              className="transition-all focus-visible:ring-[#FF8F3F]"
-            />
-          </div>
-        ),
+        defaultValue: (o) => {
+          const anyO = o as any;
+          const raw = anyO?.document ?? anyO?.cpf ?? anyO?.cnpj ?? "";
+          const digits = cleanDocument(raw);
+          if (!digits) return "";
+          const t: "PF" | "PJ" =
+            anyO?.customer_type ?? (digits.length > 11 ? "PJ" : "PF");
+          return formatDocumentByType(digits, t);
+        },
+        formatValue: (v: any) => {
+          const digits = cleanDocument(v);
+          if (!digits) return "";
+          // Sem acesso ao objeto aqui: inferir por length
+          const t: "PF" | "PJ" = digits.length > 11 ? "PJ" : "PF";
+          return formatDocumentByType(digits, t);
+        },
+        parseValue: (v: any) => cleanDocument(v),
+        customRender: (value: string, onChange: (v: string) => void, obj) => {
+          const type: "PF" | "PJ" | undefined = (obj as any)?.customer_type;
+          const placeholder =
+            type === "PJ" ? "00.000.000/0000-00" : "000.000.000-00";
+          return (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Hash className="h-4 w-4 text-[#FF8F3F]" />
+                <span>{type === "PJ" ? "CNPJ" : "CPF"}</span>
+                <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                value={value ?? ""}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={placeholder}
+                className="transition-all focus-visible:ring-[#FF8F3F]"
+              />
+            </div>
+          );
+        },
       },
 
       // E-mail
@@ -193,14 +244,11 @@ export function useDrawerConfig() {
             <Label className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-[#FF8F3F]" />
               <span>E-mail</span>
-              <span className="text-destructive">*</span>
             </Label>
             <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
-              placeholder="email@empresa.com"
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="email@exemplo.com"
               className="transition-all focus-visible:ring-[#FF8F3F]"
               type="email"
             />
@@ -208,7 +256,32 @@ export function useDrawerConfig() {
         ),
       },
 
-      // Separador para Informações de Contato
+      // Telefone (cliente)
+      {
+        name: "phone_number",
+        type: "custom",
+        colSpan: 2,
+        defaultValue: (o) => formatPhone((o as any)?.phone_number),
+        formatValue: (v) => formatPhone(v),
+        parseValue: (v) => cleanPhone(v),
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Phone className="h-4 w-4 text-[#FF8F3F]" />
+              <span>Telefone</span>
+              <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="(00) 00000-0000"
+              className="transition-all focus-visible:ring-[#FF8F3F]"
+            />
+          </div>
+        ),
+      },
+
+      // Separador Contato
       {
         name: "contact_separator",
         type: "custom",
@@ -224,23 +297,20 @@ export function useDrawerConfig() {
         ),
       },
 
-      // Nome para Contato
+      // Contato: Nome
       {
         name: "contact.name",
         type: "custom",
         colSpan: 2,
-        customRender: (value: string, onChange: (v: string) => void) => (
+        customRender: (value: string, onChange: (v: string) => void, obj) => (
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <User className="h-4 w-4 text-[#FF8F3F]" />
               <span>Nome para Contato</span>
-              <span className="text-destructive">*</span>
             </Label>
             <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
               placeholder="Nome da pessoa de contato"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -248,21 +318,32 @@ export function useDrawerConfig() {
         ),
       },
 
-      // Data de Nascimento: display BR, send ISO
+      // Contato: Data de Nascimento (string controlada pelo DatePicker)
       {
         name: "contact.date_of_birth",
         type: "custom",
         colSpan: 2,
-        defaultValue: (o) => o.contact.date_of_birth,
-        formatValue: (v) => v,
-        customRender: (value: string, onChange: (v: string) => void) => (
+
+        // valor inicial vindo da API
+        defaultValue: (o) => (o as any)?.contact?.date_of_birth ?? "",
+
+        // mostra sempre string vazia quando não existir
+        formatValue: (v) => v || "",
+
+        // transforma para ISO ou devolve undefined (NÃO null)
+        parseValue: (v) => {
+          const iso = toISODateSafe(v); // "" -> null ou "YYYY-MM-DD"
+          return iso ?? undefined; // undefined = chave omitida
+        },
+
+        customRender: (val, onChange) => (
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-[#FF8F3F]" />
               <span>Data de Nascimento</span>
             </Label>
             <DatePicker
-              value={value}
+              value={val ?? ""}
               onChange={onChange}
               className="w-full transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -270,12 +351,12 @@ export function useDrawerConfig() {
         ),
       },
 
-      // Telefone: exibe formatado, envia limpo
+      // Contato: Telefone
       {
         name: "contact.contact_phone",
         type: "custom",
         colSpan: 2,
-        defaultValue: (o) => formatPhone(o.contact.contact_phone),
+        defaultValue: (o) => formatPhone((o as any)?.contact?.contact_phone),
         formatValue: (v) => formatPhone(v),
         parseValue: (v) => cleanPhone(v),
         customRender: (value: string, onChange: (v: string) => void) => (
@@ -283,11 +364,9 @@ export function useDrawerConfig() {
             <Label className="flex items-center gap-2">
               <Phone className="h-4 w-4 text-[#FF8F3F]" />
               <span>Telefone para Contato</span>
-              <span className="text-destructive">*</span>
             </Label>
             <Input
-
-              value={value}
+              value={value ?? ""}
               onChange={(e) => onChange(e.target.value)}
               placeholder="(00) 00000-0000"
               className="transition-all focus-visible:ring-[#FF8F3F]"
@@ -296,7 +375,29 @@ export function useDrawerConfig() {
         ),
       },
 
-      // Separador para Endereço
+      // Contato: E-mail
+      {
+        name: "contact.contact_email",
+        type: "custom",
+        colSpan: 2,
+        customRender: (value: string, onChange: (v: string) => void) => (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-[#FF8F3F]" />
+              <span>E-mail para Contato</span>
+            </Label>
+            <Input
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="contato@exemplo.com"
+              className="transition-all focus-visible:ring-[#FF8F3F]"
+              type="email"
+            />
+          </div>
+        ),
+      },
+
+      // Separador Endereço de Cobrança
       {
         name: "address_separator",
         type: "custom",
@@ -312,12 +413,12 @@ export function useDrawerConfig() {
         ),
       },
 
-      // CEP: exibe formatado, envia limpo
+      // CEP
       {
         name: "billing_address.cep",
         type: "custom",
         colSpan: 2,
-        defaultValue: (o) => formatCEP(o.billing_address.cep),
+        defaultValue: (o) => formatCEP((o as any)?.billing_address?.cep),
         formatValue: (v) => formatCEP(v),
         parseValue: (v) => cleanCEP(v),
         customRender: (value: string, onChange: (v: string) => void) => (
@@ -328,8 +429,7 @@ export function useDrawerConfig() {
               <span className="text-destructive">*</span>
             </Label>
             <Input
-
-              value={value}
+              value={value ?? ""}
               onChange={(e) => onChange(e.target.value)}
               placeholder="00000-000"
               className="transition-all focus-visible:ring-[#FF8F3F]"
@@ -338,7 +438,7 @@ export function useDrawerConfig() {
         ),
       },
 
-      // Endereço completo em campos separados
+      // Rua
       {
         name: "billing_address.street_name",
         type: "custom",
@@ -350,16 +450,16 @@ export function useDrawerConfig() {
               <span className="text-destructive">*</span>
             </Label>
             <Input
-
-onChange={(e) => onChange(e.target.value)}
-placeholder="000.000.000-00"
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Rua"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
           </div>
         ),
       },
 
-      // Número e Bairro na mesma linha
+      // Número
       {
         name: "billing_address.number",
         type: "custom",
@@ -371,16 +471,16 @@ placeholder="000.000.000-00"
               <span className="text-destructive">*</span>
             </Label>
             <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
               placeholder="Número"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
           </div>
         ),
       },
+
+      // Bairro
       {
         name: "billing_address.district",
         type: "custom",
@@ -392,10 +492,8 @@ placeholder="000.000.000-00"
               <span className="text-destructive">*</span>
             </Label>
             <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
               placeholder="Bairro"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
@@ -403,7 +501,7 @@ placeholder="000.000.000-00"
         ),
       },
 
-      // Cidade e Estado na mesma linha
+      // Cidade
       {
         name: "billing_address.city",
         type: "custom",
@@ -415,16 +513,16 @@ placeholder="000.000.000-00"
               <span className="text-destructive">*</span>
             </Label>
             <Input
-              value={value}
-              onChange={(e: { target: { value: string } }) =>
-                onChange(e.target.value)
-              }
+              value={value ?? ""}
+              onChange={(e) => onChange(e.target.value)}
               placeholder="Cidade"
               className="transition-all focus-visible:ring-[#FF8F3F]"
             />
           </div>
         ),
       },
+
+      // Estado (UF)
       {
         name: "billing_address.state",
         type: "custom",
@@ -436,7 +534,7 @@ placeholder="000.000.000-00"
               <span className="text-destructive">*</span>
             </Label>
             <Input
-              value={value}
+              value={value ?? ""}
               onChange={(e) => onChange(e.target.value)}
               placeholder="UF"
               className="transition-all focus-visible:ring-[#FF8F3F]"
@@ -445,6 +543,8 @@ placeholder="000.000.000-00"
           </div>
         ),
       },
+
+      // Descrição (opcional)
       {
         name: "billing_address.description",
         type: "custom",
@@ -453,7 +553,6 @@ placeholder="000.000.000-00"
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <span>Descrição</span>
-              <span className="text-destructive"></span>
             </Label>
             <Input
               value={value ?? ""}
@@ -465,7 +564,7 @@ placeholder="000.000.000-00"
         ),
       },
 
-      // Observação
+      // Observação (opcional)
       {
         name: "billing_address.observation",
         type: "custom",
@@ -486,5 +585,6 @@ placeholder="000.000.000-00"
       },
     ],
   };
+
   return drawerConfig;
 }
