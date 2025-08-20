@@ -274,7 +274,13 @@ export function DialogPedidos() {
         products: formData.products.filter((p) => p.product_id),
       };
 
-      if (isUsingNewAddress) {
+      // Remove delivery_address_id quando for RETIRADA
+      if (isPickup) {
+        const { delivery_address_id, ...payloadWithoutAddress } = payload;
+        payload = payloadWithoutAddress;
+
+        await create(payload);
+      } else if (isUsingNewAddress) {
         const { delivery_address_id, ...restPayload } = payload;
 
         payload = {
