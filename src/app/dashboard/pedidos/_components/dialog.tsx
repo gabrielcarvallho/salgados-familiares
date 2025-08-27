@@ -76,7 +76,7 @@ import { AddressForm } from "./new-address";
 import { Address } from "@/types/Customer";
 
 export function DialogPedidos() {
-  const { products } = useProductList("active");
+  const { products } = useProductList("all");
   const { paymentMethods, isLoading: isPaymentMethodsLoading } =
     usePaymentMethods();
   const { customers, isLoading: isCustomersLoading } = useCustomerList();
