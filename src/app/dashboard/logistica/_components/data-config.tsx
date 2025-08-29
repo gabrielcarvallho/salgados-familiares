@@ -93,7 +93,7 @@ export const columns: ColumnDef<OrderResponse, any>[] = [
       return <Badge variant={badge as any}>{stats}</Badge>;
     },
   },
-  
+
   {
     id: "total_price",
     accessorKey: "total_price",
@@ -129,7 +129,7 @@ export function useDrawerConfig() {
         delivery_method: st?.delivery_method,
         description: st?.description,
       });
-    
+
       return (
         <div className="flex items-start gap-2 flex-col justify-center mt-2">
           <div className="flex items-center gap-2">
@@ -138,16 +138,12 @@ export function useDrawerConfig() {
               Cliente: {o.customer.name}
             </span>
           </div>
-    
-          {st && (
-            <Badge variant={badge as any}>
-              {stats}
-            </Badge>
-          )}
+
+          {st && <Badge variant={badge as any}>{stats}</Badge>}
         </div>
       );
     },
-    
+
     updateSchema: orderUpdateRequestSchema,
     mutate: mutate,
     fields: [
@@ -512,8 +508,8 @@ export function useDrawerConfig() {
         name: "delivery_address.cep",
         type: "custom",
         colSpan: 2,
-        defaultValue: (o) => formatCEP(o.delivery_address.cep),
-        formatValue: (v) => formatCEP(v),
+        defaultValue: (o) =>
+          o.delivery_address?.cep ? formatCEP(o.delivery_address.cep) : "",
         parseValue: (v) => cleanCEP(v),
         customRender: (value: string, onChange: (v: string) => void) => (
           <div className="space-y-2">
