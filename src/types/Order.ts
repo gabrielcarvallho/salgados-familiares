@@ -52,7 +52,69 @@ export const orderRequestSchema = z.object({
   is_delivered: z.boolean().optional(),
 });
 
-export const orderUpdateRequestSchema = orderRequestSchema.partial();
+// Schema de endereço opcional para updates
+const optionalAddressSchema = addressSchema.partial();
+
+// Schema de update com endereço completamente opcional
+export const orderUpdateRequestSchema = orderRequestSchema
+  .omit({ delivery_address: true })
+  .partial()
+  .extend({
+    delivery_address: optionalAddressSchema.optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    // Validação condicional: se for entrega, endereço é obrigatório
+    if (data.delivery_method === "ENTREGA") {
+      // Verifica se tem pelo menos delivery_address_id OU delivery_address preenchido
+      if (!data.delivery_address_id && !data.delivery_address) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Endereço de entrega é obrigatório quando o método de entrega é 'ENTREGA'",
+          path: ["delivery_address"]
+        });
+      }
+      
+      // Se delivery_address está presente, valida campos essenciais
+      if (data.delivery_address && typeof data.delivery_address === 'object') {
+        const address = data.delivery_address;
+        const requiredFields = ['street_name', 'district', 'number', 'city', 'state', 'cep'];
+        
+        requiredFields.forEach(field => {
+          const value = address[field as keyof typeof address];
+          if (!value || (typeof value === 'string' && value.trim() === '')) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `${field} é obrigatório para entrega`,
+              path: ["delivery_address", field]
+            });
+          }
+        });
+      }
+    }
+    // Se for retirada (RETIRADA), endereço não é necessário - sem validação adicional
+  })
+  .transform((data) => {
+    // Remove delivery_address completamente se for RETIRADA ou se estiver vazio
+    if (data.delivery_method === "RETIRADA") {
+      const { delivery_address, ...rest } = data;
+      return rest;
+    }
+    
+    // Se for ENTREGA mas delivery_address está vazio/inválido, também remove
+    if (data.delivery_address && typeof data.delivery_address === 'object') {
+      const address = data.delivery_address;
+      const hasAnyValue = Object.values(address).some(value => 
+        value !== null && value !== undefined && value !== ''
+      );
+      
+      if (!hasAnyValue) {
+        const { delivery_address, ...rest } = data;
+        return rest;
+      }
+    }
+    
+    return data;
+  });
 
 const orderItemSchema = z.object({
   id: z.string().uuid(),

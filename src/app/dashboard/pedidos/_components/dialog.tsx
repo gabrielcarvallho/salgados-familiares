@@ -8,6 +8,9 @@ import { useForm } from "react-hook-form";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
+// Utils
+import { formatCurrency } from "@/lib/utils";
+
 // UI Components
 import { Button } from "@/components/ui/button";
 import {
@@ -620,7 +623,7 @@ export function DialogPedidos() {
                         <div className="mt-2 text-right font-medium">
                           Total:{" "}
                           <span className="text-[#FF8F3F]">
-                            R$ {calculateTotal(watchedProducts).toFixed(2)}
+                            {formatCurrency(calculateTotal(watchedProducts))}
                           </span>
                         </div>
                       )}

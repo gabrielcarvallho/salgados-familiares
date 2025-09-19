@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatCurrency } from "@/lib/utils";
 
 export type SelectedItem = {
   product_id: string | number;
@@ -261,7 +262,7 @@ export const ProductSelector = ({
                           <div>
                             <div className="font-medium">{product.name}</div>
                             <div className="text-sm text-muted-foreground">
-                              R$ {Number(product.price || 0).toFixed(2)}
+                              {formatCurrency(Number(product.price || 0))}
                             </div>
                           </div>
                           {!isProductSelected(product.id) && (
@@ -371,12 +372,11 @@ export const ProductSelector = ({
                           ) : (
                             <>
                               <span>
-                                R${" "}
-                                {(
+                                {formatCurrency(
                                   Number(item.sale_price) ||
                                   Number(item.price) ||
                                   0
-                                ).toFixed(2)}
+                                )}
                               </span>
                               <Button
                                 variant={"outline"}

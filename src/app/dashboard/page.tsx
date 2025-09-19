@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Users, DollarSign, Landmark } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatCurrency } from "@/lib/utils";
 
 import { useCallback, useState } from "react";
 import { DialogUsuario } from "./_components/dialog";
@@ -122,7 +123,7 @@ export default function Page() {
             <CardHeader>
               <CardDescription>Receita</CardDescription>
               <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-                R${reports?.total_value}
+                {reports?.total_value ? formatCurrency(Number(reports.total_value)) : 'R$ 0,00'}
               </CardTitle>
               <CardAction>
                 <Landmark className="size-4" />

@@ -10,6 +10,7 @@ import {
   formatStatus,
   formatPaymentMethod,
   formatCEP,
+  formatCurrency,
 } from "@/lib/utils"
 import {
   OrderUpdateRequest,
@@ -86,7 +87,7 @@ export const columns: ColumnDef<OrderResponse, any>[] = [
         typeof row.original.total_price === "number"
           ? row.original.total_price
           : parseFloat(row.original.total_price as any) || 0
-      return `R$ ${n.toFixed(2)}`
+      return formatCurrency(n)
     },
   },
 ]
