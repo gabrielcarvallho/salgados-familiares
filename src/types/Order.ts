@@ -22,7 +22,7 @@ export const orderStatusSchema = z.object({
 });
 
 // --- Request de Pedido ---
-const baseOrderRequestSchema = z.object({
+export const baseOrderRequestSchema = z.object({
   id: z.string().optional(),
   customer_id: z.string().uuid({ message: "ID de cliente inválido" }),
   order_status_id: z.string().uuid({ message: "ID de status inválido" }),
@@ -67,11 +67,10 @@ export const orderRequestSchema = baseOrderRequestSchema
       const { due_date, ...rest } = data;
       return {
         ...rest,
-        payment_due_days: Math.max(0, diffDays) // Garantir que não seja negativo
+        payment_due_days: Math.max(0, diffDays)
       };
     } catch (error) {
       console.warn('Erro ao calcular payment_due_days:', error);
-      // Se der erro, remove due_date e continua sem payment_due_days
       const { due_date, ...rest } = data;
       return rest;
     }

@@ -71,7 +71,9 @@ import { useProductList } from "@/hooks/useProduct";
 import {
   EMPTY_ORDER,
   type OrderRequest,
+  type BaseOrderRequest,
   orderRequestSchema,
+  baseOrderRequestSchema,
 } from "@/types/Order";
 import { ProductSelector } from "../../../../components/productSelector";
 import DatePicker from "@/components/ui/date-picker";
@@ -98,8 +100,8 @@ export function DialogPedidos() {
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [newAddress, setNewAddress] = useState<Address | null>(null);
 
-  const form = useForm<OrderRequest>({
-    resolver: zodResolver(orderRequestSchema),
+  const form = useForm<BaseOrderRequest>({
+    resolver: zodResolver(baseOrderRequestSchema),
     defaultValues: EMPTY_ORDER,
     mode: "onChange",
   });
@@ -261,7 +263,7 @@ export function DialogPedidos() {
     }
   };
 
-  const onSubmit = async (formData: OrderRequest) => {
+  const onSubmit = async (formData: BaseOrderRequest) => {
     try {
       const customer = customers.find((c) => c.id === formData.customer_id);
       if (!customer) {
@@ -272,9 +274,12 @@ export function DialogPedidos() {
       const isUsingNewAddress =
         newAddress && formData.delivery_address_id === newAddress.id;
 
+      // Aplicar transformação para converter due_date em payment_due_days
+      const transformedData = orderRequestSchema.parse(formData);
+
       let payload = {
-        ...formData,
-        products: formData.products.filter((p) => p.product_id),
+        ...transformedData,
+        products: transformedData.products.filter((p) => p.product_id),
       };
 
       // Remove delivery_address_id quando for RETIRADA
