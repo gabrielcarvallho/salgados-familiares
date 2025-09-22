@@ -389,74 +389,6 @@ export function useDrawerConfig() {
         // 1. PRIMEIRO: Ajuste o defaultValue do campo "products" para garantir que sale_price seja mapeado corretamente:
 
         defaultValue: (o) => {
-          // 🔍 LOGS DE DIAGNÓSTICO - Análise dos produtos no pedido
-          console.log('🔍 [PRODUTOS-DRAWER] Analisando pedido:', {
-            orderId: o?.id,
-            orderNumber: o?.order_number,
-            hasProducts: !!o?.products,
-            productsType: typeof o?.products,
-            productsLength: Array.isArray(o?.products) ? o?.products.length : 'N/A',
-            productsRaw: o?.products
-          });
-
-          if (!o?.products) {
-            console.warn('🚨 [PRODUTOS-DRAWER] Pedido sem propriedade products:', {
-              orderId: o?.id,
-              orderNumber: o?.order_number,
-              fullOrder: o
-            });
-          } else if (!Array.isArray(o.products)) {
-            console.warn('🚨 [PRODUTOS-DRAWER] Products não é array:', {
-              orderId: o?.id,
-              orderNumber: o?.order_number,
-              productsType: typeof o.products,
-              products: o.products
-            });
-          } else if (o.products.length === 0) {
-            console.warn('🚨 [PRODUTOS-DRAWER] Array de products vazio:', {
-              orderId: o?.id,
-              orderNumber: o?.order_number,
-              products: o.products
-            });
-          } else {
-            // Verificar cada produto individualmente
-            o.products.forEach((p: any, index: number) => {
-              if (!p) {
-                console.error('🚨 [PRODUTOS-DRAWER] Item de produto null/undefined:', {
-                  orderId: o?.id,
-                  orderNumber: o?.order_number,
-                  itemIndex: index,
-                  item: p
-                });
-              } else if (!p.product) {
-                console.error('🚨 [PRODUTOS-DRAWER] Item sem propriedade product:', {
-                  orderId: o?.id,
-                  orderNumber: o?.order_number,
-                  itemIndex: index,
-                  item: p,
-                  productProperty: p.product
-                });
-              } else if (!p.product.id) {
-                console.error('🚨 [PRODUTOS-DRAWER] Produto sem ID:', {
-                  orderId: o?.id,
-                  orderNumber: o?.order_number,
-                  itemIndex: index,
-                  product: p.product,
-                  productId: p.product.id
-                });
-              } else {
-                console.log('✅ [PRODUTOS-DRAWER] Item válido:', {
-                  orderId: o?.id,
-                  orderNumber: o?.order_number,
-                  itemIndex: index,
-                  productId: p.product.id,
-                  productName: p.product.name,
-                  quantity: p.quantity
-                });
-              }
-            });
-          }
-
           return {
             items: Array.isArray(o?.products)
               ? o.products.map((p: { product: { id: any }; quantity: any }) => ({
@@ -467,7 +399,7 @@ export function useDrawerConfig() {
           };
         },
 
-        // 2. DEPOIS: Ajuste o formatValue para garantir que sale_price seja preservado:
+        // 2. Ajuste o formatValue para garantir que sale_price seja preservado:
 
         formatValue: (valueObj) => {
           if (
@@ -482,30 +414,14 @@ export function useDrawerConfig() {
           return [];
         },
 
-        // 3. FINALMENTE: O customRender ajustado:
+        // 3. O customRender ajustado:
 
         customRender: (valueObj, onChange) => {
-          // 🔍 DIAGNÓSTICO: O que está chegando no customRender?
-          console.log('🔍 [CUSTOM-RENDER] Valor recebido:', {
-            valueObj,
-            valueObjType: typeof valueObj,
-            isNull: valueObj === null,
-            isUndefined: valueObj === undefined,
-            hasItems: valueObj?.items,
-            itemsLength: Array.isArray(valueObj?.items) ? valueObj.items.length : 'N/A'
-          });
-
+          // Aguardar dados válidos antes de renderizar
           const { items = [], isEditable } =
             typeof valueObj === "object" && valueObj !== null && valueObj.items
               ? valueObj
               : { items: [], isEditable: false };
-
-          // 🔍 DIAGNÓSTICO: O que foi extraído?
-          console.log('🔍 [CUSTOM-RENDER] Dados extraídos:', {
-            items,
-            itemsLength: Array.isArray(items) ? items.length : 'N/A',
-            isEditable
-          });
 
           const handleProductChange = (newItems: any) => {
             onChange({ items: newItems, isEditable });
@@ -536,20 +452,12 @@ export function useDrawerConfig() {
             );
           };
 
-          // 🔍 DIAGNÓSTICO: O que está sendo passado para o ProductSelector?
-          console.log('🔍 [PRODUCT-SELECTOR] Props:', {
-            formattedProductsLength: formattedProducts.length,
-            itemsLength: items.length,
-            items: items,
-            formattedProducts: formattedProducts.slice(0, 3) // Primeiros 3 para não poluir
-          });
-
           return (
             <div className="space-y-4">
               <div>
                 <ProductSelector
                   products={formattedProducts}
-                  value={items} // ✅ items já inclui sale_price do backend
+                  value={items}
                   onChange={handleProductChange}
                 />
               </div>
