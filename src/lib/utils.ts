@@ -391,3 +391,18 @@ export const toISODateSafe = (v?: string | null): string | null => {
   // outros formatos: considere inválido para evitar sujeira no payload
   return null;
 };
+
+
+// Formata valores monetários no padrão brasileiro
+export function formatCurrency(value: number): string {
+  // Converte para número se for string
+  const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+  
+  // Se não for um número válido, retorna R$ 0,00
+  if (isNaN(numericValue)) return 'R$ 0,00';
+  
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(numericValue);
+}

@@ -2,6 +2,7 @@
 
 import type { DrawerConfig } from "@/components/datatable";
 import { useProductList } from "@/hooks/useProduct";
+import { formatCurrency } from "@/lib/utils";
 import {
   type ProductResponse,
   type ProductUpdateRequest,
@@ -30,7 +31,7 @@ export const columns: ColumnDef<ProductResponse, string>[] = [
         typeof row.original.price === "number"
           ? row.original.price
           : Number.parseFloat(String(row.original.price)) || 0;
-      return `R$ ${price.toFixed(2)}`;
+      return formatCurrency(price);
     },
   },
   {

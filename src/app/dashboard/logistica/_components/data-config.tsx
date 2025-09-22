@@ -15,6 +15,7 @@ import {
   formatPaymentMethod,
   formatCEP,
   cleanCEP,
+  formatCurrency,
 } from "@/lib/utils";
 import {
   type OrderUpdateRequest,
@@ -103,7 +104,7 @@ export const columns: ColumnDef<OrderResponse, any>[] = [
         typeof row.original.total_price === "number"
           ? row.original.total_price
           : Number.parseFloat(row.original.total_price as any) || 0;
-      return `R$ ${n.toFixed(2)}`;
+      return formatCurrency(n);
     },
   },
 ];
@@ -478,7 +479,7 @@ export function useDrawerConfig() {
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Total:</span>
                       <span className="font-medium text-lg text-[#FF8F3F]">
-                        R$ {calculateTotal().toFixed(2)}
+                        {formatCurrency(calculateTotal())}
                       </span>
                     </div>
                   </CardContent>
