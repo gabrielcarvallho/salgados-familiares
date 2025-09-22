@@ -485,10 +485,27 @@ export function useDrawerConfig() {
         // 3. FINALMENTE: O customRender ajustado:
 
         customRender: (valueObj, onChange) => {
+          // 🔍 DIAGNÓSTICO: O que está chegando no customRender?
+          console.log('🔍 [CUSTOM-RENDER] Valor recebido:', {
+            valueObj,
+            valueObjType: typeof valueObj,
+            isNull: valueObj === null,
+            isUndefined: valueObj === undefined,
+            hasItems: valueObj?.items,
+            itemsLength: Array.isArray(valueObj?.items) ? valueObj.items.length : 'N/A'
+          });
+
           const { items = [], isEditable } =
             typeof valueObj === "object" && valueObj !== null
               ? valueObj
               : { items: [], isEditable: false };
+
+          // 🔍 DIAGNÓSTICO: O que foi extraído?
+          console.log('🔍 [CUSTOM-RENDER] Dados extraídos:', {
+            items,
+            itemsLength: Array.isArray(items) ? items.length : 'N/A',
+            isEditable
+          });
 
           const handleProductChange = (newItems: any) => {
             onChange({ items: newItems, isEditable });
@@ -518,6 +535,14 @@ export function useDrawerConfig() {
               0
             );
           };
+
+          // 🔍 DIAGNÓSTICO: O que está sendo passado para o ProductSelector?
+          console.log('🔍 [PRODUCT-SELECTOR] Props:', {
+            formattedProductsLength: formattedProducts.length,
+            itemsLength: items.length,
+            items: items,
+            formattedProducts: formattedProducts.slice(0, 3) // Primeiros 3 para não poluir
+          });
 
           return (
             <div className="space-y-4">
