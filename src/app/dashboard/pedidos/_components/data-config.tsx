@@ -496,7 +496,7 @@ export function useDrawerConfig() {
           });
 
           const { items = [], isEditable } =
-            typeof valueObj === "object" && valueObj !== null
+            typeof valueObj === "object" && valueObj !== null && valueObj.items
               ? valueObj
               : { items: [], isEditable: false };
 
