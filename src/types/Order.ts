@@ -22,18 +22,12 @@ export const orderStatusSchema = z.object({
 });
 
 // --- Request de Pedido ---
-export const orderRequestSchema = z.object({
-  id: z.string().uuid().optional(),
-
-  customer_id: z.string().uuid({ message: "Cliente inválido" }),
-  order_status_id: z.string().uuid({ message: "Status inválido" }),
-  payment_method_id: z
-    .string()
-    .uuid({ message: "ID de método de pagamento inválido" }),
-
-  // ✅ NOVO CAMPO - Tipo de entrega
+const baseOrderRequestSchema = z.object({
+  id: z.string().optional(),
+  customer_id: z.string().uuid({ message: "ID de cliente inválido" }),
+  order_status_id: z.string().uuid({ message: "ID de status inválido" }),
+  payment_method_id: z.string().uuid({ message: "ID de método de pagamento inválido" }),
   delivery_method: deliveryMethodEnum,
-
   delivery_date: z.string(),
   due_date: z.string().nullable().optional(),
   table_order: z.coerce.number().optional().nullable(),
@@ -52,17 +46,57 @@ export const orderRequestSchema = z.object({
   is_delivered: z.boolean().optional(),
 });
 
+// Schema que transforma due_date em payment_due_days para o backend
+export const orderRequestSchema = baseOrderRequestSchema
+.transform((data) => {
+  // Transformar due_date em payment_due_days para o backend
+  if (data.due_date && data.delivery_date) {
+    try {
+      const deliveryDate = new Date(data.delivery_date);
+      const dueDate = new Date(data.due_date);
+      
+      // Zerar as horas para calcular apenas a diferença de dias
+      deliveryDate.setHours(0, 0, 0, 0);
+      dueDate.setHours(0, 0, 0, 0);
+      
+      // Calcular diferença em dias
+      const diffTime = dueDate.getTime() - deliveryDate.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      // Remover due_date e adicionar payment_due_days
+      const { due_date, ...rest } = data;
+      return {
+        ...rest,
+        payment_due_days: Math.max(0, diffDays) // Garantir que não seja negativo
+      };
+    } catch (error) {
+      console.warn('Erro ao calcular payment_due_days:', error);
+      // Se der erro, remove due_date e continua sem payment_due_days
+      const { due_date, ...rest } = data;
+      return rest;
+    }
+  }
+  
+  // Se não houver due_date, remove o campo e continua normalmente
+  if (data.due_date === null || data.due_date === undefined || data.due_date === '') {
+    const { due_date, ...rest } = data;
+    return rest;
+  }
+  
+  return data;
+});
+
 // Schema de endereço opcional para updates
 const optionalAddressSchema = addressSchema.partial();
 
 // Schema de update com endereço completamente opcional
-export const orderUpdateRequestSchema = orderRequestSchema
+export const orderUpdateRequestSchema = baseOrderRequestSchema
   .omit({ delivery_address: true })
   .partial()
   .extend({
     delivery_address: optionalAddressSchema.optional().nullable(),
   })
-  .superRefine((data, ctx) => {
+  .superRefine((data: any, ctx: any) => {
     // Validação condicional: se for entrega, endereço é obrigatório
     if (data.delivery_method === "ENTREGA") {
       // Verifica se tem pelo menos delivery_address_id OU delivery_address preenchido
@@ -93,7 +127,7 @@ export const orderUpdateRequestSchema = orderRequestSchema
     }
     // Se for retirada (RETIRADA), endereço não é necessário - sem validação adicional
   })
-  .transform((data) => {
+  .transform((data: any) => {
     // Remove delivery_address completamente se for RETIRADA ou se estiver vazio
     if (data.delivery_method === "RETIRADA") {
       const { delivery_address, ...rest } = data;
@@ -112,7 +146,37 @@ export const orderUpdateRequestSchema = orderRequestSchema
         return rest;
       }
     }
+
+    // ✅ Transformar due_date em payment_due_days para o backend (mesmo para updates)
+    if (data.due_date && data.delivery_date) {
+      try {
+        const deliveryDate = new Date(data.delivery_date);
+        const dueDate = new Date(data.due_date);
+        
+        // Calcular diferença em dias
+        const diffTime = dueDate.getTime() - deliveryDate.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Remover due_date e adicionar payment_due_days
+        const { due_date, ...rest } = data;
+        return {
+          ...rest,
+          payment_due_days: Math.max(0, diffDays)
+        };
+      } catch (error) {
+        console.warn('Erro ao calcular payment_due_days no update:', error);
+        // Se der erro, remove due_date e continua sem payment_due_days
+        const { due_date, ...rest } = data;
+        return rest;
+      }
+    }
     
+    // Se não houver due_date, remove o campo
+    if (data.due_date === null || data.due_date === undefined || data.due_date === '') {
+      const { due_date, ...rest } = data;
+      return rest;
+    }
+
     return data;
   });
 
@@ -147,7 +211,7 @@ export const orderResponseSchema = z.object({
 });
 
 // --- Pedido com Endereço de Entrega ---
-export const orderWithAddressSchema = orderRequestSchema.merge(
+export const orderWithAddressSchema = baseOrderRequestSchema.merge(
   z.object({
     delivery_address: addressSchema,
   })
@@ -166,6 +230,7 @@ export const ordersWithAddressResponseSchema = z.object({
 export type DeliveryMethod = z.infer<typeof deliveryMethodEnum>;
 export type OrderStatus = z.infer<typeof orderStatusSchema>;
 export type OrderRequest = z.infer<typeof orderRequestSchema>;
+export type BaseOrderRequest = z.infer<typeof baseOrderRequestSchema>; // Tipo antes da transformação
 export type OrderUpdateRequest = z.infer<typeof orderUpdateRequestSchema>;
 export type OrderResponse = z.infer<typeof orderResponseSchema>;
 export type OrderWithAddress = z.infer<typeof orderWithAddressSchema>;
@@ -174,8 +239,8 @@ export type OrdersWithAddressResponse = z.infer<
   typeof ordersWithAddressResponseSchema
 >;
 
-// ✅ EMPTY_ORDER atualizado com delivery_type
-export const EMPTY_ORDER: OrderRequest = {
+// ✅ EMPTY_ORDER atualizado com delivery_type - usando BaseOrderRequest que tem due_date
+export const EMPTY_ORDER: BaseOrderRequest = {
   customer_id: "",
   order_status_id: "",
   payment_method_id: "",

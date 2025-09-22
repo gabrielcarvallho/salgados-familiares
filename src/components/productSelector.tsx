@@ -406,7 +406,17 @@ export const ProductSelector = ({
                           <Minus className="h-3 w-3" />
                         </Button>
 
-                        <div className="w-10 text-center">{item.quantity}</div>
+                        <Input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const newQuantity = Math.max(1, parseInt(e.target.value) || 1);
+                            updateQuantity(item.product_id, newQuantity);
+                          }}
+                          className="w-16 h-8 text-center [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                          min={1}
+                          disabled={isGloballyDisabled}
+                        />
 
                         <Button
                           type="button"
