@@ -60,13 +60,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       url: "/dashboard/clientes",
       icon: IconUsers,
       requiredGroups: ["admin", "sales_person"],
-    },
-    {
-      title: "Entrega",
-      url: "/dashboard/entrega",
-      icon: IconTruckDelivery,
-      requiredGroups: ["admin", "delivery_person"],
-    },
+    }
   ];
 
   // Filtra os itens de navegação com base nas permissões do usuário

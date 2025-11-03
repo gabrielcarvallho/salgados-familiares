@@ -85,67 +85,10 @@ export const orderRequestSchema = baseOrderRequestSchema
   return data;
 });
 
-// Schema de endereço opcional para updates
-const optionalAddressSchema = addressSchema.partial();
-
-// Schema de update com endereço completamente opcional
 export const orderUpdateRequestSchema = baseOrderRequestSchema
   .omit({ delivery_address: true })
   .partial()
-  .extend({
-    delivery_address: optionalAddressSchema.optional().nullable(),
-  })
-  .superRefine((data: any, ctx: any) => {
-    // Validação condicional: se for entrega, endereço é obrigatório
-    if (data.delivery_method === "ENTREGA") {
-      // Verifica se tem pelo menos delivery_address_id OU delivery_address preenchido
-      if (!data.delivery_address_id && !data.delivery_address) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Endereço de entrega é obrigatório quando o método de entrega é 'ENTREGA'",
-          path: ["delivery_address"]
-        });
-      }
-      
-      // Se delivery_address está presente, valida campos essenciais
-      if (data.delivery_address && typeof data.delivery_address === 'object') {
-        const address = data.delivery_address;
-        const requiredFields = ['street_name', 'district', 'number', 'city', 'state', 'cep'];
-        
-        requiredFields.forEach(field => {
-          const value = address[field as keyof typeof address];
-          if (!value || (typeof value === 'string' && value.trim() === '')) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: `${field} é obrigatório para entrega`,
-              path: ["delivery_address", field]
-            });
-          }
-        });
-      }
-    }
-    // Se for retirada (RETIRADA), endereço não é necessário - sem validação adicional
-  })
   .transform((data: any) => {
-    // Remove delivery_address completamente se for RETIRADA ou se estiver vazio
-    if (data.delivery_method === "RETIRADA") {
-      const { delivery_address, ...rest } = data;
-      return rest;
-    }
-    
-    // Se for ENTREGA mas delivery_address está vazio/inválido, também remove
-    if (data.delivery_address && typeof data.delivery_address === 'object') {
-      const address = data.delivery_address;
-      const hasAnyValue = Object.values(address).some(value => 
-        value !== null && value !== undefined && value !== ''
-      );
-      
-      if (!hasAnyValue) {
-        const { delivery_address, ...rest } = data;
-        return rest;
-      }
-    }
-
     // ✅ Transformar due_date em payment_due_days para o backend (mesmo para updates)
     if (data.due_date && data.delivery_date) {
       try {
@@ -200,8 +143,6 @@ export const orderResponseSchema = z.object({
 
   // ✅ Inclui delivery_type na response
   delivery_type: deliveryMethodEnum,
-
-  delivery_address: addressSchema.nullable().optional(), // Pode ser null para pickup
   delivery_date: z.string().datetime({ offset: true }),
   due_date: z.string().datetime({ offset: true }).nullable().optional(),
   order_status: orderStatus,
@@ -209,44 +150,27 @@ export const orderResponseSchema = z.object({
   updated_at: z.string().datetime({ offset: true }),
 });
 
-// --- Pedido com Endereço de Entrega ---
-export const orderWithAddressSchema = baseOrderRequestSchema.merge(
-  z.object({
-    delivery_address: addressSchema,
-  })
-);
-
 // --- Lista de Pedidos ---
 export const ordersResponseSchema = z.object({
   orders: z.array(orderResponseSchema),
 });
 
-export const ordersWithAddressResponseSchema = z.object({
-  orders: z.array(orderWithAddressSchema),
-});
-
 // --- Types inferidos ---
-export type DeliveryMethod = z.infer<typeof deliveryMethodEnum>;
 export type OrderStatus = z.infer<typeof orderStatusSchema>;
 export type OrderRequest = z.infer<typeof orderRequestSchema>;
 export type BaseOrderRequest = z.infer<typeof baseOrderRequestSchema>; // Tipo antes da transformação
 export type OrderUpdateRequest = z.infer<typeof orderUpdateRequestSchema>;
 export type OrderResponse = z.infer<typeof orderResponseSchema>;
-export type OrderWithAddress = z.infer<typeof orderWithAddressSchema>;
 export type OrdersResponse = z.infer<typeof ordersResponseSchema>;
-export type OrdersWithAddressResponse = z.infer<
-  typeof ordersWithAddressResponseSchema
->;
 
 // ✅ EMPTY_ORDER atualizado com delivery_type - usando BaseOrderRequest que tem due_date
 export const EMPTY_ORDER: BaseOrderRequest = {
   customer_id: "",
   order_status_id: "",
   payment_method_id: "",
-  delivery_method: "ENTREGA", // Padrão: entrega no endereço
+  delivery_method: "RETIRADA", // Padrão: entrega no endereço
   delivery_date: "",
   due_date: "",
-  delivery_address_id: "",
   products: [
     {
       product_id: "",
