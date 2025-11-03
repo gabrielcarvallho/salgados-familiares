@@ -50,13 +50,10 @@ import {
   CreditCard,
   Home,
   Loader2,
-  MapPin,
   Package,
   Plus,
   ShoppingCart,
   User,
-  Truck,
-  Store,
 } from "lucide-react";
 
 // Hooks and utilities
@@ -77,8 +74,6 @@ import {
 } from "@/types/Order";
 import { ProductSelector } from "../../../../components/productSelector";
 import DatePicker from "@/components/ui/date-picker";
-import { AddressForm } from "./new-address";
-import { Address } from "@/types/Customer";
 
 export function DialogPedidos() {
   const { products } = useProductList("all", 1, 100);
@@ -87,7 +82,6 @@ export function DialogPedidos() {
   const { customers, isLoading: isCustomersLoading } = useCustomerList(1, 100);
   const {
     create,
-    createWithAddress,
     isLoading,
     error: orderError,
   } = useOrder();
@@ -96,13 +90,10 @@ export function DialogPedidos() {
   const [open, setOpen] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  const [customerAddresses, setCustomerAddresses] = useState<Address[]>([]);
-  const [showAddressForm, setShowAddressForm] = useState(false);
-  const [newAddress, setNewAddress] = useState<Address | null>(null);
 
   const form = useForm<BaseOrderRequest>({
     resolver: zodResolver(baseOrderRequestSchema),
-    defaultValues: EMPTY_ORDER,
+    defaultValues: { ...EMPTY_ORDER, delivery_method: "RETIRADA" },
     mode: "onChange",
   });
 
@@ -120,9 +111,10 @@ export function DialogPedidos() {
   const watchedProducts = watch("products");
   const watchedCustomerId = watch("customer_id");
   const watchedPaymentmethod = watch("payment_method_id");
-  const watchedDeliveryMethod = watch("delivery_method") || "ENTREGA";
 
-  // Hook de status depende do método de entrega
+  // Sempre RETIRADA
+  const watchedDeliveryMethod = "RETIRADA";
+
   const { orderStatus, isLoading: isOrderStatusLoading } = useOrderStatus(
     watchedDeliveryMethod
   );
@@ -131,17 +123,6 @@ export function DialogPedidos() {
   const boleto = paymentMethods.find((pm) => pm.name === "Boleto bancário");
   const isBoletoBancario = boleto ? watchedPaymentmethod === boleto.id : false;
 
-  // É retirada?
-  const isPickup = watchedDeliveryMethod === "RETIRADA";
-
-  // Garante delivery_method definido ao abrir o diálogo
-  useEffect(() => {
-    if (open) {
-      setValue("delivery_method", "ENTREGA", { shouldValidate: false });
-    }
-  }, [open, setValue]);
-
-  // Seleção de cliente e endereço padrão (quando ENTREGA)
   useEffect(() => {
     if (!customers || customers.length === 0) return;
 
@@ -149,55 +130,20 @@ export function DialogPedidos() {
       const customer = customers.find((c) => c.id === watchedCustomerId);
       if (customer && customer.id !== selectedCustomer?.id) {
         setSelectedCustomer(customer);
-
-        const addresses: Address[] = [];
-        if (customer.billing_address) {
-          addresses.push({
-            ...customer.billing_address,
-            description: customer.billing_address.description || "Padrão",
-          });
-        }
-        setCustomerAddresses(addresses);
-        setShowAddressForm(false);
-
-        // Define o endereço quando for ENTREGA
-        if (!isPickup && addresses.length > 0 && customer.billing_address?.id) {
-          setValue("delivery_address_id", customer.billing_address.id, {
-            shouldValidate: true,
-          });
-        }
       }
     } else if (selectedCustomer !== null) {
       setSelectedCustomer(null);
-      setCustomerAddresses([]);
-      setShowAddressForm(false);
     }
   }, [
     watchedCustomerId,
     customers?.length,
-    isPickup,
     selectedCustomer,
-    setValue,
   ]);
 
-  // Limpa endereço quando muda para RETIRADA
-  useEffect(() => {
-    if (isPickup) {
-      setValue("delivery_address_id", "", { shouldValidate: false });
-    } else {
-      // Se voltar para ENTREGA e já houver cliente com endereço, reatribui
-      if (selectedCustomer?.billing_address?.id) {
-        setValue("delivery_address_id", selectedCustomer.billing_address.id, {
-          shouldValidate: true,
-        });
-      }
-    }
-  }, [isPickup, setValue, selectedCustomer]);
-
-  // Resetar status ao mudar método
+  // Resetar status quando refaz pedido
   useEffect(() => {
     setValue("order_status_id", "", { shouldValidate: false });
-  }, [watchedDeliveryMethod, setValue]);
+  }, [setValue]);
 
   // Definir o primeiro status automaticamente
   useEffect(() => {
@@ -218,34 +164,11 @@ export function DialogPedidos() {
     setValue("products", filtered);
   };
 
-  const handleSaveAddress = (addressData: Address) => {
-    const tempId = `new-address-${Date.now()}`;
-    const addressWithId = {
-      ...addressData,
-      id: tempId,
-    };
-
-    setNewAddress(addressWithId);
-    setCustomerAddresses((prev) =>
-      Array.isArray(prev) ? [...prev, addressWithId] : [addressWithId]
-    );
-
-    setValue("delivery_address_id", tempId, { shouldValidate: true });
-    setShowAddressForm(false);
-    toast.success("Endereço adicionado com sucesso!");
-  };
-
   const handleFormSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
     setFormSubmitted(true);
 
     cleanProducts();
-
-    // Garantir endereço quando for ENTREGA
-    if (!isPickup && !getValues("delivery_address_id")) {
-      toast.error("Por favor, selecione um endereço de entrega.");
-      return;
-    }
 
     // Garantir status definido
     if (!getValues("order_status_id") && orderStatus?.length > 0) {
@@ -271,10 +194,6 @@ export function DialogPedidos() {
         return;
       }
 
-      const isUsingNewAddress =
-        newAddress && formData.delivery_address_id === newAddress.id;
-
-      // Aplicar transformação para converter due_date em payment_due_days
       const transformedData = orderRequestSchema.parse(formData);
 
       let payload = {
@@ -282,41 +201,16 @@ export function DialogPedidos() {
         products: transformedData.products.filter((p) => p.product_id),
       };
 
-      // Remove delivery_address_id quando for RETIRADA
-      if (isPickup) {
-        const { delivery_address_id, ...payloadWithoutAddress } = payload;
-        payload = payloadWithoutAddress;
+      // Remove delivery_address_id pois não precisa para retirada
+      const { delivery_address_id, ...payloadWithoutAddress } = payload;
 
-        await create(payload);
-      } else if (isUsingNewAddress) {
-        const { delivery_address_id, ...restPayload } = payload;
-
-        payload = {
-          ...restPayload,
-          delivery_address: {
-            street_name: newAddress.street_name,
-            number: newAddress.number,
-            district: newAddress.district,
-            city: newAddress.city,
-            state: newAddress.state,
-            cep: newAddress.cep,
-            description: newAddress.description,
-            observation: newAddress.observation || "",
-          },
-        };
-
-        await createWithAddress(payload);
-      } else {
-        await create(payload);
-      }
+      await create(payloadWithoutAddress);
 
       mutate();
       toast.success("Pedido cadastrado com sucesso!");
       setOpen(false);
-      reset(EMPTY_ORDER);
+      reset({ ...EMPTY_ORDER, delivery_method: "RETIRADA" });
       setSelectedCustomer(null);
-      setCustomerAddresses([]);
-      setNewAddress(null);
     } catch (error) {
       toast.error("Falha ao cadastrar pedido!", {
         description: orderError || String(error),
@@ -332,20 +226,11 @@ export function DialogPedidos() {
       return total + price * item.quantity;
     }, 0);
 
-  const formatAddress = (address: any) =>
-    address
-      ? `${address.street_name}, ${address.number}, ${address.city} - ${address.state}`
-      : "";
-
   const handleDialogClose = (isOpen: boolean) => {
     if (!isOpen) {
-      reset(EMPTY_ORDER);
-      // Garante defaults importantes após reset
-      setValue("delivery_method", "ENTREGA", { shouldValidate: false });
+      reset({ ...EMPTY_ORDER, delivery_method: "RETIRADA" });
       setFormSubmitted(false);
       setSelectedCustomer(null);
-      setCustomerAddresses([]);
-      setShowAddressForm(false);
     }
     setOpen(isOpen);
   };
@@ -368,12 +253,11 @@ export function DialogPedidos() {
             Preencha os campos abaixo para realizar um pedido novo
           </DialogDescription>
         </DialogHeader>
-
         <ScrollArea className="max-h-[70vh]">
           <div className="p-6 pt-2">
             <Form {...form}>
               <form onSubmit={handleFormSubmit} className="space-y-5">
-                {/* Customer Selection */}
+                {/* Cliente */}
                 <FormField
                   control={control}
                   name="customer_id"
@@ -414,138 +298,7 @@ export function DialogPedidos() {
                   )}
                 />
 
-                {/* Tipo de entrega */}
-                <FormField
-                  control={control}
-                  name="delivery_method"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center text-base">
-                        <Truck className="mr-2 h-4 w-4 text-[#FF8F3F]" />
-                        Tipo de entrega*
-                      </FormLabel>
-                      <FormControl>
-                        <Select
-                          value={field.value ? String(field.value) : ""}
-                          onValueChange={(val) => field.onChange(val)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Como será a entrega?" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectItem value="ENTREGA">
-                                <div className="flex items-center">
-                                  <Truck className="mr-2 h-4 w-4" />
-                                  Entrega no endereço
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="RETIRADA">
-                                <div className="flex items-center">
-                                  <Store className="mr-2 h-4 w-4" />
-                                  Retirada no local
-                                </div>
-                              </SelectItem>
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Endereço - só aparece se ENTREGA */}
-                {selectedCustomer && !isPickup && !showAddressForm && (
-                  <div className="space-y-3">
-                    <FormField
-                      control={control}
-                      name="delivery_address_id"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center">
-                            <MapPin className="mr-2 h-4 w-4 text-[#FF8F3F]" />
-                            Endereço de entrega*
-                          </FormLabel>
-                          <div className="flex space-x-2">
-                            <FormControl className="flex-grow">
-                              <Select
-                                value={field.value ? String(field.value) : ""}
-                                onValueChange={(val) => field.onChange(val)}
-                              >
-                                <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="Selecione o endereço..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectGroup>
-                                    <SelectLabel>
-                                      Endereços disponíveis:
-                                    </SelectLabel>
-                                    {Array.isArray(customerAddresses) &&
-                                    customerAddresses.length > 0
-                                      ? customerAddresses.map((address) => (
-                                          <SelectItem
-                                            key={address.id}
-                                            value={String(address.id)}
-                                          >
-                                            {address.description} —{" "}
-                                            {formatAddress(address)}
-                                          </SelectItem>
-                                        ))
-                                      : null}
-                                  </SelectGroup>
-                                </SelectContent>
-                              </Select>
-                            </FormControl>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => setShowAddressForm(true)}
-                              className="whitespace-nowrap"
-                            >
-                              <Plus className="mr-1 h-4 w-4" />
-                              Novo Endereço
-                            </Button>
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
-
-                {/* Aviso retirada */}
-                {isPickup && (
-                  <Card className="bg-blue-50 border-blue-200">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Store className="h-5 w-5 text-blue-600" />
-                        <div>
-                          <h4 className="font-medium text-blue-800">
-                            Retirada no local
-                          </h4>
-                          <p className="text-sm text-blue-700">
-                            O cliente retirará o pedido diretamente no
-                            estabelecimento. Não é necessário informar endereço
-                            de entrega.
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* New Address Form */}
-                {selectedCustomer && showAddressForm && (
-                  <Card className="border rounded-md p-4">
-                    <AddressForm
-                      onSave={handleSaveAddress}
-                      onCancel={() => setShowAddressForm(false)}
-                    />
-                  </Card>
-                )}
-
-                {/* Customer Info Card */}
+                {/* Card do cliente */}
                 {selectedCustomer && (
                   <Card className="bg-muted/40 border-muted">
                     <CardContent className="p-4">
@@ -559,7 +312,6 @@ export function DialogPedidos() {
                           </p>
                         </div>
                       </div>
-
                       {selectedCustomer.contact && (
                         <div className="mt-2 text-sm">
                           <p className="text-muted-foreground">Contato:</p>
@@ -569,44 +321,13 @@ export function DialogPedidos() {
                           </p>
                         </div>
                       )}
-
-                      {selectedCustomer.billing_address && (
-                        <div className="mt-2 text-sm flex items-start">
-                          <Home className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
-                          <div>
-                            <p className="text-muted-foreground">
-                              {selectedCustomer.billing_address.description ||
-                                "Endereço Padrão"}
-                              :
-                            </p>
-                            <p>
-                              {selectedCustomer.billing_address.street_name},{" "}
-                              {selectedCustomer.billing_address.number}
-                              {selectedCustomer.billing_address.complement &&
-                                `, ${selectedCustomer.billing_address.complement}`}
-                            </p>
-                            <p>
-                              {selectedCustomer.billing_address.district},{" "}
-                              {selectedCustomer.billing_address.city} -{" "}
-                              {selectedCustomer.billing_address.state},{" "}
-                              {selectedCustomer.billing_address.cep}
-                            </p>
-                            {selectedCustomer.billing_address.observation && (
-                              <p className="text-muted-foreground italic">
-                                Obs:{" "}
-                                {selectedCustomer.billing_address.observation}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 )}
 
                 <Separator />
 
-                {/* Products Selection */}
+                {/* Seleção de Produtos */}
                 <FormField
                   control={control}
                   name="products"
@@ -618,7 +339,7 @@ export function DialogPedidos() {
                       </FormLabel>
                       <FormControl>
                         <ProductSelector
-                          products={products}
+                          products={products.filter((p) => p.is_active !== false)}
                           value={field.value || []}
                           onChange={field.onChange}
                         />
@@ -637,7 +358,7 @@ export function DialogPedidos() {
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* Payment Method */}
+                  {/* Método de pagamento */}
                   <FormField
                     control={control}
                     name="payment_method_id"
@@ -679,8 +400,7 @@ export function DialogPedidos() {
                       </FormItem>
                     )}
                   />
-
-                  {/* Delivery Date */}
+                  {/* Data da retirada */}
                   <FormField
                     control={control}
                     name="delivery_date"
@@ -688,7 +408,7 @@ export function DialogPedidos() {
                       <FormItem>
                         <FormLabel className="flex items-center">
                           <CalendarIcon className="mr-2 h-4 w-4 text-[#FF8F3F]" />
-                          {isPickup ? "Data de retirada*" : "Data de entrega*"}
+                          Data da retirada*
                         </FormLabel>
                         <FormControl>
                           <DatePicker
@@ -706,8 +426,7 @@ export function DialogPedidos() {
                       </FormItem>
                     )}
                   />
-
-                  {/* Boleto - Vencimento */}
+                  {/* Boleto - vencimento */}
                   {isBoletoBancario && (
                     <FormField
                       control={control}
@@ -737,7 +456,7 @@ export function DialogPedidos() {
                   )}
                 </div>
 
-                {/* Error Summary */}
+                {/* Erros */}
                 {formSubmitted && Object.keys(errors).length > 0 && (
                   <Card className="border-destructive/50 bg-destructive/5">
                     <CardContent className="p-4">
@@ -764,23 +483,12 @@ export function DialogPedidos() {
                         {errors.customer_id && (
                           <li>• Cliente: {errors.customer_id.message}</li>
                         )}
-                        {errors.delivery_method && (
-                          <li>
-                            • Tipo de entrega: {errors.delivery_method.message}
-                          </li>
-                        )}
-                        {errors.delivery_address_id && (
-                          <li>
-                            • Endereço de entrega:{" "}
-                            {errors.delivery_address_id.message}
-                          </li>
-                        )}
                         {errors.products && (
                           <li>• Produtos: {errors.products.message}</li>
                         )}
                         {errors.delivery_date && (
                           <li>
-                            • Data de entrega: {errors.delivery_date.message}
+                            • Data da retirada: {errors.delivery_date.message}
                           </li>
                         )}
                         {errors.due_date && (
@@ -790,8 +498,7 @@ export function DialogPedidos() {
                         )}
                         {errors.payment_method_id && (
                           <li>
-                            • Método de pagamento:{" "}
-                            {errors.payment_method_id.message}
+                            • Método de pagamento: {errors.payment_method_id.message}
                           </li>
                         )}
                         {errors.order_status_id && (

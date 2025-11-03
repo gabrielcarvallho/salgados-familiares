@@ -29,13 +29,10 @@ export const ProductSelector = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showProductList, setShowProductList] = useState(false);
-  const [editingPriceId, setEditingPriceId] = useState<string | number | null>(
-    null
-  );
+  const [editingPriceId, setEditingPriceId] = useState<string | number | null>(null);
   const [tempSalePrice, setTempSalePrice] = useState<string>("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // ✅ VERIFICAR SE ESTÁ DESABILITADO GLOBALMENTE
   const isGloballyDisabled = onDisabled?.(value) ?? false;
 
   useEffect(() => {
@@ -51,20 +48,17 @@ export const ProductSelector = ({
     if (showProductList) {
       document.addEventListener("mousedown", handleClickOutside);
     }
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showProductList]);
 
-  // ✅ FECHAR DROPDOWN QUANDO DESABILITADO
   useEffect(() => {
     if (isGloballyDisabled && showProductList) {
       setShowProductList(false);
     }
   }, [isGloballyDisabled, showProductList]);
 
-  // ✅ CANCELAR EDIÇÃO QUANDO DESABILITADO
   useEffect(() => {
     if (isGloballyDisabled && editingPriceId) {
       cancelEdit();
@@ -79,19 +73,13 @@ export const ProductSelector = ({
     value.some((item) => item.product_id === productId && item.quantity > 0);
 
   const addProduct = (product: any) => {
-    // ✅ BLOQUEAR SE DESABILITADO
     if (isGloballyDisabled) return;
-
-    // Verifica se o produto já foi adicionado
     const isDuplicate = value.some((item) => item.product_id === product.id);
-
     if (isDuplicate) {
       alert("Este produto já foi adicionado ao pedido");
-      // ✅ FECHAR DROPDOWN MESMO SE DUPLICADO
       setShowProductList(false);
       return;
     }
-
     onChange([
       ...value,
       {
@@ -101,8 +89,6 @@ export const ProductSelector = ({
         price: Number(product.price) || 0,
       },
     ]);
-
-    // ✅ FECHAR DROPDOWN APÓS SELECIONAR PRODUTO (com setTimeout para garantir)
     setTimeout(() => {
       setShowProductList(false);
       setSearchTerm("");
@@ -110,10 +96,8 @@ export const ProductSelector = ({
   };
 
   const updateQuantity = (productId: string | number, quantity: number) => {
-    // ✅ BLOQUEAR SE DESABILITADO
     if (isGloballyDisabled) return;
     if (quantity < 0) return;
-
     onChange(
       value.map((item) =>
         item.product_id === productId ? { ...item, quantity } : item
@@ -122,10 +106,8 @@ export const ProductSelector = ({
   };
 
   const updateSalesPrice = (productId: string | number, sale_price: number) => {
-    // ✅ BLOQUEAR SE DESABILITADO
     if (isGloballyDisabled) return;
     if (sale_price < 0) return;
-
     onChange(
       value.map((item) =>
         item.product_id === productId ? { ...item, sale_price } : item
@@ -133,19 +115,14 @@ export const ProductSelector = ({
     );
   };
 
-  // ✅ CORRIGIR FUNÇÃO removeProduct
+  // Remove o produto ao clicar no botão de lixeira
   const removeProduct = (productId: string | number) => {
-    // ✅ BLOQUEAR SE DESABILITADO
     if (isGloballyDisabled) return;
-
     onChange(value.filter((item) => item.product_id !== productId));
   };
 
-  // Editing price handlers
   const startEditPrice = (item: SelectedItem) => {
-    // ✅ BLOQUEAR SE DESABILITADO
     if (isGloballyDisabled) return;
-
     setEditingPriceId(item.product_id);
     setTempSalePrice(Number(item.sale_price || 0).toFixed(2));
   };
@@ -156,9 +133,7 @@ export const ProductSelector = ({
   };
 
   const saveEdit = (productId: string | number) => {
-    // ✅ BLOQUEAR SE DESABILITADO
     if (isGloballyDisabled) return;
-
     const parsed = parseFloat(tempSalePrice);
     updateSalesPrice(productId, isNaN(parsed) ? 0 : parsed);
     cancelEdit();
@@ -181,13 +156,11 @@ export const ProductSelector = ({
               className="pl-9 pr-4"
               value={searchTerm}
               onChange={(e) => {
-                // ✅ BLOQUEAR SE DESABILITADO
                 if (isGloballyDisabled) return;
                 setSearchTerm(e.target.value);
                 if (e.target.value) setShowProductList(true);
               }}
               onFocus={() => {
-                // ✅ BLOQUEAR SE DESABILITADO
                 if (isGloballyDisabled) return;
                 setShowProductList(true);
               }}
@@ -300,7 +273,7 @@ export const ProductSelector = ({
               <CardContent className="p-4 space-y-4">
                 {value.map((item) => {
                   const product = products.find(
-                    (p) => p.id === item.product_id
+                    (p) => String(p.id) === String(item.product_id)
                   );
                   if (!product) return null;
                   const isEditing = editingPriceId === item.product_id;
@@ -374,8 +347,8 @@ export const ProductSelector = ({
                               <span>
                                 {formatCurrency(
                                   Number(item.sale_price) ||
-                                  Number(item.price) ||
-                                  0
+                                    Number(item.price) ||
+                                    0
                                 )}
                               </span>
                               <Button
@@ -392,6 +365,7 @@ export const ProductSelector = ({
                         </div>
                       </div>
 
+                      {/* ====== ALTERAÇÃO: Botão de menor, campo quantidade, maior, lixeira ===== */}
                       <div className="flex items-center space-x-2">
                         <Button
                           type="button"
@@ -429,6 +403,19 @@ export const ProductSelector = ({
                           disabled={isGloballyDisabled}
                         >
                           <Plus className="h-3 w-3" />
+                        </Button>
+
+                        {/* ====== AQUI está o botão de remover (lixeira) ====== */}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8"
+                          onClick={() => removeProduct(item.product_id)}
+                          disabled={isGloballyDisabled}
+                          title="Remover produto"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </motion.div>
