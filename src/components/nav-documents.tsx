@@ -5,7 +5,7 @@ import {
   IconFolder,
   IconShare3,
   IconTrash,
-  type Icon,
+  TablerIcon,
 } from "@tabler/icons-react"
 
 import {
@@ -31,7 +31,7 @@ export function NavDocuments({
   items: {
     name: string
     url: string
-    icon: Icon
+    icon: React.ComponentType
   }[]
 }) {
   const { isMobile } = useSidebar()

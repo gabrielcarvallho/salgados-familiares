@@ -6,7 +6,6 @@ import type {
   OrderResponse,
   OrderStatus,
   OrderUpdateRequest,
-  OrderWithAddress,
 } from "@/types/Order";
 import { PaymentMethodsResponse } from "@/types/PaymentMethod";
 import { CustomerResponse } from "@/types/Customer";
