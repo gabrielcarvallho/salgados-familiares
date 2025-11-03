@@ -196,7 +196,7 @@ export function DialogPedidos() {
 
       const transformedData = orderRequestSchema.parse(formData);
 
-      let payload = {
+      const payload = {
         ...transformedData,
         products: transformedData.products.filter((p) => p.product_id),
       };
